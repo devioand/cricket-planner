@@ -20,6 +20,12 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    rules: {
+      // Disable empty object type warnings
+      "@typescript-eslint/no-empty-object-type": "off",
+    },
+  },
 ];
 
 export default eslintConfig;
