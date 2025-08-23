@@ -17,6 +17,7 @@ import {
   logTournamentState,
 } from "@/contexts/tournament-context";
 import { runRoundRobinTests } from "@/contexts/tournament-context/algorithms/__tests__/round-robin.test";
+import { TournamentStandings } from "@/components/tournaments/tournament-standings";
 
 export default function Home() {
   const tournament = useTournament();
@@ -49,6 +50,9 @@ export default function Home() {
   return (
     <Box p={8} maxW="600px" mx="auto">
       <VStack gap={6} align="stretch">
+        {/* Tournament Standings */}
+        {tournament.state.isGenerated && <TournamentStandings />}
+
         <Box textAlign="center">
           <Text color="fg.muted" fontSize="lg" fontWeight="medium">
             Step 1: Round Robin Algorithm Setup

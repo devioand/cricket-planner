@@ -12,6 +12,11 @@ import {
   validateRoundRobinTeams,
   calculateRoundRobinStats,
 } from "./algorithms/round-robin";
+import {
+  updateTeamStatsAfterMatch,
+  getTournamentStandings,
+  createSampleMatchResult,
+} from "./algorithms/cricket-stats";
 
 // Context interface
 interface TournamentContextType {
@@ -33,6 +38,14 @@ interface TournamentContextType {
     matchesPerTeam: number;
     minRounds: number;
   } | null;
+  // Statistics methods
+  getTeamStandings: () => import("./types").CricketTeamStats[];
+  simulateMatchResult: (
+    matchId: string,
+    team1Score: { runs: number; wickets: number; overs: number },
+    team2Score: { runs: number; wickets: number; overs: number }
+  ) => void;
+  generateSampleResults: () => void;
 }
 
 // Create context
@@ -163,6 +176,95 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     }
   };
 
+  // Statistics methods
+  const getTeamStandings = () => {
+    return getTournamentStandings(state.teamStats);
+  };
+
+  const simulateMatchResult = (
+    matchId: string,
+    team1Score: { runs: number; wickets: number; overs: number },
+    team2Score: { runs: number; wickets: number; overs: number }
+  ) => {
+    const match = state.matches.find((m) => m.id === matchId);
+    if (!match) {
+      console.error(`Match ${matchId} not found`);
+      return;
+    }
+
+    console.log(
+      `🏏 Simulating result for match ${matchId}: ${match.team1} vs ${match.team2}`
+    );
+
+    // Create match result
+    const matchResult = createSampleMatchResult(
+      match.team1,
+      match.team2,
+      team1Score.runs,
+      team1Score.wickets,
+      team1Score.overs,
+      team2Score.runs,
+      team2Score.wickets,
+      team2Score.overs,
+      match.overs
+    );
+
+    // Update match with result
+    const updatedMatches = state.matches.map((m) =>
+      m.id === matchId
+        ? { ...m, status: "completed" as const, result: matchResult }
+        : m
+    );
+
+    // Update team stats
+    const updatedTeamStats = { ...state.teamStats };
+    updatedTeamStats[match.team1] = updateTeamStatsAfterMatch(
+      updatedTeamStats[match.team1],
+      match,
+      matchResult
+    );
+    updatedTeamStats[match.team2] = updateTeamStatsAfterMatch(
+      updatedTeamStats[match.team2],
+      match,
+      matchResult
+    );
+
+    // Dispatch updates
+    dispatch({ type: "SET_MATCHES", payload: updatedMatches });
+    dispatch({ type: "UPDATE_TEAM_STATS", payload: updatedTeamStats });
+
+    console.log(`✅ Match ${matchId} completed with result`);
+  };
+
+  const generateSampleResults = () => {
+    console.log("🎲 Generating sample match results...");
+
+    const scheduledMatches = state.matches.filter(
+      (m) => m.status === "scheduled"
+    );
+
+    scheduledMatches.forEach((match, index) => {
+      // Generate random but realistic cricket scores
+      const team1Runs = Math.floor(Math.random() * 100) + 100; // 100-200 runs
+      const team1Wickets = Math.floor(Math.random() * 10) + 1; // 1-10 wickets
+      const team1Overs = match.overs - Math.random() * 10; // Some variation in overs
+
+      // Team 2 chasing - make it competitive
+      const difference = Math.floor(Math.random() * 40) - 20; // -20 to +20 runs difference
+      const team2Runs = Math.max(50, team1Runs + difference);
+      const team2Wickets = Math.floor(Math.random() * 10) + 1;
+      const team2Overs = match.overs - Math.random() * 15;
+
+      setTimeout(() => {
+        simulateMatchResult(
+          match.id,
+          { runs: team1Runs, wickets: team1Wickets, overs: team1Overs },
+          { runs: team2Runs, wickets: team2Wickets, overs: team2Overs }
+        );
+      }, index * 100); // Stagger the updates
+    });
+  };
+
   const contextValue: TournamentContextType = {
     state,
     dispatch,
@@ -175,6 +277,9 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     resetTournament,
     validateTeams,
     getStats,
+    getTeamStandings,
+    simulateMatchResult,
+    generateSampleResults,
   };
 
   return (
@@ -197,5 +302,12 @@ export function useTournament() {
 export { TournamentContext };
 
 // Re-export types and utilities for easy access
-export type { TournamentState, TournamentType, Match } from "./types";
+export type {
+  TournamentState,
+  TournamentType,
+  Match,
+  CricketTeamStats,
+  CricketMatchResult,
+} from "./types";
 export { logTournamentState } from "./state";
+export { formatNRR } from "./algorithms/cricket-stats";

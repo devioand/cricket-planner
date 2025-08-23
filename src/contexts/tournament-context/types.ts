@@ -16,6 +16,31 @@ export interface Match {
   venue?: string;
   overs: number;
   wickets: number;
+  result?: CricketMatchResult;
+}
+
+// Cricket-specific match result with detailed scoring
+export interface CricketMatchResult {
+  winner: string;
+  loser: string;
+  isDraw?: boolean;
+  isNoResult?: boolean; // For abandoned matches
+  team1Innings: InningsScore;
+  team2Innings: InningsScore;
+  marginType?: "runs" | "wickets";
+  margin?: number;
+  matchType: "completed" | "abandoned" | "no-result";
+}
+
+// Detailed innings scoring information
+export interface InningsScore {
+  teamName: string;
+  runs: number;
+  wickets: number;
+  overs: number; // Actual overs played (e.g., 47.2 overs = 47.33)
+  ballsFaced: number; // Total balls faced for precise calculation
+  isAllOut: boolean;
+  runRate: number; // Calculated run rate
 }
 
 // Tournament state interface
@@ -26,6 +51,7 @@ export interface TournamentState {
   maxWickets: number;
   matches: Match[];
   isGenerated: boolean;
+  teamStats: Record<string, CricketTeamStats>; // Team name to stats mapping
 }
 
 // Extended types for future features
@@ -35,6 +61,41 @@ export interface Team {
   players?: string[];
   logo?: string;
   stats?: TeamStats;
+}
+
+// Comprehensive cricket team statistics
+export interface CricketTeamStats {
+  teamName: string;
+  matchesPlayed: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  noResults: number;
+  points: number;
+
+  // Batting statistics
+  totalRunsScored: number;
+  totalBallsFaced: number;
+  totalOversPlayed: number; // Actual overs played by team
+
+  // Bowling/Fielding statistics
+  totalRunsConceded: number;
+  totalBallsBowled: number;
+  totalOversBowled: number; // Actual overs bowled against team
+
+  // Calculated rates
+  battingRunRate: number; // Runs scored per over
+  bowlingRunRate: number; // Runs conceded per over
+  netRunRate: number; // NRR calculation
+
+  // Additional stats
+  highestScore?: number;
+  lowestScore?: number;
+  biggestWin?: {
+    opponent: string;
+    margin: number;
+    marginType: "runs" | "wickets";
+  };
 }
 
 export interface TeamStats {
@@ -50,7 +111,6 @@ export interface ExtendedMatch extends Match {
   team1Extended?: Team;
   team2Extended?: Team;
   scheduledDate?: Date;
-  result?: MatchResult;
   nextMatchId?: string; // For elimination tournaments
   bracket?: "main" | "losers"; // For double/triple elimination
 }

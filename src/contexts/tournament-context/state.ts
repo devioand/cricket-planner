@@ -1,6 +1,7 @@
 // Tournament State Management for Context API
 
-import { TournamentState, Match } from "./types";
+import { TournamentState, Match, CricketTeamStats } from "./types";
+import { initializeTeamStats } from "./algorithms/cricket-stats";
 
 // Initial state
 export const initialTournamentState: TournamentState = {
@@ -10,6 +11,7 @@ export const initialTournamentState: TournamentState = {
   maxWickets: 10,
   matches: [],
   isGenerated: false,
+  teamStats: {},
 };
 
 // State actions
@@ -22,6 +24,8 @@ export type TournamentAction =
   | { type: "SET_MAX_WICKETS"; payload: number }
   | { type: "SET_MATCHES"; payload: Match[] }
   | { type: "SET_GENERATED"; payload: boolean }
+  | { type: "UPDATE_TEAM_STATS"; payload: Record<string, CricketTeamStats> }
+  | { type: "INITIALIZE_TEAM_STATS"; payload: string[] }
   | { type: "RESET_TOURNAMENT" };
 
 // State reducer
@@ -45,27 +49,47 @@ export function tournamentReducer(
         return state;
       }
       console.log(`✅ Team "${action.payload}" added`);
+
+      // Initialize stats for new team
+      const newTeamStats = { ...state.teamStats };
+      newTeamStats[action.payload] = initializeTeamStats(action.payload);
+
       return {
         ...state,
         teams: [...state.teams, action.payload],
+        teamStats: newTeamStats,
         matches: [], // Clear matches when teams change
         isGenerated: false,
       };
 
     case "REMOVE_TEAM":
       console.log(`🗑️ Team "${action.payload}" removed`);
+
+      // Remove team stats
+      const updatedTeamStats = { ...state.teamStats };
+      delete updatedTeamStats[action.payload];
+
       return {
         ...state,
         teams: state.teams.filter((team) => team !== action.payload),
+        teamStats: updatedTeamStats,
         matches: [], // Clear matches when teams change
         isGenerated: false,
       };
 
     case "SET_TEAMS":
       console.log(`👥 Teams updated:`, action.payload);
+
+      // Initialize stats for all teams
+      const teamStats: Record<string, CricketTeamStats> = {};
+      action.payload.forEach((teamName) => {
+        teamStats[teamName] = initializeTeamStats(teamName);
+      });
+
       return {
         ...state,
         teams: action.payload,
+        teamStats,
         matches: [], // Clear matches when teams change
         isGenerated: false,
       };
@@ -96,6 +120,24 @@ export function tournamentReducer(
       return {
         ...state,
         isGenerated: action.payload,
+      };
+
+    case "UPDATE_TEAM_STATS":
+      console.log("📊 Team stats updated");
+      return {
+        ...state,
+        teamStats: action.payload,
+      };
+
+    case "INITIALIZE_TEAM_STATS":
+      console.log("🏏 Initializing team stats for:", action.payload);
+      const initializedStats: Record<string, CricketTeamStats> = {};
+      action.payload.forEach((teamName) => {
+        initializedStats[teamName] = initializeTeamStats(teamName);
+      });
+      return {
+        ...state,
+        teamStats: initializedStats,
       };
 
     case "RESET_TOURNAMENT":
