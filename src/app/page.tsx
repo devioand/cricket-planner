@@ -12,7 +12,7 @@ import {
   Flex,
   Icon,
 } from "@chakra-ui/react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface TournamentAlgorithm {
   id: string;
@@ -103,14 +103,6 @@ const algorithms: TournamentAlgorithm[] = [
 ];
 
 export default function TournamentSelection() {
-  const router = useRouter();
-
-  const handleAlgorithmSelect = (algorithm: TournamentAlgorithm) => {
-    if (algorithm.route) {
-      router.push(algorithm.route);
-    }
-  };
-
   return (
     <Box
       p={{ base: 4, md: 8 }}
@@ -150,11 +142,7 @@ export default function TournamentSelection() {
             align="stretch"
           >
             {algorithms.map((algorithm) => (
-              <AlgorithmCard
-                key={algorithm.id}
-                algorithm={algorithm}
-                onSelect={() => handleAlgorithmSelect(algorithm)}
-              />
+              <AlgorithmCard key={algorithm.id} algorithm={algorithm} />
             ))}
           </Flex>
         </Box>
@@ -202,11 +190,10 @@ export default function TournamentSelection() {
 
 interface AlgorithmCardProps {
   algorithm: TournamentAlgorithm;
-  onSelect: () => void;
 }
 
-function AlgorithmCard({ algorithm, onSelect }: AlgorithmCardProps) {
-  return (
+function AlgorithmCard({ algorithm }: AlgorithmCardProps) {
+  const cardContent = (
     <Card.Root
       flex="1"
       minH={{ base: "auto", md: "400px" }}
@@ -217,7 +204,6 @@ function AlgorithmCard({ algorithm, onSelect }: AlgorithmCardProps) {
       bg={algorithm.isAvailable ? "white" : "gray.50"}
       opacity={algorithm.isAvailable ? 1 : 0.7}
       cursor="pointer"
-      onClick={onSelect}
       transition="all 0.2s"
       _hover={
         algorithm.isAvailable
@@ -335,5 +321,13 @@ function AlgorithmCard({ algorithm, onSelect }: AlgorithmCardProps) {
         </VStack>
       </Card.Body>
     </Card.Root>
+  );
+
+  return algorithm.route ? (
+    <Link href={algorithm.route} style={{ display: "flex" }}>
+      {cardContent}
+    </Link>
+  ) : (
+    cardContent
   );
 }
