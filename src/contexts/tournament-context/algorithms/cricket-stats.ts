@@ -277,7 +277,7 @@ export function createSampleMatchResult(
   team2Runs: number,
   team2Wickets: number,
   team2Overs: number,
-  maxOvers: number
+  _maxOvers: number // eslint-disable-line @typescript-eslint/no-unused-vars
 ): CricketMatchResult {
   const team1Balls = oversToBalls(team1Overs);
   const team2Balls = oversToBalls(team2Overs);

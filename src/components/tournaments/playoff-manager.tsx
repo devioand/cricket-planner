@@ -11,18 +11,16 @@ import {
   Card,
   Alert,
 } from "@chakra-ui/react";
-import {
-  useTournament,
-  type Match,
-  type TournamentPhase,
-} from "@/contexts/tournament-context";
+import { useTournament, type Match } from "@/contexts/tournament-context";
 import { PlayoffFormatSelector } from "./playoff-format-selector";
 
 interface PlayoffManagerProps {
   showCompleted?: boolean;
 }
 
-export function PlayoffManager({ showCompleted = true }: PlayoffManagerProps) {
+export function PlayoffManager({
+  showCompleted: _showCompleted = true, // eslint-disable-line @typescript-eslint/no-unused-vars
+}: PlayoffManagerProps) {
   const tournament = useTournament();
   const playoffStatus = tournament.getPlayoffStatus();
   const canGeneratePlayoffs = tournament.canGeneratePlayoffs();

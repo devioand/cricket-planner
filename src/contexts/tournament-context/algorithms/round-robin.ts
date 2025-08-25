@@ -65,7 +65,7 @@ export function generateRoundRobinMatches(
         round: roundIndex + 1,
         status: "scheduled",
         overs: maxOvers,
-        wickets: maxWickets,
+        maxWickets: maxWickets,
       };
 
       matches.push(match);

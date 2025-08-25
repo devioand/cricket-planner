@@ -58,8 +58,8 @@ export function MatchManager({ showCompleted = true }: MatchManagerProps) {
               📅 Scheduled Matches ({scheduledMatches.length})
             </Heading>
             <Text fontSize="xs" color="gray.500" fontStyle="italic">
-              Fill in scores manually or use "Generate Sample Results" for
-              testing
+              Fill in scores manually or use &quot;Generate Sample Results&quot;
+              for testing
             </Text>
           </HStack>
           {scheduledMatches.map((match) => (
@@ -348,14 +348,15 @@ function CompletedMatchCard({ match }: CompletedMatchCardProps) {
   if (!match.result) return null;
 
   const result = match.result;
-  const winnerScore =
-    result.team1Innings.teamName === result.winner
-      ? result.team1Innings
-      : result.team2Innings;
-  const loserScore =
-    result.team1Innings.teamName === result.loser
-      ? result.team1Innings
-      : result.team2Innings;
+  // Score details for display (currently not used but kept for future reference)
+  // const winnerScore =
+  //   result.team1Innings.teamName === result.winner
+  //     ? result.team1Innings
+  //     : result.team2Innings;
+  // const loserScore =
+  //   result.team1Innings.teamName === result.loser
+  //     ? result.team1Innings
+  //     : result.team2Innings;
 
   return (
     <Card.Root p={4} borderLeft="4px solid" borderColor="green.400">

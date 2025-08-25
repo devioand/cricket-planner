@@ -1,6 +1,6 @@
 // World Cup style playoff algorithms for cricket tournaments
 
-import type { Match, TournamentState, CricketTeamStats } from "../types";
+import type { Match, TournamentState } from "../types";
 import { getTournamentStandings } from "./cricket-stats";
 
 /**

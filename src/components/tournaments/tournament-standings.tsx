@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Box,
-  Heading,
-  Badge,
-  Text,
-  VStack,
-  HStack,
-  Button,
-} from "@chakra-ui/react";
+import { Box, Heading, Badge, Text, VStack, HStack } from "@chakra-ui/react";
 import { Table } from "@chakra-ui/react";
 import {
   useTournament,
@@ -36,10 +28,6 @@ export function TournamentStandings({
       </Box>
     );
   }
-
-  const handleGenerateSampleResults = () => {
-    tournament.generateSampleResults();
-  };
 
   return (
     <VStack align="stretch" gap={4}>

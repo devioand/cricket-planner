@@ -14,17 +14,12 @@ import {
 } from "./algorithms/round-robin";
 import {
   generateWorldCupPlayoffMatches,
-  generateWorldCupFinalMatches,
   canGeneratePlayoffs,
-  canGenerateFinals,
   getPlayoffStatus,
   isRoundRobinComplete,
 } from "./algorithms/playoffs";
 import {
   generateLeaguePlayoffMatches,
-  generateLeagueFinalMatches,
-  updateLeagueFinalWithQ2Winner,
-  canGenerateLeagueQ2,
   getLeaguePlayoffStatus,
 } from "./algorithms/playoffs-league";
 import {
