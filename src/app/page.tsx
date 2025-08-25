@@ -11,7 +11,7 @@ import {
   Flex,
   NumberInput,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useTournament,
   logTournamentState,
@@ -20,10 +20,13 @@ import { runRoundRobinTests } from "@/contexts/tournament-context/algorithms/__t
 import { TournamentStandings } from "@/components/tournaments/tournament-standings";
 import { MatchManager } from "@/components/tournaments/match-manager";
 import { PlayoffManager } from "@/components/tournaments/playoff-manager";
+import { TournamentCelebration } from "@/components/tournaments/tournament-celebration";
 
 export default function Home() {
   const tournament = useTournament();
   const [teamInput, setTeamInput] = useState("");
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationShown, setCelebrationShown] = useState(false);
 
   const handleAddTeam = () => {
     if (teamInput.trim()) {
@@ -48,6 +51,22 @@ export default function Home() {
       handleAddTeam();
     }
   };
+
+  // Check for tournament completion and show celebration
+  useEffect(() => {
+    const isComplete = tournament.isTournamentComplete();
+    const winner = tournament.getTournamentWinner();
+
+    if (isComplete && winner && !celebrationShown) {
+      setShowCelebration(true);
+      setCelebrationShown(true);
+    }
+
+    // Reset celebration flag when tournament is reset
+    if (!isComplete && celebrationShown) {
+      setCelebrationShown(false);
+    }
+  }, [tournament.state.matches, tournament, celebrationShown]);
 
   return (
     <Box p={8} maxW="1200px" mx="auto">
@@ -212,6 +231,13 @@ export default function Home() {
             </Text>
           </Box>
         )}
+
+        {/* Tournament Celebration */}
+        <TournamentCelebration
+          isOpen={showCelebration}
+          onClose={() => setShowCelebration(false)}
+          winner={tournament.getTournamentWinner() || ""}
+        />
       </VStack>
     </Box>
   );

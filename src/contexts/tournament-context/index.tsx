@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  ReactNode,
+} from "react";
 import {
   TournamentAction,
   initialTournamentState,
@@ -32,6 +38,11 @@ import {
   updateWorldCupPlayoffTeams,
   hasResolvableTBDTeams,
 } from "./algorithms/update-playoff-teams";
+import {
+  saveTournamentState,
+  loadTournamentState,
+  clearTournamentState,
+} from "./utils/localStorage";
 
 // Context interface
 interface TournamentContextType {
@@ -67,6 +78,11 @@ interface TournamentContextType {
   generateFinals: () => { success: boolean; errors?: string[] };
   canGeneratePlayoffs: () => { canGenerate: boolean; reasons: string[] };
   canGenerateFinals: () => { canGenerate: boolean; reasons: string[] };
+  // Persistence methods
+  clearAllData: () => void;
+  // Tournament completion
+  getTournamentWinner: () => string | null;
+  isTournamentComplete: () => boolean;
   getPlayoffStatus: () => {
     phase:
       | "not-started"
@@ -95,8 +111,14 @@ interface TournamentProviderProps {
 export function TournamentProvider({ children }: TournamentProviderProps) {
   const [state, dispatch] = useReducer(
     tournamentReducer,
-    initialTournamentState
+    initialTournamentState,
+    loadTournamentState // Load from localStorage on initialization
   );
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    saveTournamentState(state);
+  }, [state]);
 
   // Action methods
   const addTeam = (teamName: string): boolean => {
@@ -192,6 +214,28 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
 
   const resetTournament = (): void => {
     dispatch({ type: "RESET_TOURNAMENT" });
+  };
+
+  const clearAllData = (): void => {
+    clearTournamentState();
+    dispatch({ type: "RESET_TOURNAMENT" });
+    console.log("🗑️ All tournament data cleared");
+  };
+
+  const getTournamentWinner = (): string | null => {
+    // Check if there's a completed final match
+    const finalMatch = state.matches.find(
+      (match) =>
+        match.isPlayoff &&
+        match.playoffType === "final" &&
+        match.status === "completed"
+    );
+
+    return finalMatch?.result?.winner || null;
+  };
+
+  const isTournamentComplete = (): boolean => {
+    return getTournamentWinner() !== null;
   };
 
   // Utility methods
@@ -410,6 +454,9 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
         ? getPlayoffStatus(state)
         : getLeaguePlayoffStatus(state),
     isRoundRobinComplete: () => isRoundRobinComplete(state),
+    clearAllData,
+    getTournamentWinner,
+    isTournamentComplete,
   };
 
   return (
