@@ -72,6 +72,14 @@ interface TournamentContextType {
     team2Score: { runs: number; wickets: number; overs: number }
   ) => void;
   generateSampleResults: () => void;
+  // Toss methods
+  setMatchToss: (
+    matchId: string,
+    tossWinner: string,
+    decision: import("./types").TossDecision
+  ) => void;
+  generateRandomToss: (matchId: string) => void;
+  generateAllTosses: () => void;
   // Playoff methods
   setPlayoffFormat: (format: import("./types").PlayoffFormat) => void;
   generatePlayoffs: () => { success: boolean; errors?: string[] };
@@ -424,6 +432,76 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     };
   };
 
+  // Toss functionality
+  const setMatchToss = (
+    matchId: string,
+    tossWinner: string,
+    decision: import("./types").TossDecision
+  ) => {
+    const match = state.matches.find((m) => m.id === matchId);
+    if (!match) {
+      console.error(`❌ Match ${matchId} not found`);
+      return;
+    }
+
+    // Determine the toss loser
+    const tossLoser = match.team1 === tossWinner ? match.team2 : match.team1;
+
+    const tossResult = {
+      tossWinner,
+      decision,
+      tossLoser,
+    };
+
+    const updatedMatches = state.matches.map((m) =>
+      m.id === matchId ? { ...m, toss: tossResult } : m
+    );
+
+    dispatch({ type: "SET_MATCHES", payload: updatedMatches });
+    console.log(
+      `🪙 Toss set for ${matchId}: ${tossWinner} won and chose to ${decision}`
+    );
+  };
+
+  const generateRandomToss = (matchId: string) => {
+    const match = state.matches.find((m) => m.id === matchId);
+    if (!match) {
+      console.error(`❌ Match ${matchId} not found`);
+      return;
+    }
+
+    // Skip if toss already exists
+    if (match.toss) {
+      console.log(`⚠️ Toss already exists for match ${matchId}`);
+      return;
+    }
+
+    // Randomly select toss winner
+    const teams = [match.team1, match.team2];
+    const randomTeamIndex = Math.floor(Math.random() * 2);
+    const tossWinner = teams[randomTeamIndex];
+
+    // Randomly select decision
+    const decisions: import("./types").TossDecision[] = ["bat", "bowl"];
+    const randomDecisionIndex = Math.floor(Math.random() * 2);
+    const decision = decisions[randomDecisionIndex];
+
+    setMatchToss(matchId, tossWinner, decision);
+  };
+
+  const generateAllTosses = () => {
+    const matchesWithoutToss = state.matches.filter((m) => !m.toss);
+    console.log(
+      `🎲 Generating random tosses for ${matchesWithoutToss.length} matches`
+    );
+
+    matchesWithoutToss.forEach((match) => {
+      generateRandomToss(match.id);
+    });
+
+    console.log("✅ All tosses generated!");
+  };
+
   const contextValue: TournamentContextType = {
     state,
     dispatch,
@@ -439,6 +517,9 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     getTeamStandings,
     simulateMatchResult,
     generateSampleResults,
+    setMatchToss,
+    generateRandomToss,
+    generateAllTosses,
     setPlayoffFormat,
     generatePlayoffs,
     generateFinals,
@@ -488,6 +569,8 @@ export type {
   Match,
   CricketTeamStats,
   CricketMatchResult,
+  TossResult,
+  TossDecision,
 } from "./types";
 export { logTournamentState } from "./state";
 export { formatNRR } from "./algorithms/cricket-stats";
