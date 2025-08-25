@@ -14,6 +14,7 @@ import {
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { useTournament, type Match } from "@/contexts/tournament-context";
+import { TossManager } from "./toss-manager";
 
 interface MatchManagerProps {
   showCompleted?: boolean;
@@ -38,16 +39,28 @@ export function MatchManager({ showCompleted = true }: MatchManagerProps) {
     <VStack align="stretch" gap={6}>
       <HStack justify="space-between" align="center">
         <Heading size="md">🏏 Match Manager</Heading>
-        {scheduledMatches.length > 0 && (
-          <Button
-            size="sm"
-            colorScheme="purple"
-            variant="outline"
-            onClick={handleGenerateSampleResults}
-          >
-            🎲 Generate Sample Results ({scheduledMatches.length} matches)
-          </Button>
-        )}
+        <HStack gap={2}>
+          {scheduledMatches.length > 0 && (
+            <>
+              <Button
+                size="sm"
+                colorScheme="orange"
+                variant="outline"
+                onClick={() => tournament.generateAllTosses()}
+              >
+                🪙 Generate All Tosses
+              </Button>
+              <Button
+                size="sm"
+                colorScheme="purple"
+                variant="outline"
+                onClick={handleGenerateSampleResults}
+              >
+                🎲 Generate Sample Results ({scheduledMatches.length} matches)
+              </Button>
+            </>
+          )}
+        </HStack>
       </HStack>
 
       {/* Scheduled Matches */}
@@ -200,6 +213,9 @@ function MatchScoreInput({ match }: MatchScoreInputProps) {
             </HStack>
           </VStack>
         </HStack>
+
+        {/* Toss Section */}
+        <TossManager match={match} />
 
         {/* Score Input Form */}
         <Flex gap={6} direction={{ base: "column", md: "row" }}>
@@ -380,6 +396,31 @@ function CompletedMatchCard({ match }: CompletedMatchCardProps) {
             </HStack>
           </VStack>
         </HStack>
+
+        {/* Toss Information */}
+        {match.toss && (
+          <Box
+            p={2}
+            bg="yellow.50"
+            borderRadius="md"
+            border="1px solid"
+            borderColor="yellow.200"
+          >
+            <Text fontSize="sm" color="yellow.700">
+              <Text as="span" fontWeight="semibold">
+                🪙 Toss:
+              </Text>{" "}
+              <Text as="span" fontWeight="bold">
+                {match.toss.tossWinner}
+              </Text>{" "}
+              won and chose to{" "}
+              <Text as="span" fontWeight="bold">
+                {match.toss.decision}
+              </Text>{" "}
+              first
+            </Text>
+          </Box>
+        )}
 
         {/* Match Result */}
         <Box bg="gray.50" p={3} borderRadius="md">

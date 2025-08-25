@@ -25,6 +25,16 @@ export type PlayoffType =
   | "eliminator"
   | "qualifier-2";
 
+// Toss decision types
+export type TossDecision = "bat" | "bowl";
+
+// Toss result interface
+export interface TossResult {
+  tossWinner: string; // Team that won the toss
+  decision: TossDecision; // What they chose to do
+  tossLoser: string; // Team that lost the toss
+}
+
 // Match interface used by tournament state
 export interface Match {
   id: string;
@@ -35,6 +45,7 @@ export interface Match {
   venue?: string;
   overs: number;
   maxWickets: number;
+  toss?: TossResult; // Toss information
   result?: CricketMatchResult;
   // Playoff specific fields
   isPlayoff?: boolean;
