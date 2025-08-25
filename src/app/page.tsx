@@ -19,6 +19,7 @@ import {
 import { runRoundRobinTests } from "@/contexts/tournament-context/algorithms/__tests__/round-robin.test";
 import { TournamentStandings } from "@/components/tournaments/tournament-standings";
 import { MatchManager } from "@/components/tournaments/match-manager";
+import { PlayoffManager } from "@/components/tournaments/playoff-manager";
 
 export default function Home() {
   const tournament = useTournament();
@@ -53,6 +54,9 @@ export default function Home() {
       <VStack gap={6} align="stretch">
         {/* Tournament Standings */}
         {tournament.state.isGenerated && <TournamentStandings />}
+
+        {/* Playoff Manager */}
+        {tournament.state.isGenerated && <PlayoffManager />}
 
         {/* Match Manager */}
         {tournament.state.isGenerated && <MatchManager />}

@@ -6,17 +6,40 @@ export type TournamentType =
   | "double-elimination"
   | "triple-elimination";
 
+export type TournamentPhase =
+  | "setup"
+  | "round-robin"
+  | "playoffs"
+  | "completed";
+
+export type PlayoffFormat =
+  | "world-cup" // Simple knockout: SF1, SF2, Final
+  | "league"; // IPL style: Q1, Eliminator, Q2, Final
+
+export type PlayoffType =
+  | "semi-final-1"
+  | "semi-final-2"
+  | "final"
+  // League format specific
+  | "qualifier-1"
+  | "eliminator"
+  | "qualifier-2";
+
 // Match interface used by tournament state
 export interface Match {
   id: string;
   team1: string;
   team2: string;
   round: number;
-  status: "scheduled" | "in-progress" | "completed";
+  status: "scheduled" | "in-progress" | "completed" | "cancelled";
   venue?: string;
   overs: number;
-  wickets: number;
+  maxWickets: number;
   result?: CricketMatchResult;
+  // Playoff specific fields
+  isPlayoff?: boolean;
+  playoffType?: PlayoffType;
+  phase?: TournamentPhase;
 }
 
 // Cricket-specific match result with detailed scoring
@@ -52,6 +75,11 @@ export interface TournamentState {
   matches: Match[];
   isGenerated: boolean;
   teamStats: Record<string, CricketTeamStats>; // Team name to stats mapping
+  // Playoff specific state
+  phase: TournamentPhase;
+  playoffFormat: PlayoffFormat;
+  qualifiedTeams: string[];
+  playoffMatches: Match[];
 }
 
 // Extended types for future features

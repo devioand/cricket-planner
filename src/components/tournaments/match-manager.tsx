@@ -28,26 +28,40 @@ export function MatchManager({ showCompleted = true }: MatchManagerProps) {
     (m) => m.status === "completed"
   );
 
-  if (tournament.state.matches.length === 0) {
-    return (
-      <Box p={4} bg="gray.50" borderRadius="md">
-        <Text color="gray.600" textAlign="center">
-          No matches available. Generate tournament matches first.
-        </Text>
-      </Box>
-    );
-  }
+  // This check is now handled in the JSX below for better UX
+
+  const handleGenerateSampleResults = () => {
+    tournament.generateSampleResults();
+  };
 
   return (
     <VStack align="stretch" gap={6}>
-      <Heading size="md">🏏 Match Manager</Heading>
+      <HStack justify="space-between" align="center">
+        <Heading size="md">🏏 Match Manager</Heading>
+        {scheduledMatches.length > 0 && (
+          <Button
+            size="sm"
+            colorScheme="purple"
+            variant="outline"
+            onClick={handleGenerateSampleResults}
+          >
+            🎲 Generate Sample Results ({scheduledMatches.length} matches)
+          </Button>
+        )}
+      </HStack>
 
       {/* Scheduled Matches */}
       {scheduledMatches.length > 0 && (
         <VStack align="stretch" gap={4}>
-          <Heading size="sm" color="blue.600">
-            📅 Scheduled Matches ({scheduledMatches.length})
-          </Heading>
+          <HStack justify="space-between" align="center">
+            <Heading size="sm" color="blue.600">
+              📅 Scheduled Matches ({scheduledMatches.length})
+            </Heading>
+            <Text fontSize="xs" color="gray.500" fontStyle="italic">
+              Fill in scores manually or use "Generate Sample Results" for
+              testing
+            </Text>
+          </HStack>
           {scheduledMatches.map((match) => (
             <MatchScoreInput key={match.id} match={match} />
           ))}
@@ -70,6 +84,24 @@ export function MatchManager({ showCompleted = true }: MatchManagerProps) {
         <Box p={4} bg="green.50" borderRadius="md" textAlign="center">
           <Text color="green.700" fontWeight="semibold">
             🎉 All matches completed! Check the tournament standings above.
+          </Text>
+          {tournament.canGeneratePlayoffs().canGenerate && (
+            <Text fontSize="sm" color="green.600" mt={2}>
+              💡 Ready to generate playoffs - check the Playoff Management
+              section!
+            </Text>
+          )}
+        </Box>
+      )}
+
+      {/* No matches message with helpful tips */}
+      {scheduledMatches.length === 0 && completedMatches.length === 0 && (
+        <Box p={4} bg="blue.50" borderRadius="md" textAlign="center">
+          <Text color="blue.700" fontWeight="semibold" mb={2}>
+            📋 No matches available
+          </Text>
+          <Text fontSize="sm" color="blue.600">
+            Generate tournament matches first to start managing match results.
           </Text>
         </Box>
       )}

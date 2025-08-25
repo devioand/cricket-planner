@@ -1,6 +1,12 @@
 // Tournament State Management for Context API
 
-import { TournamentState, Match, CricketTeamStats } from "./types";
+import {
+  TournamentState,
+  Match,
+  CricketTeamStats,
+  TournamentPhase,
+  PlayoffFormat,
+} from "./types";
 import { initializeTeamStats } from "./algorithms/cricket-stats";
 
 // Initial state
@@ -12,6 +18,10 @@ export const initialTournamentState: TournamentState = {
   matches: [],
   isGenerated: false,
   teamStats: {},
+  phase: "setup",
+  playoffFormat: "world-cup", // Default to world cup style
+  qualifiedTeams: [],
+  playoffMatches: [],
 };
 
 // State actions
@@ -26,7 +36,12 @@ export type TournamentAction =
   | { type: "SET_GENERATED"; payload: boolean }
   | { type: "UPDATE_TEAM_STATS"; payload: Record<string, CricketTeamStats> }
   | { type: "INITIALIZE_TEAM_STATS"; payload: string[] }
-  | { type: "RESET_TOURNAMENT" };
+  | { type: "RESET_TOURNAMENT" }
+  | { type: "SET_PHASE"; payload: TournamentPhase }
+  | { type: "SET_PLAYOFF_FORMAT"; payload: PlayoffFormat }
+  | { type: "SET_QUALIFIED_TEAMS"; payload: string[] }
+  | { type: "SET_PLAYOFF_MATCHES"; payload: Match[] }
+  | { type: "ADD_PLAYOFF_MATCH"; payload: Match };
 
 // State reducer
 export function tournamentReducer(
@@ -114,6 +129,7 @@ export function tournamentReducer(
         ...state,
         matches: action.payload,
         isGenerated: true,
+        phase: action.payload.length > 0 ? "round-robin" : "setup",
       };
 
     case "SET_GENERATED":
@@ -143,6 +159,30 @@ export function tournamentReducer(
     case "RESET_TOURNAMENT":
       console.log("🔄 Tournament reset");
       return initialTournamentState;
+
+    case "SET_PHASE":
+      console.log(`🏆 Tournament phase changed to: ${action.payload}`);
+      return { ...state, phase: action.payload };
+
+    case "SET_PLAYOFF_FORMAT":
+      console.log(`🏏 Playoff format set to: ${action.payload}`);
+      return { ...state, playoffFormat: action.payload };
+
+    case "SET_QUALIFIED_TEAMS":
+      console.log("🎯 Qualified teams set:", action.payload);
+      return { ...state, qualifiedTeams: action.payload };
+
+    case "SET_PLAYOFF_MATCHES":
+      console.log("🏏 Playoff matches set:", action.payload.length, "matches");
+      return { ...state, playoffMatches: action.payload };
+
+    case "ADD_PLAYOFF_MATCH":
+      console.log("➕ Playoff match added:", action.payload.id);
+      return {
+        ...state,
+        playoffMatches: [...state.playoffMatches, action.payload],
+        matches: [...state.matches, action.payload],
+      };
 
     default:
       return state;

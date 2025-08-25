@@ -13,10 +13,30 @@ import {
   calculateRoundRobinStats,
 } from "./algorithms/round-robin";
 import {
+  generateWorldCupPlayoffMatches,
+  generateWorldCupFinalMatches,
+  canGeneratePlayoffs,
+  canGenerateFinals,
+  getPlayoffStatus,
+  isRoundRobinComplete,
+} from "./algorithms/playoffs";
+import {
+  generateLeaguePlayoffMatches,
+  generateLeagueFinalMatches,
+  updateLeagueFinalWithQ2Winner,
+  canGenerateLeagueQ2,
+  getLeaguePlayoffStatus,
+} from "./algorithms/playoffs-league";
+import {
   updateTeamStatsAfterMatch,
   getTournamentStandings,
   createSampleMatchResult,
 } from "./algorithms/cricket-stats";
+import {
+  updateLeaguePlayoffTeams,
+  updateWorldCupPlayoffTeams,
+  hasResolvableTBDTeams,
+} from "./algorithms/update-playoff-teams";
 
 // Context interface
 interface TournamentContextType {
@@ -46,6 +66,25 @@ interface TournamentContextType {
     team2Score: { runs: number; wickets: number; overs: number }
   ) => void;
   generateSampleResults: () => void;
+  // Playoff methods
+  setPlayoffFormat: (format: import("./types").PlayoffFormat) => void;
+  generatePlayoffs: () => { success: boolean; errors?: string[] };
+  generateFinals: () => { success: boolean; errors?: string[] };
+  canGeneratePlayoffs: () => { canGenerate: boolean; reasons: string[] };
+  canGenerateFinals: () => { canGenerate: boolean; reasons: string[] };
+  getPlayoffStatus: () => {
+    phase:
+      | "not-started"
+      | "semi-finals"
+      | "finals"
+      | "completed"
+      | "qualification"
+      | "qualifier-2"
+      | "final-ready";
+    description: string;
+    nextAction?: string;
+  };
+  isRoundRobinComplete: () => boolean;
 }
 
 // Create context
@@ -234,13 +273,38 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     dispatch({ type: "UPDATE_TEAM_STATS", payload: updatedTeamStats });
 
     console.log(`✅ Match ${matchId} completed with result`);
+
+    // Auto-update playoff teams if this was a playoff match
+    if (match.isPlayoff) {
+      console.log("🔄 Checking for playoff team updates...");
+      const playoffUpdate =
+        state.playoffFormat === "league"
+          ? updateLeaguePlayoffTeams({
+              ...state,
+              matches: updatedMatches,
+              teamStats: updatedTeamStats,
+            })
+          : updateWorldCupPlayoffTeams({
+              ...state,
+              matches: updatedMatches,
+              teamStats: updatedTeamStats,
+            });
+
+      if (playoffUpdate.success) {
+        console.log("📋 Playoff team updates:", playoffUpdate.updates);
+        dispatch({
+          type: "SET_MATCHES",
+          payload: playoffUpdate.updatedMatches,
+        });
+      }
+    }
   };
 
   const generateSampleResults = () => {
     console.log("🎲 Generating sample match results...");
 
     const scheduledMatches = state.matches.filter(
-      (m) => m.status === "scheduled"
+      (m) => m.status === "scheduled" && m.team1 !== "TBD" && m.team2 !== "TBD"
     );
 
     scheduledMatches.forEach((match, index) => {
@@ -265,6 +329,62 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     });
   };
 
+  // Playoff methods
+  const setPlayoffFormat = (format: import("./types").PlayoffFormat) => {
+    dispatch({ type: "SET_PLAYOFF_FORMAT", payload: format });
+  };
+
+  const generatePlayoffs = () => {
+    console.log("🏆 Generating playoff matches...");
+
+    const result =
+      state.playoffFormat === "world-cup"
+        ? generateWorldCupPlayoffMatches(state)
+        : generateLeaguePlayoffMatches(state);
+
+    if (result.success) {
+      // Update state with playoff matches and qualified teams
+      dispatch({ type: "SET_QUALIFIED_TEAMS", payload: result.qualifiedTeams });
+      dispatch({ type: "SET_PLAYOFF_MATCHES", payload: result.playoffMatches });
+      dispatch({ type: "SET_PHASE", payload: "playoffs" });
+
+      // Add playoff matches to main matches array
+      const updatedMatches = [...state.matches, ...result.playoffMatches];
+      dispatch({ type: "SET_MATCHES", payload: updatedMatches });
+
+      console.log("✅ Playoffs generated successfully!");
+    } else {
+      console.error("❌ Failed to generate playoffs:", result.errors);
+    }
+
+    return { success: result.success, errors: result.errors };
+  };
+
+  const generateFinals = () => {
+    console.log("🏆 Updating final teams...");
+
+    // For both formats, all matches are already generated, just need to update teams
+    if (hasResolvableTBDTeams(state)) {
+      const playoffUpdate =
+        state.playoffFormat === "league"
+          ? updateLeaguePlayoffTeams(state)
+          : updateWorldCupPlayoffTeams(state);
+
+      if (playoffUpdate.success) {
+        console.log("📋 Playoff team updates:", playoffUpdate.updates);
+        dispatch({
+          type: "SET_MATCHES",
+          payload: playoffUpdate.updatedMatches,
+        });
+        return { success: true };
+      }
+    }
+    return {
+      success: false,
+      errors: ["No playoff teams can be resolved yet"],
+    };
+  };
+
   const contextValue: TournamentContextType = {
     state,
     dispatch,
@@ -280,6 +400,21 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     getTeamStandings,
     simulateMatchResult,
     generateSampleResults,
+    setPlayoffFormat,
+    generatePlayoffs,
+    generateFinals,
+    canGeneratePlayoffs: () => canGeneratePlayoffs(state),
+    canGenerateFinals: () => ({
+      canGenerate: hasResolvableTBDTeams(state),
+      reasons: hasResolvableTBDTeams(state)
+        ? []
+        : ["No playoff teams can be resolved yet"],
+    }),
+    getPlayoffStatus: () =>
+      state.playoffFormat === "world-cup"
+        ? getPlayoffStatus(state)
+        : getLeaguePlayoffStatus(state),
+    isRoundRobinComplete: () => isRoundRobinComplete(state),
   };
 
   return (
@@ -305,6 +440,9 @@ export { TournamentContext };
 export type {
   TournamentState,
   TournamentType,
+  TournamentPhase,
+  PlayoffFormat,
+  PlayoffType,
   Match,
   CricketTeamStats,
   CricketMatchResult,

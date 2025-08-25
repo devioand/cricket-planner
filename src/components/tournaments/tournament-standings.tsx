@@ -46,18 +46,9 @@ export function TournamentStandings({
       <HStack justify="space-between" align="center">
         <Heading size="md">🏆 Tournament Standings</Heading>
         {showActions && (
-          <Button
-            size="sm"
-            colorScheme="blue"
-            variant="outline"
-            onClick={handleGenerateSampleResults}
-            disabled={
-              tournament.state.matches.filter((m) => m.status === "scheduled")
-                .length === 0
-            }
-          >
-            🎲 Generate Sample Results
-          </Button>
+          <Text fontSize="xs" color="gray.500" fontStyle="italic">
+            Use Match Manager below to add scores or generate sample results
+          </Text>
         )}
       </HStack>
 
