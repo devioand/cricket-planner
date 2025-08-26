@@ -40,7 +40,7 @@ export function RoundRobinNavigation() {
       mb={6}
       shadow="sm"
     >
-      <HStack gap={1} overflowX="auto" pb={1}>
+      <HStack gap={1} overflowX="auto" w="full">
         {navItems.map((item) => (
           <NavButton
             key={item.href}
@@ -68,7 +68,7 @@ function NavButton({ href, label, isActive, isEnabled }: NavButtonProps) {
       size={{ base: "sm", md: "md" }}
       variant={isActive ? "solid" : "ghost"}
       colorScheme={isActive ? "blue" : "gray"}
-      minW={{ base: "80px", md: "100px" }}
+      w="full"
       opacity={isEnabled ? 1 : 0.5}
       cursor={isEnabled ? "pointer" : "not-allowed"}
       fontSize={{ base: "xs", md: "sm" }}
@@ -85,10 +85,10 @@ function NavButton({ href, label, isActive, isEnabled }: NavButtonProps) {
   );
 
   return isEnabled ? (
-    <Link href={href} style={{ flex: "0 0 auto" }}>
+    <Link href={href} style={{ flex: "1" }}>
       {buttonContent}
     </Link>
   ) : (
-    <Box flex="0 0 auto">{buttonContent}</Box>
+    <Box flex="1">{buttonContent}</Box>
   );
 }

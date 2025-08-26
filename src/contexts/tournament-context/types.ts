@@ -47,6 +47,8 @@ export interface Match {
   maxWickets: number;
   toss?: TossResult; // Toss information
   result?: CricketMatchResult;
+  // Innings control
+  secondInningsStarted?: boolean; // Track when user starts second innings
   // Playoff specific fields
   isPlayoff?: boolean;
   playoffType?: PlayoffType;

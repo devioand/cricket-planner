@@ -1,20 +1,16 @@
 "use client";
 
-import { Box, Heading, Text, VStack, Button } from "@chakra-ui/react";
+import { Heading, Text, VStack, Button, Box } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 import { useTournament } from "@/contexts/tournament-context";
 import { TournamentStandings } from "@/components/tournaments/tournament-standings";
-import { RoundRobinNavigation } from "@/components/tournaments/round-robin-navigation";
 
 export default function RoundRobinStandings() {
   const tournament = useTournament();
   const router = useRouter();
 
   return (
-    <Box p={{ base: 4, md: 8 }} maxW="1200px" mx="auto" w="full">
-      {/* Navigation */}
-      <RoundRobinNavigation />
-
+    <>
       {/* Header */}
       <VStack gap={4} align="stretch" mb={8}>
         <Box textAlign="center">
@@ -58,6 +54,6 @@ export default function RoundRobinStandings() {
           <TournamentStandings />
         )}
       </VStack>
-    </Box>
+    </>
   );
 }

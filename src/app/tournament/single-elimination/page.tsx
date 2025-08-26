@@ -40,8 +40,8 @@ export default function SingleEliminationTournament() {
             Coming Soon!
           </Text>
           <Text fontSize="sm" color="orange.600">
-            This tournament format is currently under development. We're working
-            hard to bring you the best single elimination experience.
+            This tournament format is currently under development. We&apos;re
+            working hard to bring you the best single elimination experience.
           </Text>
         </VStack>
         <Button onClick={() => router.push("/")} colorScheme="blue" size="lg">

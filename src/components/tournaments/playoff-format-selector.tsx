@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  Box,
-  Button,
-  Heading,
-  Text,
-  VStack,
-  HStack,
-  Badge,
-  Card,
-} from "@chakra-ui/react";
+import { Box, Text, VStack, HStack, Badge, Card } from "@chakra-ui/react";
 import {
   useTournament,
   type PlayoffFormat,

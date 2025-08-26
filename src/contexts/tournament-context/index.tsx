@@ -32,6 +32,8 @@ import {
   updateTeamStatsAfterMatch,
   getTournamentStandings,
   createSampleMatchResult,
+  oversToBalls,
+  calculateRunRate,
 } from "./algorithms/cricket-stats";
 import {
   updateLeaguePlayoffTeams,
@@ -71,6 +73,14 @@ interface TournamentContextType {
     team1Score: { runs: number; wickets: number; overs: number },
     team2Score: { runs: number; wickets: number; overs: number }
   ) => void;
+  completeMatch: (matchId: string) => { nextMatchId?: string };
+  updateSingleInnings: (
+    matchId: string,
+    isTeam1: boolean,
+    score: { runs: number; wickets: number; overs: number }
+  ) => void;
+  startMatch: (matchId: string) => void;
+  startSecondInnings: (matchId: string) => void;
   generateSampleResults: () => void;
   // Toss methods
   setMatchToss: (
@@ -279,7 +289,7 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     }
 
     console.log(
-      `🏏 Simulating result for match ${matchId}: ${match.team1} vs ${match.team2}`
+      `🏏 Setting scores for match ${matchId}: ${match.team1} vs ${match.team2}`
     );
 
     // Create match result
@@ -295,11 +305,128 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
       match.overs
     );
 
-    // Update match with result
+    // Update match with result but keep status as "in-progress"
     const updatedMatches = state.matches.map((m) =>
       m.id === matchId
-        ? { ...m, status: "completed" as const, result: matchResult }
+        ? { ...m, status: "in-progress" as const, result: matchResult }
         : m
+    );
+
+    // Dispatch updates
+    dispatch({ type: "SET_MATCHES", payload: updatedMatches });
+
+    console.log(`📝 Match ${matchId} scores set, waiting for completion`);
+  };
+
+  const updateSingleInnings = (
+    matchId: string,
+    isTeam1: boolean,
+    score: { runs: number; wickets: number; overs: number }
+  ) => {
+    const match = state.matches.find((m) => m.id === matchId);
+    if (!match) {
+      console.error(`Match ${matchId} not found`);
+      return;
+    }
+
+    // Determine which innings this is chronologically
+    const team1BatsFirst =
+      match.toss?.decision === "bat"
+        ? match.toss?.tossWinner === match.team1
+        : match.toss?.tossWinner !== match.team1;
+
+    const isFirstInnings =
+      (isTeam1 && team1BatsFirst) || (!isTeam1 && !team1BatsFirst);
+
+    console.log(
+      `🏏 Updating ${
+        isFirstInnings ? "first" : "second"
+      } innings for match ${matchId}`
+    );
+
+    const ballsFaced = oversToBalls(score.overs);
+    const innings = {
+      teamName: isTeam1 ? match.team1 : match.team2,
+      runs: score.runs,
+      wickets: score.wickets,
+      overs: score.overs,
+      ballsFaced,
+      isAllOut: score.wickets >= 10,
+      runRate: calculateRunRate(score.runs, score.overs),
+    };
+
+    // Update match with partial result
+    const updatedMatches = state.matches.map((m) => {
+      if (m.id === matchId) {
+        const existingResult = m.result || {
+          winner: "",
+          loser: "",
+          team1Innings: null as any,
+          team2Innings: null as any,
+          marginType: "runs" as const,
+          margin: 0,
+          matchType: "completed" as const,
+        };
+
+        if (isTeam1) {
+          return {
+            ...m,
+            result: { ...existingResult, team1Innings: innings },
+          };
+        } else {
+          return {
+            ...m,
+            result: { ...existingResult, team2Innings: innings },
+          };
+        }
+      }
+      return m;
+    });
+
+    // Dispatch updates
+    dispatch({ type: "SET_MATCHES", payload: updatedMatches });
+    console.log(
+      `📝 ${
+        isFirstInnings ? "First" : "Second"
+      } innings updated for match ${matchId}`
+    );
+  };
+
+  const startMatch = (matchId: string) => {
+    const updatedMatches = state.matches.map((m) =>
+      m.id === matchId ? { ...m, status: "in-progress" as const } : m
+    );
+    dispatch({ type: "SET_MATCHES", payload: updatedMatches });
+    console.log(`🚀 Match ${matchId} started and in progress`);
+  };
+
+  const startSecondInnings = (matchId: string) => {
+    const updatedMatches = state.matches.map((m) =>
+      m.id === matchId ? { ...m, secondInningsStarted: true } : m
+    );
+    dispatch({ type: "SET_MATCHES", payload: updatedMatches });
+    console.log(`🏏 Second innings started for match ${matchId}`);
+  };
+
+  const completeMatch = (matchId: string) => {
+    const match = state.matches.find((m) => m.id === matchId);
+    if (!match) {
+      console.error(`Match ${matchId} not found`);
+      return {};
+    }
+
+    if (!match.result) {
+      console.error(`Match ${matchId} has no result to complete`);
+      return {};
+    }
+
+    console.log(
+      `🏁 Completing match ${matchId}: ${match.team1} vs ${match.team2}`
+    );
+
+    // Update match status to completed
+    const updatedMatches = state.matches.map((m) =>
+      m.id === matchId ? { ...m, status: "completed" as const } : m
     );
 
     // Update team stats
@@ -307,44 +434,115 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     updatedTeamStats[match.team1] = updateTeamStatsAfterMatch(
       updatedTeamStats[match.team1],
       match,
-      matchResult
+      match.result
     );
     updatedTeamStats[match.team2] = updateTeamStatsAfterMatch(
       updatedTeamStats[match.team2],
       match,
-      matchResult
+      match.result
+    );
+
+    // Calculate winner and margin for the match result
+    const { team1Innings, team2Innings } = match.result;
+    if (!team1Innings || !team2Innings) {
+      console.error(`Match ${matchId} missing innings data`);
+      return {};
+    }
+
+    let winner: string;
+    let loser: string;
+    let marginType: "runs" | "wickets";
+    let margin: number;
+
+    if (team1Innings.runs > team2Innings.runs) {
+      winner = match.team1;
+      loser = match.team2;
+      marginType = "runs";
+      margin = team1Innings.runs - team2Innings.runs;
+    } else {
+      winner = match.team2;
+      loser = match.team1;
+      marginType = "wickets";
+      margin = 10 - team2Innings.wickets;
+    }
+
+    const completedResult = {
+      ...match.result,
+      winner,
+      loser,
+      marginType,
+      margin,
+      isDraw: team1Innings.runs === team2Innings.runs,
+      matchType: "completed" as const,
+    };
+
+    // Update match status to completed with proper result
+    const finalUpdatedMatches = updatedMatches.map((m) =>
+      m.id === matchId
+        ? { ...m, status: "completed" as const, result: completedResult }
+        : m
+    );
+
+    // Update team stats with completed result
+    const finalUpdatedTeamStats = { ...state.teamStats };
+    finalUpdatedTeamStats[match.team1] = updateTeamStatsAfterMatch(
+      finalUpdatedTeamStats[match.team1],
+      match,
+      completedResult
+    );
+    finalUpdatedTeamStats[match.team2] = updateTeamStatsAfterMatch(
+      finalUpdatedTeamStats[match.team2],
+      match,
+      completedResult
     );
 
     // Dispatch updates
-    dispatch({ type: "SET_MATCHES", payload: updatedMatches });
-    dispatch({ type: "UPDATE_TEAM_STATS", payload: updatedTeamStats });
+    dispatch({ type: "SET_MATCHES", payload: finalUpdatedMatches });
+    dispatch({ type: "UPDATE_TEAM_STATS", payload: finalUpdatedTeamStats });
 
-    console.log(`✅ Match ${matchId} completed with result`);
+    console.log(`✅ Match ${matchId} completed with result:`, {
+      winner,
+      loser,
+      margin,
+      marginType,
+      team1Runs: team1Innings.runs,
+      team2Runs: team2Innings.runs,
+    });
 
-    // Auto-update playoff teams if this was a playoff match
-    if (match.isPlayoff) {
-      console.log("🔄 Checking for playoff team updates...");
-      const playoffUpdate =
-        state.playoffFormat === "league"
-          ? updateLeaguePlayoffTeams({
-              ...state,
-              matches: updatedMatches,
-              teamStats: updatedTeamStats,
-            })
-          : updateWorldCupPlayoffTeams({
-              ...state,
-              matches: updatedMatches,
-              teamStats: updatedTeamStats,
-            });
+    // Find next pending match for auto-navigation
+    const nextMatch = finalUpdatedMatches.find((m) => m.status === "scheduled");
+    const nextMatchId = nextMatch?.id;
 
-      if (playoffUpdate.success) {
-        console.log("📋 Playoff team updates:", playoffUpdate.updates);
-        dispatch({
-          type: "SET_MATCHES",
-          payload: playoffUpdate.updatedMatches,
-        });
-      }
+    if (nextMatchId) {
+      console.log(`🎯 Next match available: ${nextMatchId}`);
+    } else {
+      console.log(`🏆 All matches completed!`);
     }
+
+    // Auto-update playoff teams after any match completion (not just playoff matches)
+    console.log("🔄 Checking for playoff team updates...");
+    const playoffUpdate =
+      state.playoffFormat === "league"
+        ? updateLeaguePlayoffTeams({
+            ...state,
+            matches: updatedMatches,
+            teamStats: updatedTeamStats,
+          })
+        : updateWorldCupPlayoffTeams({
+            ...state,
+            matches: updatedMatches,
+            teamStats: updatedTeamStats,
+          });
+
+    if (playoffUpdate.success) {
+      console.log("📋 Playoff team updates:", playoffUpdate.updates);
+      dispatch({
+        type: "SET_MATCHES",
+        payload: playoffUpdate.updatedMatches,
+      });
+    }
+
+    return { nextMatchId };
   };
 
   const generateSampleResults = () => {
@@ -516,6 +714,10 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     getStats,
     getTeamStandings,
     simulateMatchResult,
+    completeMatch: (matchId: string) => completeMatch(matchId) || {},
+    updateSingleInnings,
+    startMatch,
+    startSecondInnings,
     generateSampleResults,
     setMatchToss,
     generateRandomToss,

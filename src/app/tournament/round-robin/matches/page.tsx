@@ -1,21 +1,39 @@
 "use client";
 
-import { Box, Heading, Text, VStack, Button } from "@chakra-ui/react";
+import { Heading, Text, VStack, Button, Box } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 import { useTournament } from "@/contexts/tournament-context";
-import { MatchManager } from "@/components/tournaments/match-manager";
-import { PlayoffManager } from "@/components/tournaments/playoff-manager";
-import { RoundRobinNavigation } from "@/components/tournaments/round-robin-navigation";
+import { MatchCard } from "@/components/tournaments/match-card";
+import { useEffect } from "react";
 
 export default function RoundRobinMatches() {
   const tournament = useTournament();
   const router = useRouter();
 
-  return (
-    <Box p={{ base: 4, md: 8 }} maxW="1200px" mx="auto" w="full">
-      {/* Navigation */}
-      <RoundRobinNavigation />
+  // Auto-generate playoffs when round robin is complete
+  useEffect(() => {
+    const roundRobinMatches = tournament.state.matches.filter(
+      (match) => !match.isPlayoff
+    );
+    const incompleteRoundRobin = roundRobinMatches.filter(
+      (match) => match.status === "scheduled"
+    );
+    const hasPlayoffs = tournament.state.matches.some(
+      (match) => match.isPlayoff
+    );
 
+    if (
+      incompleteRoundRobin.length === 0 &&
+      roundRobinMatches.length > 0 &&
+      !hasPlayoffs
+    ) {
+      console.log("🏆 Round robin complete, auto-generating playoffs...");
+      tournament.generatePlayoffs();
+    }
+  }, [tournament]);
+
+  return (
+    <>
       {/* Header */}
       <VStack gap={4} align="stretch" mb={8}>
         <Box textAlign="center">
@@ -57,15 +75,127 @@ export default function RoundRobinMatches() {
             </Button>
           </Box>
         ) : (
-          <>
-            {/* Playoff Manager */}
-            <PlayoffManager />
-
-            {/* Match Manager */}
-            <MatchManager />
-          </>
+          <MatchesFlow />
         )}
       </VStack>
-    </Box>
+    </>
+  );
+}
+
+// Main matches component using the new MatchCard
+function MatchesFlow() {
+  const tournament = useTournament();
+
+  // Separate round-robin and playoff matches
+  const roundRobinMatches = tournament.state.matches
+    .filter((match) => !match.isPlayoff)
+    .sort((a, b) => a.round - b.round);
+
+  const playoffMatches = tournament.state.matches
+    .filter((match) => match.isPlayoff)
+    .sort((a, b) => a.round - b.round);
+
+  const allMatches = [...roundRobinMatches, ...playoffMatches];
+  const pendingMatches = allMatches.filter(
+    (match) => match.status !== "completed"
+  ).length;
+
+  const handleGenerateSampleResults = () => {
+    tournament.generateSampleResults();
+  };
+
+  return (
+    <VStack align="stretch" gap={6}>
+      {/* Sample Results Button */}
+      {allMatches.length > 0 && pendingMatches > 0 && (
+        <Button
+          size="sm"
+          colorScheme="purple"
+          variant="outline"
+          onClick={handleGenerateSampleResults}
+          alignSelf="flex-start"
+        >
+          🎲 Generate Sample Results ({pendingMatches} pending)
+        </Button>
+      )}
+
+      {/* Round Robin Matches Section */}
+      {roundRobinMatches.length > 0 && (
+        <VStack align="stretch" gap={4}>
+          <Box textAlign="center" py={4}>
+            <Text fontSize="xl" fontWeight="bold" color="blue.600" mb={1}>
+              🔄 Round Robin Stage
+            </Text>
+            <Text fontSize="sm" color="gray.600">
+              Every team plays every other team once
+            </Text>
+          </Box>
+
+          {roundRobinMatches.map((match, index) => (
+            <MatchCard
+              key={match.id}
+              match={match}
+              matchNumber={index + 1}
+              totalMatches={roundRobinMatches.length}
+            />
+          ))}
+        </VStack>
+      )}
+
+      {/* Playoff Matches Section */}
+      {playoffMatches.length > 0 && (
+        <VStack align="stretch" gap={4}>
+          {/* Option 1: Simple Clean Header (like Round Robin) */}
+          <Box textAlign="center" py={4}>
+            <Text fontSize="xl" fontWeight="bold" color="purple.600" mb={1}>
+              🏆 Playoff Stage
+            </Text>
+            <Text fontSize="sm" color="gray.600">
+              Top teams compete for the championship
+            </Text>
+          </Box>
+
+          {/* Playoff Matches */}
+          {playoffMatches.map((match, index) => (
+            <Box key={match.id} position="relative">
+              {/* Special Playoff Styling Wrapper */}
+              <Box
+                p={1}
+                bgGradient="linear(to-r, yellow.200, orange.200, yellow.200)"
+                borderRadius="xl"
+                _hover={{
+                  bgGradient:
+                    "linear(to-r, yellow.300, orange.300, yellow.300)",
+                  transform: "scale(1.01)",
+                }}
+                transition="all 0.2s ease"
+              >
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  matchNumber={index + 1}
+                  totalMatches={playoffMatches.length}
+                  isPlayoff={true}
+                />
+              </Box>
+            </Box>
+          ))}
+        </VStack>
+      )}
+
+      {/* Completion Message - Only show when ALL matches are completed */}
+      {allMatches.length > 0 &&
+        allMatches.every((match) => match.status === "completed") && (
+          <Box p={6} bg="green.50" rounded="lg" textAlign="center">
+            <Text fontSize="xl" fontWeight="bold" color="green.700" mb={2}>
+              🎉 Tournament Complete!
+            </Text>
+            <Text fontSize="md" color="green.600">
+              All matches have been played. Check the standings to see the final
+              results!
+            </Text>
+          </Box>
+        )}
+    </VStack>
   );
 }

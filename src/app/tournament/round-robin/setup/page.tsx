@@ -21,8 +21,7 @@ import {
   useTournament,
   logTournamentState,
 } from "@/contexts/tournament-context";
-import { runRoundRobinTests } from "@/contexts/tournament-context/algorithms/__tests__/round-robin.test";
-import { RoundRobinNavigation } from "@/components/tournaments/round-robin-navigation";
+
 import { TournamentCelebration } from "@/components/tournaments/tournament-celebration";
 import { PlayoffFormatSelector } from "@/components/tournaments/playoff-format-selector";
 
@@ -116,10 +115,7 @@ export default function RoundRobinSetup() {
   }, [tournament.state.matches, tournament, celebrationShown]);
 
   return (
-    <Box p={{ base: 4, md: 8 }} maxW="600px" mx="auto" w="full">
-      {/* Navigation */}
-      <RoundRobinNavigation />
-
+    <>
       {/* Header */}
       <VStack gap={4} align="stretch" mb={8}>
         <Box textAlign="center">
@@ -396,7 +392,8 @@ export default function RoundRobinSetup() {
                   <VStack gap={4} w="full">
                     <Text textAlign="center" color="gray.700">
                       This will permanently end the tournament and reset all
-                      data. You'll lose all match results and team statistics.
+                      data. You&apos;ll lose all match results and team
+                      statistics.
                     </Text>
 
                     <Text
@@ -438,7 +435,7 @@ export default function RoundRobinSetup() {
           winner={tournament.getTournamentWinner() || ""}
         />
       </VStack>
-    </Box>
+    </>
   );
 }
 
