@@ -5,10 +5,12 @@ import { getTournamentStandings } from "./cricket-stats";
 
 /**
  * Generates league-style playoff matches (IPL/BBL format)
- * Qualifier 1: 1st vs 2nd (Winner → Final, Loser → Qualifier 2)
- * Eliminator: 3rd vs 4th (Winner → Qualifier 2, Loser eliminated)
- * Qualifier 2: Loser Q1 vs Winner Eliminator (Winner → Final, Loser eliminated)
- * Final: Winner Q1 vs Winner Q2
+ * - 3 teams: Falls back to simple Final format (1st vs 2nd)
+ * - 4+ teams: Full league format:
+ *   - Qualifier 1: 1st vs 2nd (Winner → Final, Loser → Qualifier 2)
+ *   - Eliminator: 3rd vs 4th (Winner → Qualifier 2, Loser eliminated)
+ *   - Qualifier 2: Loser Q1 vs Winner Eliminator (Winner → Final, Loser eliminated)
+ *   - Final: Winner Q1 vs Winner Q2
  */
 export function generateLeaguePlayoffMatches(state: TournamentState): {
   success: boolean;
@@ -37,12 +39,57 @@ export function generateLeaguePlayoffMatches(state: TournamentState): {
   // Get current standings
   const standings = getTournamentStandings(state.teamStats);
 
+  if (standings.length < 3) {
+    return {
+      success: false,
+      playoffMatches: [],
+      qualifiedTeams: [],
+      errors: ["At least 3 teams are required for playoffs"],
+    };
+  }
+
+  // Handle 3-team tournament (Simple Final format - League doesn't work with 3 teams)
+  if (standings.length === 3) {
+    const qualifiedTeams = standings.slice(0, 2).map((team) => team.teamName);
+    console.log(
+      "🎯 3-team tournament - Using simple final format instead of league format"
+    );
+    console.log("🎯 Top 2 qualified teams:", qualifiedTeams);
+
+    const playoffMatches: Match[] = [];
+
+    // Final: 1st vs 2nd (3rd team is eliminated)
+    const final: Match = {
+      id: `F-001`,
+      team1: qualifiedTeams[0], // 1st place
+      team2: qualifiedTeams[1], // 2nd place
+      round: 1,
+      status: "scheduled",
+      overs: state.maxOvers,
+      maxWickets: state.maxWickets,
+      isPlayoff: true,
+      playoffType: "final",
+      phase: "playoffs",
+    };
+
+    playoffMatches.push(final);
+
+    console.log("🏆 Final:", `${final.team1} vs ${final.team2}`);
+    console.log("📊 3rd place team is eliminated from playoffs");
+
+    return {
+      success: true,
+      playoffMatches,
+      qualifiedTeams,
+    };
+  }
+
   if (standings.length < 4) {
     return {
       success: false,
       playoffMatches: [],
       qualifiedTeams: [],
-      errors: ["At least 4 teams are required for playoffs"],
+      errors: ["At least 4 teams are required for league-style playoffs"],
     };
   }
 

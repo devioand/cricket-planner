@@ -424,24 +424,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
       `🏁 Completing match ${matchId}: ${match.team1} vs ${match.team2}`
     );
 
-    // Update match status to completed
-    const updatedMatches = state.matches.map((m) =>
-      m.id === matchId ? { ...m, status: "completed" as const } : m
-    );
-
-    // Update team stats
-    const updatedTeamStats = { ...state.teamStats };
-    updatedTeamStats[match.team1] = updateTeamStatsAfterMatch(
-      updatedTeamStats[match.team1],
-      match,
-      match.result
-    );
-    updatedTeamStats[match.team2] = updateTeamStatsAfterMatch(
-      updatedTeamStats[match.team2],
-      match,
-      match.result
-    );
-
     // Calculate winner and margin for the match result
     const { team1Innings, team2Innings } = match.result;
     if (!team1Innings || !team2Innings) {
@@ -453,8 +435,16 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     let loser: string;
     let marginType: "runs" | "wickets";
     let margin: number;
+    let isDraw: boolean = false;
 
-    if (team1Innings.runs > team2Innings.runs) {
+    // Check for tie/draw first
+    if (team1Innings.runs === team2Innings.runs) {
+      isDraw = true;
+      winner = ""; // No winner in a tie
+      loser = "";
+      marginType = "runs";
+      margin = 0;
+    } else if (team1Innings.runs > team2Innings.runs) {
       winner = match.team1;
       loser = match.team2;
       marginType = "runs";
@@ -472,18 +462,18 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
       loser,
       marginType,
       margin,
-      isDraw: team1Innings.runs === team2Innings.runs,
+      isDraw,
       matchType: "completed" as const,
     };
 
     // Update match status to completed with proper result
-    const finalUpdatedMatches = updatedMatches.map((m) =>
+    const finalUpdatedMatches = state.matches.map((m) =>
       m.id === matchId
         ? { ...m, status: "completed" as const, result: completedResult }
         : m
     );
 
-    // Update team stats with completed result
+    // Update team stats with completed result (only once)
     const finalUpdatedTeamStats = { ...state.teamStats };
     finalUpdatedTeamStats[match.team1] = updateTeamStatsAfterMatch(
       finalUpdatedTeamStats[match.team1],
@@ -496,50 +486,52 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
       completedResult
     );
 
-    // Dispatch updates
-    dispatch({ type: "SET_MATCHES", payload: finalUpdatedMatches });
+    // Auto-update playoff teams after any match completion (using final updated data)
+    console.log("🔄 Checking for playoff team updates...");
+    const playoffUpdate =
+      state.playoffFormat === "league"
+        ? updateLeaguePlayoffTeams({
+            ...state,
+            matches: finalUpdatedMatches,
+            teamStats: finalUpdatedTeamStats,
+          })
+        : updateWorldCupPlayoffTeams({
+            ...state,
+            matches: finalUpdatedMatches,
+            teamStats: finalUpdatedTeamStats,
+          });
+
+    // Use the matches from playoff update if successful, otherwise use the final updated matches
+    const matchesToSet = playoffUpdate.success
+      ? playoffUpdate.updatedMatches
+      : finalUpdatedMatches;
+
+    if (playoffUpdate.success) {
+      console.log("📋 Playoff team updates:", playoffUpdate.updates);
+    }
+
+    // Single consolidated state update
+    dispatch({ type: "SET_MATCHES", payload: matchesToSet });
     dispatch({ type: "UPDATE_TEAM_STATS", payload: finalUpdatedTeamStats });
 
     console.log(`✅ Match ${matchId} completed with result:`, {
-      winner,
-      loser,
+      winner: isDraw ? "Tie/Draw" : winner,
+      loser: isDraw ? "Tie/Draw" : loser,
       margin,
       marginType,
       team1Runs: team1Innings.runs,
       team2Runs: team2Innings.runs,
+      isDraw,
     });
 
     // Find next pending match for auto-navigation
-    const nextMatch = finalUpdatedMatches.find((m) => m.status === "scheduled");
+    const nextMatch = matchesToSet.find((m) => m.status === "scheduled");
     const nextMatchId = nextMatch?.id;
 
     if (nextMatchId) {
       console.log(`🎯 Next match available: ${nextMatchId}`);
     } else {
       console.log(`🏆 All matches completed!`);
-    }
-
-    // Auto-update playoff teams after any match completion (not just playoff matches)
-    console.log("🔄 Checking for playoff team updates...");
-    const playoffUpdate =
-      state.playoffFormat === "league"
-        ? updateLeaguePlayoffTeams({
-            ...state,
-            matches: updatedMatches,
-            teamStats: updatedTeamStats,
-          })
-        : updateWorldCupPlayoffTeams({
-            ...state,
-            matches: updatedMatches,
-            teamStats: updatedTeamStats,
-          });
-
-    if (playoffUpdate.success) {
-      console.log("📋 Playoff team updates:", playoffUpdate.updates);
-      dispatch({
-        type: "SET_MATCHES",
-        payload: playoffUpdate.updatedMatches,
-      });
     }
 
     return { nextMatchId };

@@ -5,7 +5,8 @@ import { getTournamentStandings } from "./cricket-stats";
 
 /**
  * Generates world cup style playoff matches based on current tournament standings
- * Top 4 teams advance to playoffs (semi-finals)
+ * - 3 teams: Top 2 teams play in Final (simple format)
+ * - 4+ teams: Top 4 teams advance to playoffs (semi-finals)
  */
 export function generateWorldCupPlayoffMatches(state: TournamentState): {
   success: boolean;
@@ -34,12 +35,58 @@ export function generateWorldCupPlayoffMatches(state: TournamentState): {
   // Get current standings
   const standings = getTournamentStandings(state.teamStats);
 
+  if (standings.length < 3) {
+    return {
+      success: false,
+      playoffMatches: [],
+      qualifiedTeams: [],
+      errors: ["At least 3 teams are required for playoffs"],
+    };
+  }
+
+  // Handle 3-team tournament (Simple Final format)
+  if (standings.length === 3) {
+    const qualifiedTeams = standings.slice(0, 2).map((team) => team.teamName);
+    console.log(
+      "🎯 3-team tournament - Top 2 qualified teams:",
+      qualifiedTeams
+    );
+
+    const playoffMatches: Match[] = [];
+
+    // Final: 1st vs 2nd (3rd team is eliminated)
+    const final: Match = {
+      id: `F-001`,
+      team1: qualifiedTeams[0], // 1st place
+      team2: qualifiedTeams[1], // 2nd place
+      round: 1,
+      status: "scheduled",
+      overs: state.maxOvers,
+      maxWickets: state.maxWickets,
+      isPlayoff: true,
+      playoffType: "final",
+      phase: "playoffs",
+    };
+
+    playoffMatches.push(final);
+
+    console.log("🏆 Final:", `${final.team1} vs ${final.team2}`);
+    console.log("📊 3rd place team is eliminated from playoffs");
+
+    return {
+      success: true,
+      playoffMatches,
+      qualifiedTeams,
+    };
+  }
+
+  // Handle 4+ team tournament (Standard World Cup format)
   if (standings.length < 4) {
     return {
       success: false,
       playoffMatches: [],
       qualifiedTeams: [],
-      errors: ["At least 4 teams are required for playoffs"],
+      errors: ["At least 4 teams are required for standard World Cup playoffs"],
     };
   }
 
@@ -198,8 +245,8 @@ export function canGeneratePlayoffs(state: TournamentState): {
   }
 
   const standings = getTournamentStandings(state.teamStats);
-  if (standings.length < 4) {
-    reasons.push("Minimum 4 teams required for playoffs");
+  if (standings.length < 3) {
+    reasons.push("Minimum 3 teams required for playoffs");
   }
 
   if (state.playoffMatches.length > 0) {

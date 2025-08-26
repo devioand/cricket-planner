@@ -127,25 +127,57 @@ export function updateWorldCupPlayoffTeams(state: TournamentState): {
     (m) => m.isPlayoff && m.playoffType === "final"
   );
 
-  // Update Final if both semi-finals are completed
-  if (
-    semiFinal1?.status === "completed" &&
-    semiFinal2?.status === "completed" &&
-    final &&
-    final.team1 === "TBD"
-  ) {
-    if (semiFinal1.result && semiFinal2.result) {
+  // Update Final team1 when Semi-final 1 completes
+  if (semiFinal1?.status === "completed" && final && final.team1 === "TBD") {
+    if (semiFinal1.result) {
       const finalIndex = updatedMatches.findIndex((m) => m.id === final.id);
       if (finalIndex !== -1) {
         updatedMatches[finalIndex] = {
           ...final,
           team1: semiFinal1.result.winner, // SF1 winner
+        };
+        updates.push(
+          `🏆 Final team1 updated: ${semiFinal1.result.winner} (SF1 winner)`
+        );
+      }
+    }
+  }
+
+  // Update Final team2 when Semi-final 2 completes
+  if (semiFinal2?.status === "completed" && final && final.team2 === "TBD") {
+    if (semiFinal2.result) {
+      const finalIndex = updatedMatches.findIndex((m) => m.id === final.id);
+      if (finalIndex !== -1) {
+        // Get the potentially updated final from previous operation
+        const currentFinal = updatedMatches[finalIndex];
+        updatedMatches[finalIndex] = {
+          ...currentFinal,
           team2: semiFinal2.result.winner, // SF2 winner
         };
         updates.push(
-          `🏆 Final updated: ${semiFinal1.result.winner} vs ${semiFinal2.result.winner}`
+          `🏆 Final team2 updated: ${semiFinal2.result.winner} (SF2 winner)`
         );
       }
+    }
+  }
+
+  // Log complete final matchup when both teams are set
+  if (
+    semiFinal1?.status === "completed" &&
+    semiFinal2?.status === "completed" &&
+    semiFinal1.result &&
+    semiFinal2.result &&
+    final
+  ) {
+    const updatedFinal = updatedMatches.find((m) => m.id === final.id);
+    if (
+      updatedFinal &&
+      updatedFinal.team1 !== "TBD" &&
+      updatedFinal.team2 !== "TBD"
+    ) {
+      updates.push(
+        `🎉 Final matchup complete: ${updatedFinal.team1} vs ${updatedFinal.team2}`
+      );
     }
   }
 

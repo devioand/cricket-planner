@@ -4,11 +4,14 @@ import { Heading, Text, VStack, Button, Box } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 import { useTournament } from "@/contexts/tournament-context";
 import { MatchCard } from "@/components/tournaments/match-card";
-import { useEffect } from "react";
+import { TournamentCelebration } from "@/components/tournaments/tournament-celebration";
+import { useEffect, useState } from "react";
 
 export default function RoundRobinMatches() {
   const tournament = useTournament();
   const router = useRouter();
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationShown, setCelebrationShown] = useState(false);
 
   // Auto-generate playoffs when round robin is complete
   useEffect(() => {
@@ -18,39 +21,59 @@ export default function RoundRobinMatches() {
     const incompleteRoundRobin = roundRobinMatches.filter(
       (match) => match.status === "scheduled"
     );
+    const completedRoundRobin = roundRobinMatches.filter(
+      (match) => match.status === "completed"
+    );
     const hasPlayoffs = tournament.state.matches.some(
       (match) => match.isPlayoff
     );
 
+    // Calculate expected matches for round robin: n*(n-1)/2 where n = number of teams
+    const expectedMatches =
+      tournament.state.teams.length > 1
+        ? (tournament.state.teams.length *
+            (tournament.state.teams.length - 1)) /
+          2
+        : 0;
+
+    // Only trigger when round robin is TRULY complete:
+    // 1. All expected matches exist
+    // 2. All round robin matches are completed (not just no incomplete ones)
+    // 3. No playoffs exist yet
+    // 4. Additional validation from isRoundRobinComplete
     if (
+      roundRobinMatches.length === expectedMatches &&
+      completedRoundRobin.length === expectedMatches &&
       incompleteRoundRobin.length === 0 &&
       roundRobinMatches.length > 0 &&
-      !hasPlayoffs
+      !hasPlayoffs &&
+      tournament.isRoundRobinComplete()
     ) {
-      console.log("🏆 Round robin complete, auto-generating playoffs...");
+      console.log(
+        `🏆 Round robin complete (${completedRoundRobin.length}/${expectedMatches} matches), auto-generating playoffs...`
+      );
       tournament.generatePlayoffs();
     }
-  }, [tournament]);
+  }, [tournament.state.matches, tournament.state.teams.length]); // Watch matches and team count
+
+  // Check for tournament completion and show celebration
+  useEffect(() => {
+    const isComplete = tournament.isTournamentComplete();
+    const winner = tournament.getTournamentWinner();
+
+    if (isComplete && winner && !celebrationShown) {
+      setShowCelebration(true);
+      setCelebrationShown(true);
+    }
+
+    // Reset celebration flag when tournament is reset
+    if (!isComplete && celebrationShown) {
+      setCelebrationShown(false);
+    }
+  }, [tournament.state.matches, tournament, celebrationShown]);
 
   return (
     <>
-      {/* Header */}
-      <VStack gap={4} align="stretch" mb={8}>
-        <Box textAlign="center">
-          <Heading size={{ base: "lg", md: "xl" }} color="blue.600" mb={2}>
-            ⚽ Tournament Matches
-          </Heading>
-          <Text
-            color="gray.600"
-            fontSize={{ base: "sm", md: "md" }}
-            maxW="2xl"
-            mx="auto"
-          >
-            Manage match results and playoff progression
-          </Text>
-        </Box>
-      </VStack>
-
       <VStack gap={{ base: 6, md: 8 }} align="stretch">
         {!tournament.state.isGenerated ? (
           <Box p={8} bg="blue.50" rounded="lg" textAlign="center">
@@ -78,6 +101,13 @@ export default function RoundRobinMatches() {
           <MatchesFlow />
         )}
       </VStack>
+
+      {/* Tournament Celebration */}
+      <TournamentCelebration
+        isOpen={showCelebration}
+        onClose={() => setShowCelebration(false)}
+        winner={tournament.getTournamentWinner() || ""}
+      />
     </>
   );
 }
@@ -119,12 +149,12 @@ function MatchesFlow() {
         </Button>
       )}
 
-      {/* Round Robin Matches Section */}
+      {/* Group Stage Matches Section */}
       {roundRobinMatches.length > 0 && (
         <VStack align="stretch" gap={4}>
           <Box textAlign="center" py={4}>
             <Text fontSize="xl" fontWeight="bold" color="blue.600" mb={1}>
-              🔄 Round Robin Stage
+              🔄 Group Stage
             </Text>
             <Text fontSize="sm" color="gray.600">
               Every team plays every other team once
@@ -143,45 +173,54 @@ function MatchesFlow() {
       )}
 
       {/* Playoff Matches Section */}
-      {playoffMatches.length > 0 && (
-        <VStack align="stretch" gap={4}>
-          {/* Option 1: Simple Clean Header (like Round Robin) */}
-          <Box textAlign="center" py={4}>
-            <Text fontSize="xl" fontWeight="bold" color="purple.600" mb={1}>
-              🏆 Playoff Stage
+      <VStack align="stretch" gap={4}>
+        {/* Option 1: Simple Clean Header (like Round Robin) */}
+        <Box textAlign="center" py={4}>
+          <Text fontSize="xl" fontWeight="bold" color="purple.600" mb={1}>
+            🏆 Playoff Stage
+          </Text>
+          <Text fontSize="sm" color="gray.600">
+            Top teams compete for the championship
+          </Text>
+        </Box>
+
+        {playoffMatches.length === 0 && (
+          <Box p={6} bg="orange.50" rounded="lg" textAlign="center">
+            <Text fontSize="xl" fontWeight="bold" color="orange.700" mb={2}>
+              🚨 Playoff Matches Not Generated
             </Text>
-            <Text fontSize="sm" color="gray.600">
-              Top teams compete for the championship
+            <Text fontSize="md" color="orange.600">
+              Playoff matches will be generated once the group stage matches are
+              completed.
             </Text>
           </Box>
+        )}
 
-          {/* Playoff Matches */}
-          {playoffMatches.map((match, index) => (
-            <Box key={match.id} position="relative">
-              {/* Special Playoff Styling Wrapper */}
-              <Box
-                p={1}
-                bgGradient="linear(to-r, yellow.200, orange.200, yellow.200)"
-                borderRadius="xl"
-                _hover={{
-                  bgGradient:
-                    "linear(to-r, yellow.300, orange.300, yellow.300)",
-                  transform: "scale(1.01)",
-                }}
-                transition="all 0.2s ease"
-              >
-                <MatchCard
-                  key={match.id}
-                  match={match}
-                  matchNumber={index + 1}
-                  totalMatches={playoffMatches.length}
-                  isPlayoff={true}
-                />
-              </Box>
+        {/* Playoff Matches */}
+        {playoffMatches.map((match, index) => (
+          <Box key={match.id} position="relative">
+            {/* Special Playoff Styling Wrapper */}
+            <Box
+              p={1}
+              bgGradient="linear(to-r, yellow.200, orange.200, yellow.200)"
+              borderRadius="xl"
+              _hover={{
+                bgGradient: "linear(to-r, yellow.300, orange.300, yellow.300)",
+                transform: "scale(1.01)",
+              }}
+              transition="all 0.2s ease"
+            >
+              <MatchCard
+                key={match.id}
+                match={match}
+                matchNumber={index + 1}
+                totalMatches={playoffMatches.length}
+                isPlayoff={true}
+              />
             </Box>
-          ))}
-        </VStack>
-      )}
+          </Box>
+        ))}
+      </VStack>
 
       {/* Completion Message - Only show when ALL matches are completed */}
       {allMatches.length > 0 &&

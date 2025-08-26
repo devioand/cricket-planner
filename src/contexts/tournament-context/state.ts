@@ -41,7 +41,8 @@ export type TournamentAction =
   | { type: "SET_PLAYOFF_FORMAT"; payload: PlayoffFormat }
   | { type: "SET_QUALIFIED_TEAMS"; payload: string[] }
   | { type: "SET_PLAYOFF_MATCHES"; payload: Match[] }
-  | { type: "ADD_PLAYOFF_MATCH"; payload: Match };
+  | { type: "ADD_PLAYOFF_MATCH"; payload: Match }
+  | { type: "HYDRATE_STATE"; payload: TournamentState };
 
 // State reducer
 export function tournamentReducer(
@@ -183,6 +184,10 @@ export function tournamentReducer(
         playoffMatches: [...state.playoffMatches, action.payload],
         matches: [...state.matches, action.payload],
       };
+
+    case "HYDRATE_STATE":
+      console.log("💧 Hydrating state from localStorage");
+      return action.payload;
 
     default:
       return state;

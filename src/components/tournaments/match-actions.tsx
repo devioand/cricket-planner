@@ -26,7 +26,7 @@ export function MatchActions({
   if (matchState === "not-started") {
     return (
       <Box textAlign="center">
-        <Button onClick={onStartMatch} colorScheme="blue" size="md" w="full">
+        <Button onClick={onStartMatch} colorScheme="blue" size="sm" w="full">
           🚀 Start Match
         </Button>
       </Box>
@@ -36,12 +36,7 @@ export function MatchActions({
   if (matchState === "in-progress-need-toss") {
     return (
       <Box textAlign="center">
-        <Button
-          onClick={onTossMatch}
-          colorScheme="orange"
-          size="sm"
-          variant="outline"
-        >
+        <Button onClick={onTossMatch} colorScheme="orange" size="sm" w="full">
           🪙 Flip Coin & Toss
         </Button>
       </Box>
@@ -63,7 +58,7 @@ export function MatchActions({
             })
           }
           colorScheme="orange"
-          size="md"
+          size="sm"
           w="full"
           opacity={0.5}
         >
@@ -79,7 +74,7 @@ export function MatchActions({
         <Button
           onClick={onStartSecondInnings}
           colorScheme="orange"
-          size="md"
+          size="sm"
           w="full"
         >
           🏏 Start Second Innings
@@ -103,7 +98,7 @@ export function MatchActions({
             })
           }
           colorScheme="green"
-          size="md"
+          size="sm"
           w="full"
           opacity={0.5}
         >
@@ -116,7 +111,7 @@ export function MatchActions({
   if (matchState === "ready-to-finish") {
     return (
       <Box textAlign="center">
-        <Button onClick={onFinishMatch} colorScheme="green" size="md" w="full">
+        <Button onClick={onFinishMatch} colorScheme="green" size="sm" w="full">
           🏁 Finish Match
         </Button>
       </Box>

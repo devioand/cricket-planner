@@ -114,6 +114,14 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
 
       case "completed":
         if (match.result) {
+          // Check for tie/draw first
+          if (match.result.isDraw) {
+            return {
+              text: `🤝 Match Tied - Both teams get 1 point`,
+              color: "orange.700",
+            };
+          }
+
           const winner = match.result.winner;
           const margin = match.result.margin;
           const marginType = match.result.marginType;
@@ -123,7 +131,6 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
           return {
             text: `🏆 ${winner} won by ${marginText}`,
             color: "green.700",
-            bg: "green.50",
           };
         }
         break;
@@ -141,14 +148,7 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
   if (!status) return null;
 
   return (
-    <Box
-      p={3}
-      bg={status.bg}
-      rounded="md"
-      textAlign="center"
-      borderWidth={1}
-      borderColor={status.bg}
-    >
+    <Box textAlign="center">
       <Text fontSize="sm" color={status.color} fontWeight="medium">
         {status.text}
       </Text>

@@ -204,6 +204,30 @@ export function MatchCard({
 
   const cardStyle = getCardStyling();
 
+  // Format playoff type for display
+  const getPlayoffDisplayText = (playoffType?: string) => {
+    if (!playoffType) return "";
+
+    switch (playoffType) {
+      case "semi-final-1":
+        return "Semi Final - 1";
+      case "semi-final-2":
+        return "Semi Final - 2";
+      case "qualifier-1":
+        return "Qualifier 1";
+      case "qualifier-2":
+        return "Qualifier 2";
+      case "eliminator":
+        return "Eliminator";
+      case "final":
+        return "Final";
+      default:
+        return playoffType
+          .replace("-", " ")
+          .replace(/\b\w/g, (l) => l.toUpperCase());
+    }
+  };
+
   return (
     <>
       <Box
@@ -234,26 +258,18 @@ export function MatchCard({
 
         <VStack align="stretch" gap={isPlayoff ? 4 : 3} position="relative">
           {/* Match Header */}
-          <HStack justify="space-between" align="center">
-            <VStack align="start" gap={1}>
-              <Text
-                fontSize={isPlayoff ? "md" : "sm"}
-                color={isPlayoff ? "orange.700" : "gray.600"}
-                fontWeight={isPlayoff ? "bold" : "medium"}
-              >
-                {isPlayoff ? "🏆 " : ""}Match {matchNumber} of {totalMatches}
-              </Text>
-            </VStack>
-            {isPlayoff && match.playoffType && (
-              <Text
-                fontSize="xs"
-                color="purple.600"
-                fontWeight="bold"
-                textTransform="uppercase"
-              >
-                {match.playoffType.replace("-", " ")}
-              </Text>
-            )}
+          <HStack justify="center" align="center">
+            <Text
+              fontSize={isPlayoff ? "lg" : "sm"}
+              color={isPlayoff ? "orange.700" : "gray.600"}
+              fontWeight={isPlayoff ? "bold" : "medium"}
+              textAlign="center"
+            >
+              {isPlayoff
+                ? (match.playoffType === "final" ? "🏆 " : "") +
+                  getPlayoffDisplayText(match.playoffType)
+                : `Match ${matchNumber} of ${totalMatches}`}
+            </Text>
           </HStack>
 
           {/* Team Rows */}

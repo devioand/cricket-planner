@@ -23,37 +23,35 @@ export default function RoundRobinStandings() {
             maxW="2xl"
             mx="auto"
           >
-            View team statistics and tournament progress
+            View group stage standings (playoff matches excluded)
           </Text>
         </Box>
       </VStack>
 
-      <VStack gap={{ base: 6, md: 8 }} align="stretch">
-        {!tournament.state.isGenerated ? (
-          <Box p={8} bg="yellow.50" rounded="lg" textAlign="center">
-            <Text
-              fontSize={{ base: "lg", md: "xl" }}
-              fontWeight="semibold"
-              color="yellow.700"
-              mb={4}
-            >
-              📊 No Tournament Data
-            </Text>
-            <Text fontSize="md" color="yellow.600" mb={6}>
-              Generate tournament matches and play some games to see standings
-            </Text>
-            <Button
-              onClick={() => router.push("/tournament/round-robin/setup")}
-              colorScheme="yellow"
-              size="lg"
-            >
-              ← Go to Setup
-            </Button>
-          </Box>
-        ) : (
-          <TournamentStandings />
-        )}
-      </VStack>
+      {!tournament.state.isGenerated ? (
+        <Box p={8} bg="yellow.50" rounded="lg" textAlign="center">
+          <Text
+            fontSize={{ base: "lg", md: "xl" }}
+            fontWeight="semibold"
+            color="yellow.700"
+            mb={4}
+          >
+            📊 No Tournament Data
+          </Text>
+          <Text fontSize="md" color="yellow.600" mb={6}>
+            Generate tournament matches and play some games to see standings
+          </Text>
+          <Button
+            onClick={() => router.push("/tournament/round-robin/setup")}
+            colorScheme="yellow"
+            size="lg"
+          >
+            ← Go to Setup
+          </Button>
+        </Box>
+      ) : (
+        <TournamentStandings />
+      )}
     </>
   );
 }

@@ -106,6 +106,7 @@ export function calculateNetRunRate(stats: CricketTeamStats): number {
 /**
  * Update team statistics after a match
  * Handles all the nuances mentioned in the NRR calculation rules
+ * NOTE: Only updates stats for round-robin matches, not playoff matches
  */
 export function updateTeamStatsAfterMatch(
   teamStats: CricketTeamStats,
@@ -115,6 +116,14 @@ export function updateTeamStatsAfterMatch(
   console.log(
     `📈 Updating stats for ${teamStats.teamName} after match ${match.id}`
   );
+
+  // Skip playoff matches - standings should only include round-robin stats
+  if (match.isPlayoff) {
+    console.log(
+      `   ⚠️ Skipping playoff match stats for standings - ${match.id}`
+    );
+    return teamStats; // Return unchanged stats
+  }
 
   const updatedStats = { ...teamStats };
   const isTeam1 = match.team1 === teamStats.teamName;
@@ -228,6 +237,7 @@ export function updateTeamStatsAfterMatch(
 
 /**
  * Get tournament standings sorted by points and NRR
+ * NOTE: Only includes round-robin match statistics, playoff matches are excluded
  */
 export function getTournamentStandings(
   teamStats: Record<string, CricketTeamStats>

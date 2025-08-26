@@ -22,7 +22,6 @@ import {
   logTournamentState,
 } from "@/contexts/tournament-context";
 
-import { TournamentCelebration } from "@/components/tournaments/tournament-celebration";
 import { PlayoffFormatSelector } from "@/components/tournaments/playoff-format-selector";
 
 export default function RoundRobinSetup() {
@@ -34,8 +33,7 @@ export default function RoundRobinSetup() {
     index: number;
     name: string;
   } | null>(null);
-  const [showCelebration, setShowCelebration] = useState(false);
-  const [celebrationShown, setCelebrationShown] = useState(false);
+
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
 
   const handleAddTeam = () => {
@@ -98,21 +96,7 @@ export default function RoundRobinSetup() {
     console.log("🔄 Tournament finished and reset");
   };
 
-  // Check for tournament completion and show celebration
-  useEffect(() => {
-    const isComplete = tournament.isTournamentComplete();
-    const winner = tournament.getTournamentWinner();
-
-    if (isComplete && winner && !celebrationShown) {
-      setShowCelebration(true);
-      setCelebrationShown(true);
-    }
-
-    // Reset celebration flag when tournament is reset
-    if (!isComplete && celebrationShown) {
-      setCelebrationShown(false);
-    }
-  }, [tournament.state.matches, tournament, celebrationShown]);
+  // Celebration should happen on matches page, not setup page
 
   return (
     <>
@@ -128,7 +112,7 @@ export default function RoundRobinSetup() {
             maxW="xl"
             mx="auto"
           >
-            Add teams and configure match settings for your round-robin
+            Add teams and configure match settings for your group stage
             tournament
           </Text>
         </Box>
@@ -427,13 +411,6 @@ export default function RoundRobinSetup() {
             </Dialog.Positioner>
           </Portal>
         </Dialog.Root>
-
-        {/* Tournament Celebration */}
-        <TournamentCelebration
-          isOpen={showCelebration}
-          onClose={() => setShowCelebration(false)}
-          winner={tournament.getTournamentWinner() || ""}
-        />
       </VStack>
     </>
   );
