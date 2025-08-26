@@ -1,0 +1,63 @@
+"use client";
+
+import { Box, Heading, Text, VStack, Button } from "@chakra-ui/react";
+import { useRouter } from "next/navigation";
+import { useTournament } from "@/contexts/tournament-context";
+import { TournamentStandings } from "@/components/tournaments/tournament-standings";
+import { RoundRobinNavigation } from "@/components/tournaments/round-robin-navigation";
+
+export default function RoundRobinStandings() {
+  const tournament = useTournament();
+  const router = useRouter();
+
+  return (
+    <Box p={{ base: 4, md: 8 }} maxW="1200px" mx="auto" w="full">
+      {/* Navigation */}
+      <RoundRobinNavigation />
+
+      {/* Header */}
+      <VStack gap={4} align="stretch" mb={8}>
+        <Box textAlign="center">
+          <Heading size={{ base: "lg", md: "xl" }} color="blue.600" mb={2}>
+            🏆 Tournament Standings
+          </Heading>
+          <Text
+            color="gray.600"
+            fontSize={{ base: "sm", md: "md" }}
+            maxW="2xl"
+            mx="auto"
+          >
+            View team statistics and tournament progress
+          </Text>
+        </Box>
+      </VStack>
+
+      <VStack gap={{ base: 6, md: 8 }} align="stretch">
+        {!tournament.state.isGenerated ? (
+          <Box p={8} bg="yellow.50" rounded="lg" textAlign="center">
+            <Text
+              fontSize={{ base: "lg", md: "xl" }}
+              fontWeight="semibold"
+              color="yellow.700"
+              mb={4}
+            >
+              📊 No Tournament Data
+            </Text>
+            <Text fontSize="md" color="yellow.600" mb={6}>
+              Generate tournament matches and play some games to see standings
+            </Text>
+            <Button
+              onClick={() => router.push("/tournament/round-robin/setup")}
+              colorScheme="yellow"
+              size="lg"
+            >
+              ← Go to Setup
+            </Button>
+          </Box>
+        ) : (
+          <TournamentStandings />
+        )}
+      </VStack>
+    </Box>
+  );
+}

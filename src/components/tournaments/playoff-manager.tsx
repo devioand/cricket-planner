@@ -12,7 +12,6 @@ import {
   Alert,
 } from "@chakra-ui/react";
 import { useTournament, type Match } from "@/contexts/tournament-context";
-import { PlayoffFormatSelector } from "./playoff-format-selector";
 
 interface PlayoffManagerProps {
   showCompleted?: boolean;
@@ -51,13 +50,6 @@ export function PlayoffManager({
   return (
     <VStack align="stretch" gap={6}>
       <Heading size="md">🏆 Playoff Management</Heading>
-
-      {/* Playoff Format Selector */}
-      {!tournament.isRoundRobinComplete() && (
-        <PlayoffFormatSelector
-          disabled={tournament.state.qualifiedTeams.length > 0}
-        />
-      )}
 
       {/* Playoff Status */}
       <PlayoffStatusCard

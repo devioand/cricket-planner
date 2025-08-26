@@ -37,17 +37,11 @@ export function PlayoffFormatSelector({
       stages: [
         "Semi-Final 1: 1st vs 4th",
         "Semi-Final 2: 2nd vs 3rd",
-        "Final: Winner SF1 vs Winner SF2",
-        "Semi-final losers both ranked 3rd",
-      ],
-      advantages: [
-        "Simple and straightforward",
-        "Quick tournament completion",
-        "Fair representation of league standings",
+        "Final: Winner SF1 vs Winner SF2 (Winner → Champion)",
       ],
     },
     league: {
-      name: "League Style (IPL/BBL)",
+      name: "League Style (IPL/BBL/PSL)",
       description: "Top teams get second chances",
       icon: "🔥",
       color: "purple",
@@ -55,23 +49,14 @@ export function PlayoffFormatSelector({
         "Qualifier 1: 1st vs 2nd (Winner → Final)",
         "Eliminator: 3rd vs 4th (Loser eliminated)",
         "Qualifier 2: Loser Q1 vs Winner Eliminator",
-        "Final: Winner Q1 vs Winner Q2",
-      ],
-      advantages: [
-        "Top teams get advantage/second chance",
-        "More exciting for league leaders",
-        "Rewards consistent league performance",
+        "Final: Winner Q1 vs Winner Q2 (Winner → Champion)",
       ],
     },
   } as const;
 
   return (
     <VStack align="stretch" gap={4}>
-      <Heading size="sm" color="purple.600">
-        🎯 Choose Playoff Format
-      </Heading>
-
-      <HStack gap={4} align="stretch">
+      <VStack gap={3} align="stretch">
         {(Object.keys(formatDetails) as PlayoffFormat[]).map((format) => {
           const details = formatDetails[format];
           const isSelected = tournament.state.playoffFormat === format;
@@ -79,7 +64,7 @@ export function PlayoffFormatSelector({
           return (
             <Card.Root
               key={format}
-              flex={1}
+              w="full"
               borderWidth={2}
               borderColor={isSelected ? `${details.color}.400` : "gray.200"}
               bg={isSelected ? `${details.color}.50` : "white"}
@@ -111,60 +96,19 @@ export function PlayoffFormatSelector({
                   </HStack>
 
                   {/* Stages */}
-                  <Box>
-                    <Text
-                      fontSize="xs"
-                      fontWeight="semibold"
-                      color="gray.700"
-                      mb={2}
-                    >
-                      Format:
-                    </Text>
-                    <VStack align="start" gap={1}>
-                      {details.stages.map((stage, index) => (
-                        <Text key={index} fontSize="xs" color="gray.600">
-                          {index + 1}. {stage}
-                        </Text>
-                      ))}
-                    </VStack>
-                  </Box>
-
-                  {/* Advantages */}
-                  <Box>
-                    <Text
-                      fontSize="xs"
-                      fontWeight="semibold"
-                      color="gray.700"
-                      mb={2}
-                    >
-                      Advantages:
-                    </Text>
-                    <VStack align="start" gap={1}>
-                      {details.advantages.map((advantage, index) => (
-                        <Text key={index} fontSize="xs" color="gray.600">
-                          • {advantage}
-                        </Text>
-                      ))}
-                    </VStack>
-                  </Box>
-
-                  {/* Select Button */}
-                  {!isSelected && !disabled && (
-                    <Button
-                      size="sm"
-                      colorScheme={details.color}
-                      variant="outline"
-                      onClick={() => handleFormatChange(format)}
-                    >
-                      Select {details.name}
-                    </Button>
-                  )}
+                  <VStack align="start" gap={1}>
+                    {details.stages.map((stage, index) => (
+                      <Text key={index} fontSize="xs" color="gray.600">
+                        {index + 1}. {stage}
+                      </Text>
+                    ))}
+                  </VStack>
                 </VStack>
               </Card.Body>
             </Card.Root>
           );
         })}
-      </HStack>
+      </VStack>
 
       {/* Current Selection Info */}
       <Box p={3} bg="blue.50" borderRadius="md">

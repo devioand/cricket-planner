@@ -54,7 +54,7 @@ export function Header() {
                   </Heading>
                   <Text fontSize="sm" color="fg.muted">
                     {isTournamentPage
-                      ? "Round Robin Tournament"
+                      ? getPageTitle(pathname)
                       : "Tournament Management System"}
                   </Text>
                 </Box>
@@ -90,4 +90,12 @@ export function Header() {
       </Container>
     </Box>
   );
+}
+
+function getPageTitle(pathname: string): string {
+  if (pathname.includes("/setup")) return "Tournament Setup";
+  if (pathname.includes("/matches")) return "Tournament Matches";
+  if (pathname.includes("/standings")) return "Tournament Standings";
+  if (pathname.includes("/round-robin")) return "Round Robin Tournament";
+  return "Tournament Management System";
 }
