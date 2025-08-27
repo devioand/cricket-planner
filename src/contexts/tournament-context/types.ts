@@ -47,6 +47,8 @@ export interface Match {
   maxWickets: number;
   toss?: TossResult; // Toss information
   result?: CricketMatchResult;
+  // Innings control
+  secondInningsStarted?: boolean; // Track when user starts second innings
   // Playoff specific fields
   isPlayoff?: boolean;
   playoffType?: PlayoffType;
@@ -59,8 +61,8 @@ export interface CricketMatchResult {
   loser: string;
   isDraw?: boolean;
   isNoResult?: boolean; // For abandoned matches
-  team1Innings: InningsScore;
-  team2Innings: InningsScore;
+  team1Innings: InningsScore | null;
+  team2Innings: InningsScore | null;
   marginType?: "runs" | "wickets";
   margin?: number;
   matchType: "completed" | "abandoned" | "no-result";

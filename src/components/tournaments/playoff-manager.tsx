@@ -12,7 +12,6 @@ import {
   Alert,
 } from "@chakra-ui/react";
 import { useTournament, type Match } from "@/contexts/tournament-context";
-import { PlayoffFormatSelector } from "./playoff-format-selector";
 
 interface PlayoffManagerProps {
   showCompleted?: boolean;
@@ -51,13 +50,6 @@ export function PlayoffManager({
   return (
     <VStack align="stretch" gap={6}>
       <Heading size="md">🏆 Playoff Management</Heading>
-
-      {/* Playoff Format Selector */}
-      {!tournament.isRoundRobinComplete() && (
-        <PlayoffFormatSelector
-          disabled={tournament.state.qualifiedTeams.length > 0}
-        />
-      )}
 
       {/* Playoff Status */}
       <PlayoffStatusCard
@@ -420,57 +412,61 @@ function PlayoffMatchCard({ match }: PlayoffMatchCardProps) {
           </HStack>
 
           {/* Match Result */}
-          {match.result && (
-            <Box bg="green.50" p={3} borderRadius="md">
-              <VStack align="stretch" gap={2}>
-                <HStack justify="space-between">
+          {match.result &&
+            match.result.team1Innings &&
+            match.result.team2Innings && (
+              <Box bg="green.50" p={3} borderRadius="md">
+                <VStack align="stretch" gap={2}>
+                  <HStack justify="space-between">
+                    <Text
+                      fontWeight="semibold"
+                      color={
+                        match.result.team1Innings.teamName ===
+                        match.result.winner
+                          ? "green.600"
+                          : "gray.600"
+                      }
+                    >
+                      {match.result.team1Innings.teamName}:{" "}
+                      {match.result.team1Innings.runs}/
+                      {match.result.team1Innings.wickets} (
+                      {match.result.team1Innings.overs} overs)
+                    </Text>
+                    <Text fontSize="sm" color="gray.500">
+                      RR: {match.result.team1Innings.runRate.toFixed(2)}
+                    </Text>
+                  </HStack>
+                  <HStack justify="space-between">
+                    <Text
+                      fontWeight="semibold"
+                      color={
+                        match.result.team2Innings.teamName ===
+                        match.result.winner
+                          ? "green.600"
+                          : "gray.600"
+                      }
+                    >
+                      {match.result.team2Innings.teamName}:{" "}
+                      {match.result.team2Innings.runs}/
+                      {match.result.team2Innings.wickets} (
+                      {match.result.team2Innings.overs} overs)
+                    </Text>
+                    <Text fontSize="sm" color="gray.500">
+                      RR: {match.result.team2Innings.runRate.toFixed(2)}
+                    </Text>
+                  </HStack>
                   <Text
-                    fontWeight="semibold"
-                    color={
-                      match.result.team1Innings.teamName === match.result.winner
-                        ? "green.600"
-                        : "gray.600"
-                    }
+                    fontWeight="bold"
+                    color="green.600"
+                    textAlign="center"
+                    fontSize="sm"
                   >
-                    {match.result.team1Innings.teamName}:{" "}
-                    {match.result.team1Innings.runs}/
-                    {match.result.team1Innings.wickets} (
-                    {match.result.team1Innings.overs} overs)
+                    🏆 {match.result.winner} won by {match.result.margin}{" "}
+                    {match.result.marginType}
                   </Text>
-                  <Text fontSize="sm" color="gray.500">
-                    RR: {match.result.team1Innings.runRate.toFixed(2)}
-                  </Text>
-                </HStack>
-                <HStack justify="space-between">
-                  <Text
-                    fontWeight="semibold"
-                    color={
-                      match.result.team2Innings.teamName === match.result.winner
-                        ? "green.600"
-                        : "gray.600"
-                    }
-                  >
-                    {match.result.team2Innings.teamName}:{" "}
-                    {match.result.team2Innings.runs}/
-                    {match.result.team2Innings.wickets} (
-                    {match.result.team2Innings.overs} overs)
-                  </Text>
-                  <Text fontSize="sm" color="gray.500">
-                    RR: {match.result.team2Innings.runRate.toFixed(2)}
-                  </Text>
-                </HStack>
-                <Text
-                  fontWeight="bold"
-                  color="green.600"
-                  textAlign="center"
-                  fontSize="sm"
-                >
-                  🏆 {match.result.winner} won by {match.result.margin}{" "}
-                  {match.result.marginType}
-                </Text>
-              </VStack>
-            </Box>
-          )}
+                </VStack>
+              </Box>
+            )}
         </VStack>
       </Card.Body>
     </Card.Root>
