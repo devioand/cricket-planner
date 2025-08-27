@@ -105,7 +105,7 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
   return (
     <Dialog.Root open={isOpen} onOpenChange={(e) => setIsOpen(e.open)}>
       <Dialog.Trigger asChild>
-        <Button size="sm" colorScheme="blue">
+        <Button size="sm" colorPalette="blue">
           🪙 Flip Coin
         </Button>
       </Dialog.Trigger>
@@ -165,7 +165,7 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                     <Button
                       onClick={handleFlipCoin}
                       size="lg"
-                      colorScheme="yellow"
+                      colorPalette="yellow"
                     >
                       <Text fontSize="lg" mr={2}>
                         🪙
@@ -232,7 +232,7 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
 
                     <Button
                       onClick={handleConfirmToss}
-                      colorScheme="green"
+                      colorPalette="green"
                       size="lg"
                       w="full"
                     >

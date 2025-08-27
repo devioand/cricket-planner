@@ -1,6 +1,7 @@
 "use client";
 
-import { Text, VStack, Button, Box } from "@chakra-ui/react";
+import { Text, VStack, Box } from "@chakra-ui/react";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useTournament } from "@/contexts/tournament-context";
 import { MatchCard } from "@/components/tournaments/match-card";
@@ -91,7 +92,7 @@ export default function RoundRobinMatches() {
             </Text>
             <Button
               onClick={() => router.push("/tournament/round-robin/setup")}
-              colorScheme="blue"
+              colorPalette="blue"
               size="lg"
             >
               ← Go to Setup
@@ -137,17 +138,19 @@ function MatchesFlow() {
   return (
     <VStack align="stretch" gap={6}>
       {/* Sample Results Button */}
-      {allMatches.length > 0 && pendingMatches > 0 && (
-        <Button
-          size="sm"
-          colorScheme="purple"
-          variant="outline"
-          onClick={handleGenerateSampleResults}
-          alignSelf="flex-start"
-        >
-          🎲 Generate Sample Results ({pendingMatches} pending)
-        </Button>
-      )}
+      {process.env.NODE_ENV === "development" &&
+        allMatches.length > 0 &&
+        pendingMatches > 0 && (
+          <Button
+            size="sm"
+            colorPalette="purple"
+            variant="outline"
+            onClick={handleGenerateSampleResults}
+            alignSelf="flex-start"
+          >
+            🎲 Generate Sample Results ({pendingMatches} pending)
+          </Button>
+        )}
 
       {/* Group Stage Matches Section */}
       {roundRobinMatches.length > 0 && (

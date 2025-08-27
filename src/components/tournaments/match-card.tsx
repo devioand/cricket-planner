@@ -284,7 +284,7 @@ export function MatchCard({
                     aria-label="Edit team 1 score"
                     size="xs"
                     variant="ghost"
-                    colorScheme="blue"
+                    colorPalette="blue"
                     onClick={() => setIsTeam1ScoreDialogOpen(true)}
                   >
                     ✏️
@@ -307,7 +307,7 @@ export function MatchCard({
                     aria-label="Edit team 2 score"
                     size="xs"
                     variant="ghost"
-                    colorScheme="red"
+                    colorPalette="red"
                     onClick={() => setIsTeam2ScoreDialogOpen(true)}
                   >
                     ✏️

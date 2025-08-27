@@ -1,6 +1,7 @@
 "use client";
 
-import { Box, Button } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
+import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 
 interface MatchActionsProps {
@@ -23,7 +24,7 @@ export function MatchActions({
   if (matchState === "not-started") {
     return (
       <Box textAlign="center">
-        <Button onClick={onStartMatch} colorScheme="blue" size="sm" w="full">
+        <Button onClick={onStartMatch} colorPalette="blue" w="full">
           🚀 Start Match
         </Button>
       </Box>
@@ -33,7 +34,7 @@ export function MatchActions({
   if (matchState === "in-progress-need-toss") {
     return (
       <Box textAlign="center">
-        <Button onClick={onTossMatch} colorScheme="orange" size="sm" w="full">
+        <Button onClick={onTossMatch} colorPalette="orange" w="full">
           🪙 Flip Coin & Toss
         </Button>
       </Box>
@@ -54,8 +55,7 @@ export function MatchActions({
               closable: true,
             })
           }
-          colorScheme="orange"
-          size="sm"
+          colorPalette="orange"
           w="full"
           opacity={0.5}
         >
@@ -68,12 +68,7 @@ export function MatchActions({
   if (matchState === "first-innings-complete") {
     return (
       <Box textAlign="center">
-        <Button
-          onClick={onStartSecondInnings}
-          colorScheme="orange"
-          size="sm"
-          w="full"
-        >
+        <Button onClick={onStartSecondInnings} colorPalette="orange" w="full">
           🏏 Start Second Innings
         </Button>
       </Box>
@@ -94,8 +89,7 @@ export function MatchActions({
               closable: true,
             })
           }
-          colorScheme="green"
-          size="sm"
+          colorPalette="green"
           w="full"
           opacity={0.5}
         >
@@ -108,7 +102,7 @@ export function MatchActions({
   if (matchState === "ready-to-finish") {
     return (
       <Box textAlign="center">
-        <Button onClick={onFinishMatch} colorScheme="green" size="sm" w="full">
+        <Button onClick={onFinishMatch} colorPalette="green" w="full">
           🏁 Finish Match
         </Button>
       </Box>

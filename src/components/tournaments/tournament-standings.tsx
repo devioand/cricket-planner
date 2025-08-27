@@ -183,7 +183,7 @@ function StandingsRow({ team, position, totalTeams }: StandingsRowProps) {
       {/* Won */}
       <Table.Cell textAlign="center">
         <Badge
-          colorScheme="green"
+          colorPalette="green"
           variant="subtle"
           fontSize={{ base: "xs", md: "sm" }}
           px={{ base: 1, md: 2 }}
@@ -195,7 +195,7 @@ function StandingsRow({ team, position, totalTeams }: StandingsRowProps) {
       {/* Lost */}
       <Table.Cell textAlign="center">
         <Badge
-          colorScheme="red"
+          colorPalette="red"
           variant="subtle"
           fontSize={{ base: "xs", md: "sm" }}
           px={{ base: 1, md: 2 }}
@@ -207,7 +207,7 @@ function StandingsRow({ team, position, totalTeams }: StandingsRowProps) {
       {/* Draw */}
       <Table.Cell textAlign="center">
         <Badge
-          colorScheme="gray"
+          colorPalette="gray"
           variant="subtle"
           fontSize={{ base: "xs", md: "sm" }}
           px={{ base: 1, md: 2 }}
@@ -219,7 +219,7 @@ function StandingsRow({ team, position, totalTeams }: StandingsRowProps) {
       {/* Points */}
       <Table.Cell textAlign="center">
         <Badge
-          colorScheme="blue"
+          colorPalette="blue"
           variant="solid"
           fontSize={{ base: "xs", md: "sm" }}
           px={{ base: 2, md: 3 }}

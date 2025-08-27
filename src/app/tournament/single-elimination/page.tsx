@@ -44,7 +44,7 @@ export default function SingleEliminationTournament() {
             working hard to bring you the best single elimination experience.
           </Text>
         </VStack>
-        <Button onClick={() => router.push("/")} colorScheme="blue" size="lg">
+        <Button onClick={() => router.push("/")} colorPalette="blue" size="lg">
           ← Back to Algorithm Selection
         </Button>
       </VStack>

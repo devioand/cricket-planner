@@ -264,7 +264,7 @@ export function TeamScoreInputDialog({
 
                 {/* Submit Button */}
                 <Button
-                  colorScheme="green"
+                  colorPalette="green"
                   onClick={handleSubmit}
                   disabled={
                     isSubmitting ||

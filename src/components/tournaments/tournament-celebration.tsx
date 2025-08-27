@@ -180,7 +180,7 @@ export function TournamentCelebration({
                 {/* Winner Announcement */}
                 <VStack gap={3}>
                   <Badge
-                    colorScheme="yellow"
+                    colorPalette="yellow"
                     fontSize="lg"
                     px={4}
                     py={2}
@@ -225,7 +225,7 @@ export function TournamentCelebration({
                 {/* Action Buttons */}
                 <HStack gap={4} pt={4}>
                   <Button
-                    colorScheme="yellow"
+                    colorPalette="yellow"
                     size="lg"
                     onClick={() => {
                       // More celebration with proper z-index
@@ -248,7 +248,7 @@ export function TournamentCelebration({
                   </Button>
 
                   <Button
-                    colorScheme="blue"
+                    colorPalette="blue"
                     variant="outline"
                     size="lg"
                     onClick={onClose}
