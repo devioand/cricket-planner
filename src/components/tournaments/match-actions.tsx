@@ -1,11 +1,9 @@
 "use client";
 
-import { Box, Button, Text } from "@chakra-ui/react";
+import { Box, Button } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
-import { type Match } from "@/contexts/tournament-context";
 
 interface MatchActionsProps {
-  match: Match;
   matchState: string;
   onStartMatch: () => void;
   onTossMatch?: () => void;
@@ -14,7 +12,6 @@ interface MatchActionsProps {
 }
 
 export function MatchActions({
-  match,
   matchState,
   onStartMatch,
   onTossMatch,

@@ -134,6 +134,14 @@ export function updateTeamStatsAfterMatch(
     ? matchResult.team2Innings
     : matchResult.team1Innings;
 
+  // Early return if innings data is missing - can't update stats without complete data
+  if (!teamInnings || !opponentInnings) {
+    console.log(
+      `   ⚠️ Missing innings data for ${teamStats.teamName} - skipping stats update`
+    );
+    return updatedStats;
+  }
+
   // Update match counts
   updatedStats.matchesPlayed += 1;
 

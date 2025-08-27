@@ -10,7 +10,6 @@ import {
   CloseButton,
   Input,
   Button,
-  Flex,
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { useTournament, type Match } from "@/contexts/tournament-context";
@@ -143,7 +142,7 @@ export function TeamScoreInputDialog({
             <Dialog.Header>
               <HStack justify="space-between" align="center" w="full">
                 <Dialog.Title fontSize="lg" fontWeight="semibold">
-                  {teamName}'s score board
+                  {teamName}&apos;s score board
                 </Dialog.Title>
                 <CloseButton size="sm" onClick={handleClose} />
               </HStack>

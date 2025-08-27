@@ -12,7 +12,7 @@ import {
   initialTournamentState,
   tournamentReducer,
 } from "./state";
-import type { TournamentState } from "./types";
+import type { TournamentState, InningsScore } from "./types";
 import {
   generateRoundRobinMatches,
   validateRoundRobinTeams,
@@ -361,8 +361,8 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
         const existingResult = m.result || {
           winner: "",
           loser: "",
-          team1Innings: null as any,
-          team2Innings: null as any,
+          team1Innings: null as InningsScore | null,
+          team2Innings: null as InningsScore | null,
           marginType: "runs" as const,
           margin: 0,
           matchType: "completed" as const,

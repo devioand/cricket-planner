@@ -72,7 +72,6 @@ export function MatchCard({
   const tournament = useTournament();
 
   const isCompleted = match.status === "completed";
-  const isScheduled = match.status === "scheduled";
   const isInProgress = match.status === "in-progress";
   const hasToss = match.toss !== undefined;
 
@@ -342,7 +341,6 @@ export function MatchCard({
           {/* Match Actions - Only show if not TBD */}
           {!hasTBDTeams && (
             <MatchActions
-              match={match}
               matchState={matchState}
               onStartMatch={() => tournament.startMatch(match.id)}
               onTossMatch={() => tournament.generateRandomToss(match.id)}

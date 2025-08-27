@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Heading, Badge, Text, VStack, HStack } from "@chakra-ui/react";
+import { Box, Badge, Text, VStack, HStack } from "@chakra-ui/react";
 import { Table } from "@chakra-ui/react";
 import {
   useTournament,
@@ -8,13 +8,7 @@ import {
   type CricketTeamStats,
 } from "@/contexts/tournament-context";
 
-interface TournamentStandingsProps {
-  showActions?: boolean;
-}
-
-export function TournamentStandings({
-  showActions = true,
-}: TournamentStandingsProps) {
+export function TournamentStandings() {
   const tournament = useTournament();
   const standings = tournament.getTeamStandings();
 

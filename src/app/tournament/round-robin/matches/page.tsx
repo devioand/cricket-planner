@@ -1,6 +1,6 @@
 "use client";
 
-import { Heading, Text, VStack, Button, Box } from "@chakra-ui/react";
+import { Text, VStack, Button, Box } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 import { useTournament } from "@/contexts/tournament-context";
 import { MatchCard } from "@/components/tournaments/match-card";
@@ -54,7 +54,7 @@ export default function RoundRobinMatches() {
       );
       tournament.generatePlayoffs();
     }
-  }, [tournament.state.matches, tournament.state.teams.length]); // Watch matches and team count
+  }, [tournament.state.matches, tournament.state.teams.length, tournament]); // Watch matches and team count
 
   // Check for tournament completion and show celebration
   useEffect(() => {
@@ -176,7 +176,7 @@ function MatchesFlow() {
       <VStack align="stretch" gap={4}>
         {/* Option 1: Simple Clean Header (like Round Robin) */}
         <Box textAlign="center" py={4}>
-          <Text fontSize="xl" fontWeight="bold" color="purple.600" mb={1}>
+          <Text fontSize="xl" fontWeight="bold" color="yellow.700" mb={1}>
             🏆 Playoff Stage
           </Text>
           <Text fontSize="sm" color="gray.600">
@@ -185,11 +185,11 @@ function MatchesFlow() {
         </Box>
 
         {playoffMatches.length === 0 && (
-          <Box p={6} bg="orange.50" rounded="lg" textAlign="center">
-            <Text fontSize="xl" fontWeight="bold" color="orange.700" mb={2}>
+          <Box p={6} bg="yellow.50" rounded="lg" textAlign="center">
+            <Text fontSize="xl" fontWeight="bold" color="yellow.700" mb={2}>
               🚨 Playoff Matches Not Generated
             </Text>
-            <Text fontSize="md" color="orange.600">
+            <Text fontSize="md" color="yellow.600">
               Playoff matches will be generated once the group stage matches are
               completed.
             </Text>

@@ -15,7 +15,7 @@ import {
   Card,
   IconButton,
 } from "@chakra-ui/react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   useTournament,
@@ -311,7 +311,11 @@ export default function RoundRobinSetup() {
                         onChange={(e) => setTeamInput(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            editingTeam ? handleUpdateTeam() : handleAddTeam();
+                            if (editingTeam) {
+                              handleUpdateTeam();
+                            } else {
+                              handleAddTeam();
+                            }
                           }
                         }}
                         maxLength={10}
