@@ -128,15 +128,15 @@ export function CoinFlipping({ isFlipping, result }: CoinFlippingProps) {
         }
 
         .coin.flipping {
-          animation: coin-spin 1s linear infinite;
+          animation: coin-spin 0.7s linear infinite;
         }
 
         .coin.heads {
-          animation: flip-heads 1s ease-out forwards;
+          animation: flip-heads 0.8s ease-out forwards;
         }
 
         .coin.tails {
-          animation: flip-tails 1s ease-out forwards;
+          animation: flip-tails 0.8s ease-out forwards;
         }
 
         .coin.static-heads {
