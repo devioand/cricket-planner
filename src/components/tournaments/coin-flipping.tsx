@@ -41,8 +41,8 @@ export function CoinFlipping({ isFlipping, result }: CoinFlippingProps) {
       ref={coinRef}
       className="coin"
       position="relative"
-      w="120px"
-      h="120px"
+      w="140px"
+      h="140px"
       mx="auto"
       my={4}
       transformStyle="preserve-3d"
@@ -54,19 +54,34 @@ export function CoinFlipping({ isFlipping, result }: CoinFlippingProps) {
         w="100%"
         h="100%"
         borderRadius="full"
-        bg="#bb0000"
+        background="linear-gradient(145deg, #f4d03f 0%, #d4af37 25%, #b8860b 50%, #daa520 75%, #f4d03f 100%)"
         display="flex"
-        flexDir="column"
         justifyContent="center"
         alignItems="center"
         backfaceVisibility="hidden"
-        boxShadow="inset 0 0 45px rgba(255,255,255,0.3), 0 12px 20px -10px rgba(0,0,0,0.4)"
+        boxShadow="inset 0 0 45px rgba(255,255,255,0.3)"
+        border="3px solid #b8860b"
         zIndex={1}
+        _before={{
+          content: '""',
+          position: "absolute",
+          top: "8px",
+          left: "8px",
+          right: "8px",
+          bottom: "8px",
+          borderRadius: "full",
+          border: "1px solid rgba(255,255,255,0.4)",
+        }}
       >
-        <Text fontSize="lg" color="white" fontWeight="bold">
+        <Text
+          fontSize="2xl"
+          color="#8b4513"
+          fontWeight="900"
+          letterSpacing="2px"
+          fontFamily="serif"
+        >
           HEADS
         </Text>
-        <Text fontSize="2xl">👤</Text>
       </Box>
 
       {/* TAILS */}
@@ -76,19 +91,34 @@ export function CoinFlipping({ isFlipping, result }: CoinFlippingProps) {
         w="100%"
         h="100%"
         borderRadius="full"
-        bg="#3e3e3e"
+        background="linear-gradient(145deg, #e8e8e8 0%, #c0c0c0 25%, #a8a8a8 50%, #d3d3d3 75%, #e8e8e8 100%)"
         display="flex"
-        flexDir="column"
         justifyContent="center"
         alignItems="center"
         backfaceVisibility="hidden"
         transform="rotateY(180deg)"
-        boxShadow="inset 0 0 45px rgba(255,255,255,0.3), 0 12px 20px -10px rgba(0,0,0,0.4)"
+        boxShadow="inset 0 0 45px rgba(255,255,255,0.3)"
+        border="3px solid #a8a8a8"
+        _before={{
+          content: '""',
+          position: "absolute",
+          top: "8px",
+          left: "8px",
+          right: "8px",
+          bottom: "8px",
+          borderRadius: "full",
+          border: "1px solid rgba(255,255,255,0.5)",
+        }}
       >
-        <Text fontSize="lg" color="white" fontWeight="bold">
+        <Text
+          fontSize="2xl"
+          color="#4a4a4a"
+          fontWeight="900"
+          letterSpacing="2px"
+          fontFamily="serif"
+        >
           TAILS
         </Text>
-        <Text fontSize="2xl">⭐</Text>
       </Box>
 
       {/* Styles */}
@@ -98,15 +128,15 @@ export function CoinFlipping({ isFlipping, result }: CoinFlippingProps) {
         }
 
         .coin.flipping {
-          animation: coin-spin 1s linear infinite;
+          animation: coin-spin 0.7s linear infinite;
         }
 
         .coin.heads {
-          animation: flip-heads 1s ease-out forwards;
+          animation: flip-heads 0.8s ease-out forwards;
         }
 
         .coin.tails {
-          animation: flip-tails 1s ease-out forwards;
+          animation: flip-tails 0.8s ease-out forwards;
         }
 
         .coin.static-heads {

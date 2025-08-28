@@ -27,18 +27,18 @@ export function TossManager({ match }: TossManagerProps) {
   if (match.toss) {
     return (
       <Box
-        p={3}
+        p={4}
         bg="green.50"
-        borderRadius="md"
-        border="1px solid"
+        borderRadius="xl"
+        border="2px solid"
         borderColor="green.200"
       >
         <VStack gap={2} align="center">
-          <Text fontSize="sm" fontWeight="bold" color="green.700">
-            ✅ Toss Complete
+          <Text fontSize="md" fontWeight="700" color="green.700">
+            Toss Complete
           </Text>
-          <Text fontSize="xs" color="green.600">
-            {match.toss.tossWinner} won and chose to {match.toss.decision}
+          <Text fontSize="sm" color="green.600" fontWeight="500">
+            {match.toss.tossWinner} won and chose to {match.toss.decision} first
           </Text>
         </VStack>
       </Box>
@@ -46,8 +46,8 @@ export function TossManager({ match }: TossManagerProps) {
   }
 
   return (
-    <VStack gap={2}>
-      <Text fontSize="sm" color="gray.600">
+    <VStack gap={3}>
+      <Text fontSize="md" color="gray.700" fontWeight="600">
         Toss Required
       </Text>
       <CoinFlipDialog match={match} />
@@ -65,41 +65,31 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
   const [isFlipping, setIsFlipping] = useState(false);
   const [flipResult, setFlipResult] = useState<"heads" | "tails" | null>(null);
   const [team1Call, setTeam1Call] = useState<"heads" | "tails">("heads");
-  const [showResult, setShowResult] = useState(false);
   const [tossWinner, setTossWinner] = useState<string>("");
   const [tossDecision, setTossDecision] = useState<TossDecision>("bat");
+  const [flipComplete, setFlipComplete] = useState(false);
 
   const handleFlipCoin = () => {
     setIsFlipping(true);
-    setShowResult(false);
-    setFlipResult(null);
 
-    // Add some suspense with sound effect simulation
-    console.log("🪙 Coin toss initiated!");
-
-    // Simulate realistic coin flip physics (1.5 seconds)
     setTimeout(() => {
       const result = Math.random() < 0.5 ? "heads" : "tails";
       setFlipResult(result);
       setIsFlipping(false);
 
-      // Determine winner
       const winner = result === team1Call ? match.team1 : match.team2;
       setTossWinner(winner);
-
-      // Log the result for dramatic effect
-      console.log(`🎯 Coin landed on: ${result.toUpperCase()}!`);
-      console.log(`🏆 ${winner} wins the toss!`);
-
-      setShowResult(true);
-    }, 2000); // 1.5 second flip animation
+      setFlipComplete(true);
+    }, 1500);
   };
 
   const handleConfirmToss = () => {
     setMatchToss(match.id, tossWinner, tossDecision);
     setIsOpen(false);
-    setShowResult(false);
+    // Reset state
+    setFlipComplete(false);
     setFlipResult(null);
+    setIsFlipping(false);
   };
 
   return (
@@ -111,134 +101,248 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
       </Dialog.Trigger>
 
       <Portal>
-        <Dialog.Backdrop />
+        <Dialog.Backdrop bg="blackAlpha.400" backdropFilter="blur(4px)" />
         <Dialog.Positioner>
-          <Dialog.Content maxW="md" bg="white" borderRadius="lg" p={6}>
-            <Dialog.Header>
-              <VStack gap={2} w="full" align="center">
-                <Text fontSize="xl" fontWeight="bold">
-                  Cricket Toss
-                </Text>
-                <Text fontSize="md" color="blue.600">
+          <Dialog.Content
+            maxW="380px"
+            bg="white"
+            borderRadius="xl"
+            p={4}
+            boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+            border="1px solid"
+            borderColor="gray.200"
+          >
+            <Dialog.Header pb={3}>
+              <VStack gap={1} w="full" align="center">
+                <Text fontSize="lg" color="blue.600" fontWeight="500">
                   {match.team1} vs {match.team2}
                 </Text>
               </VStack>
               <Dialog.CloseTrigger asChild>
-                <CloseButton position="absolute" top={4} right={4} />
+                <CloseButton
+                  position="absolute"
+                  top={4}
+                  right={4}
+                  size="sm"
+                  color="gray.500"
+                  _hover={{ color: "gray.700", bg: "gray.100" }}
+                />
               </Dialog.CloseTrigger>
             </Dialog.Header>
 
             <Dialog.Body>
-              <VStack gap={6} w="full">
+              <VStack gap={4} w="full">
                 {/* Team Call Selection */}
-                {!isFlipping && !showResult && (
-                  <>
-                    <RadioCard.Root
-                      value={team1Call}
-                      onValueChange={(details) =>
-                        setTeam1Call(details.value as "heads" | "tails")
-                      }
-                      colorPalette="blue"
-                      gap={3}
-                    >
-                      <RadioCard.Label fontSize="md" fontWeight="medium">
-                        {match.team1} calls:
-                      </RadioCard.Label>
-                      <HStack gap={4} justify="center">
-                        <RadioCard.Item value="heads" minW="120px">
-                          <RadioCard.ItemHiddenInput />
-                          <RadioCard.ItemControl>
-                            <RadioCard.ItemText>👤 Heads</RadioCard.ItemText>
-                          </RadioCard.ItemControl>
-                        </RadioCard.Item>
-                        <RadioCard.Item value="tails" minW="120px">
-                          <RadioCard.ItemHiddenInput />
-                          <RadioCard.ItemControl>
-                            <RadioCard.ItemText>⭐ Tails</RadioCard.ItemText>
-                          </RadioCard.ItemControl>
-                        </RadioCard.Item>
-                      </HStack>
-                    </RadioCard.Root>
-
-                    <CoinFlipping isFlipping={false} result={null} />
-
-                    <Button
-                      onClick={handleFlipCoin}
-                      size="lg"
-                      colorPalette="yellow"
-                    >
-                      <Text fontSize="lg" mr={2}>
-                        🪙
-                      </Text>
-                      Flip the Coin!
-                    </Button>
-                  </>
-                )}
-
-                {/* Flipping Animation */}
-                {isFlipping && (
-                  <>
-                    <CoinFlipping isFlipping={true} result={null} />
-                    <VStack gap={2}>
-                      <Text
-                        fontSize="lg"
-                        color="purple.600"
-                        fontWeight="medium"
+                <Box w="full">
+                  <Text
+                    fontSize="sm"
+                    fontWeight="500"
+                    color="gray.700"
+                    mb={2}
+                    textAlign="center"
+                  >
+                    {match.team1} calls:
+                  </Text>
+                  <RadioCard.Root
+                    value={team1Call}
+                    onValueChange={(details) =>
+                      setTeam1Call(details.value as "heads" | "tails")
+                    }
+                    colorPalette="blue"
+                    disabled={isFlipping || flipComplete}
+                  >
+                    <HStack gap={3} justify="center">
+                      <RadioCard.Item
+                        value="heads"
+                        w="100px"
+                        h="40px"
+                        border="2px solid"
+                        borderColor="gray.200"
+                        borderRadius="lg"
+                        bg="white"
+                        _hover={{ cursor: "pointer" }}
+                        _checked={{
+                          borderColor: "blue.500",
+                        }}
+                        _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
                       >
-                        🌪️ Flipping in the air...
-                      </Text>
-                      <Text fontSize="sm" color="purple.500">
-                        {match.team1} called &quot;{team1Call}&quot;
-                      </Text>
-                    </VStack>
-                  </>
-                )}
+                        <RadioCard.ItemHiddenInput />
+                        <RadioCard.ItemControl
+                          w="full"
+                          h="full"
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                        >
+                          <RadioCard.ItemText
+                            fontSize="sm"
+                            fontWeight="500"
+                            color="gray.700"
+                          >
+                            HEADS
+                          </RadioCard.ItemText>
+                        </RadioCard.ItemControl>
+                      </RadioCard.Item>
+                      <RadioCard.Item
+                        value="tails"
+                        w="100px"
+                        h="40px"
+                        border="2px solid"
+                        borderColor="gray.200"
+                        borderRadius="lg"
+                        bg="white"
+                        _hover={{ cursor: "pointer" }}
+                        _checked={{
+                          borderColor: "blue.500",
+                        }}
+                        _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
+                      >
+                        <RadioCard.ItemHiddenInput />
+                        <RadioCard.ItemControl
+                          w="full"
+                          h="full"
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                        >
+                          <RadioCard.ItemText
+                            fontSize="sm"
+                            fontWeight="500"
+                            color="gray.700"
+                          >
+                            TAILS
+                          </RadioCard.ItemText>
+                        </RadioCard.ItemControl>
+                      </RadioCard.Item>
+                    </HStack>
+                  </RadioCard.Root>
+                </Box>
 
-                {/* Result Display */}
-                {showResult && (
-                  <VStack gap={4} w="full">
-                    <CoinFlipping isFlipping={false} result={flipResult} />
+                {/* Coin */}
+                <CoinFlipping isFlipping={isFlipping} result={flipResult} />
 
+                {/* Toss Decision Selection (shown after flip) */}
+                {flipComplete && (
+                  <Box w="full">
+                    <Text
+                      fontSize="sm"
+                      fontWeight="500"
+                      color="green.700"
+                      mb={2}
+                      textAlign="center"
+                    >
+                      {tossWinner} won and chooses to:
+                    </Text>
                     <RadioCard.Root
                       value={tossDecision}
                       onValueChange={(details) =>
                         setTossDecision(details.value as TossDecision)
                       }
                       colorPalette="green"
-                      gap={3}
                     >
-                      <RadioCard.Label fontSize="md" fontWeight="medium">
-                        {tossWinner} won the toss and chooses to:
-                      </RadioCard.Label>
-                      <HStack gap={4} justify="center">
-                        <RadioCard.Item value="bat" minW="130px">
+                      <HStack gap={3} justify="center">
+                        <RadioCard.Item
+                          value="bat"
+                          w="110px"
+                          h="40px"
+                          border="2px solid"
+                          borderColor="gray.200"
+                          borderRadius="lg"
+                          bg="white"
+                          _hover={{ cursor: "pointer" }}
+                          _checked={{
+                            borderColor: "green.500",
+                          }}
+                        >
                           <RadioCard.ItemHiddenInput />
-                          <RadioCard.ItemControl>
-                            <RadioCard.ItemText>
-                              🏏 Bat First
+                          <RadioCard.ItemControl
+                            w="full"
+                            h="full"
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                          >
+                            <RadioCard.ItemText
+                              fontSize="sm"
+                              fontWeight="500"
+                              color="gray.700"
+                            >
+                              BAT FIRST
                             </RadioCard.ItemText>
                           </RadioCard.ItemControl>
                         </RadioCard.Item>
-                        <RadioCard.Item value="bowl" minW="130px">
+                        <RadioCard.Item
+                          value="bowl"
+                          w="110px"
+                          h="40px"
+                          border="2px solid"
+                          borderColor="gray.200"
+                          borderRadius="lg"
+                          bg="white"
+                          _hover={{ cursor: "pointer" }}
+                          _checked={{
+                            borderColor: "green.500",
+                          }}
+                        >
                           <RadioCard.ItemHiddenInput />
-                          <RadioCard.ItemControl>
-                            <RadioCard.ItemText>
-                              ⚾ Bowl First
+                          <RadioCard.ItemControl
+                            w="full"
+                            h="full"
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                          >
+                            <RadioCard.ItemText
+                              fontSize="sm"
+                              fontWeight="500"
+                              color="gray.700"
+                            >
+                              BOWL FIRST
                             </RadioCard.ItemText>
                           </RadioCard.ItemControl>
                         </RadioCard.Item>
                       </HStack>
                     </RadioCard.Root>
+                  </Box>
+                )}
 
-                    <Button
-                      onClick={handleConfirmToss}
-                      colorPalette="green"
-                      size="lg"
-                      w="full"
-                    >
-                      ✅ Confirm Toss
-                    </Button>
-                  </VStack>
+                {/* Action Button */}
+                {!flipComplete ? (
+                  <Button
+                    onClick={handleFlipCoin}
+                    disabled={isFlipping}
+                    size="md"
+                    w="full"
+                    h="44px"
+                    bg="gray.900"
+                    color="white"
+                    borderRadius="lg"
+                    fontSize="sm"
+                    fontWeight="500"
+                    _hover={{ bg: "gray.800" }}
+                    _disabled={{
+                      bg: "gray.400",
+                      cursor: "not-allowed",
+                      _hover: { bg: "gray.400" },
+                    }}
+                  >
+                    {isFlipping ? "Flipping..." : "Flip the Coin!"}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleConfirmToss}
+                    size="md"
+                    w="full"
+                    h="44px"
+                    bg="green.600"
+                    color="white"
+                    borderRadius="lg"
+                    fontSize="sm"
+                    fontWeight="500"
+                    _hover={{ bg: "green.700" }}
+                  >
+                    Confirm Toss
+                  </Button>
                 )}
               </VStack>
             </Dialog.Body>
