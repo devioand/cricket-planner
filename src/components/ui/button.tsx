@@ -1,7 +1,7 @@
 "use client";
 
-import { Button as ChakraButton, ButtonProps } from "@chakra-ui/react";
 import { forwardRef } from "react";
+import { Button as ChakraButton, ButtonProps } from "@chakra-ui/react";
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(props, ref) {
@@ -12,7 +12,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         md: "md",
       },
       colorPalette = "blue",
-      rounded = "md",
       ...rest
     } = props;
 

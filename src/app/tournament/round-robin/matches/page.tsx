@@ -14,48 +14,8 @@ export default function RoundRobinMatches() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationShown, setCelebrationShown] = useState(false);
 
-  // Auto-generate playoffs when round robin is complete
-  useEffect(() => {
-    const roundRobinMatches = tournament.state.matches.filter(
-      (match) => !match.isPlayoff
-    );
-    const incompleteRoundRobin = roundRobinMatches.filter(
-      (match) => match.status === "scheduled"
-    );
-    const completedRoundRobin = roundRobinMatches.filter(
-      (match) => match.status === "completed"
-    );
-    const hasPlayoffs = tournament.state.matches.some(
-      (match) => match.isPlayoff
-    );
-
-    // Calculate expected matches for round robin: n*(n-1)/2 where n = number of teams
-    const expectedMatches =
-      tournament.state.teams.length > 1
-        ? (tournament.state.teams.length *
-            (tournament.state.teams.length - 1)) /
-          2
-        : 0;
-
-    // Only trigger when round robin is TRULY complete:
-    // 1. All expected matches exist
-    // 2. All round robin matches are completed (not just no incomplete ones)
-    // 3. No playoffs exist yet
-    // 4. Additional validation from isRoundRobinComplete
-    if (
-      roundRobinMatches.length === expectedMatches &&
-      completedRoundRobin.length === expectedMatches &&
-      incompleteRoundRobin.length === 0 &&
-      roundRobinMatches.length > 0 &&
-      !hasPlayoffs &&
-      tournament.isRoundRobinComplete()
-    ) {
-      console.log(
-        `🏆 Round robin complete (${completedRoundRobin.length}/${expectedMatches} matches), auto-generating playoffs...`
-      );
-      tournament.generatePlayoffs();
-    }
-  }, [tournament.state.matches, tournament.state.teams.length, tournament]); // Watch matches and team count
+  // Note: Playoffs are now generated automatically with TBD placeholders when tournament is created
+  // TBD teams get replaced automatically when round robin matches complete
 
   // Check for tournament completion and show celebration
   useEffect(() => {
@@ -190,11 +150,10 @@ function MatchesFlow() {
         {playoffMatches.length === 0 && (
           <Box p={6} bg="yellow.50" rounded="lg" textAlign="center">
             <Text fontSize="xl" fontWeight="bold" color="yellow.700" mb={2}>
-              🚨 Playoff Matches Not Generated
+              🚨 No Playoff Matches
             </Text>
             <Text fontSize="md" color="yellow.600">
-              Playoff matches will be generated once the group stage matches are
-              completed.
+              Playoff matches will appear here once the tournament is generated.
             </Text>
           </Box>
         )}

@@ -1,357 +1,10 @@
 // League-style playoff algorithms (IPL/BBL format)
 
 import type { Match, TournamentState } from "../types";
-import { getTournamentStandings } from "./cricket-stats";
 
-/**
- * Generates league-style playoff matches (IPL/BBL format)
- * - 3 teams: Falls back to simple Final format (1st vs 2nd)
- * - 4+ teams: Full league format:
- *   - Qualifier 1: 1st vs 2nd (Winner → Final, Loser → Qualifier 2)
- *   - Eliminator: 3rd vs 4th (Winner → Qualifier 2, Loser eliminated)
- *   - Qualifier 2: Loser Q1 vs Winner Eliminator (Winner → Final, Loser eliminated)
- *   - Final: Winner Q1 vs Winner Q2
- */
-export function generateLeaguePlayoffMatches(state: TournamentState): {
-  success: boolean;
-  playoffMatches: Match[];
-  qualifiedTeams: string[];
-  errors?: string[];
-} {
-  console.log("\n🏆 Starting league-style playoff generation...");
-
-  // Validate that round robin is complete
-  const incompleteMatches = state.matches.filter(
-    (match) => !match.isPlayoff && match.status === "scheduled"
-  );
-
-  if (incompleteMatches.length > 0) {
-    return {
-      success: false,
-      playoffMatches: [],
-      qualifiedTeams: [],
-      errors: [
-        "All round robin matches must be completed before playoffs can begin",
-      ],
-    };
-  }
-
-  // Get current standings
-  const standings = getTournamentStandings(state.teamStats);
-
-  if (standings.length < 3) {
-    return {
-      success: false,
-      playoffMatches: [],
-      qualifiedTeams: [],
-      errors: ["At least 3 teams are required for playoffs"],
-    };
-  }
-
-  // Handle 3-team tournament (Simple Final format - League doesn't work with 3 teams)
-  if (standings.length === 3) {
-    const qualifiedTeams = standings.slice(0, 2).map((team) => team.teamName);
-    console.log(
-      "🎯 3-team tournament - Using simple final format instead of league format"
-    );
-    console.log("🎯 Top 2 qualified teams:", qualifiedTeams);
-
-    const playoffMatches: Match[] = [];
-
-    // Final: 1st vs 2nd (3rd team is eliminated)
-    const final: Match = {
-      id: `F-001`,
-      team1: qualifiedTeams[0], // 1st place
-      team2: qualifiedTeams[1], // 2nd place
-      round: 1,
-      status: "scheduled",
-      overs: state.maxOvers,
-      maxWickets: state.maxWickets,
-      isPlayoff: true,
-      playoffType: "final",
-      phase: "playoffs",
-    };
-
-    playoffMatches.push(final);
-
-    console.log("🏆 Final:", `${final.team1} vs ${final.team2}`);
-    console.log("📊 3rd place team is eliminated from playoffs");
-
-    return {
-      success: true,
-      playoffMatches,
-      qualifiedTeams,
-    };
-  }
-
-  if (standings.length < 4) {
-    return {
-      success: false,
-      playoffMatches: [],
-      qualifiedTeams: [],
-      errors: ["At least 4 teams are required for league-style playoffs"],
-    };
-  }
-
-  // Get top 4 teams
-  const qualifiedTeams = standings.slice(0, 4).map((team) => team.teamName);
-  console.log("🎯 Qualified teams:", qualifiedTeams);
-  console.log("🏆 League format: Top 2 teams get second chance!");
-
-  // Generate initial playoff matches
-  const playoffMatches: Match[] = [];
-
-  // Qualifier 1: 1st vs 2nd (Winner gets direct entry to final)
-  const qualifier1: Match = {
-    id: `Q1-001`,
-    team1: qualifiedTeams[0], // 1st place
-    team2: qualifiedTeams[1], // 2nd place
-    round: 1,
-    status: "scheduled",
-    overs: state.maxOvers,
-    maxWickets: state.maxWickets,
-    isPlayoff: true,
-    playoffType: "qualifier-1",
-    phase: "playoffs",
-  };
-
-  // Eliminator: 3rd vs 4th (Winner advances to Qualifier 2)
-  const eliminator: Match = {
-    id: `E-001`,
-    team1: qualifiedTeams[2], // 3rd place
-    team2: qualifiedTeams[3], // 4th place
-    round: 1,
-    status: "scheduled",
-    overs: state.maxOvers,
-    maxWickets: state.maxWickets,
-    isPlayoff: true,
-    playoffType: "eliminator",
-    phase: "playoffs",
-  };
-
-  // Generate Q2 and Final with placeholder teams
-  const qualifier2: Match = {
-    id: `Q2-001`,
-    team1: "TBD", // Loser of Q1
-    team2: "TBD", // Winner of Eliminator
-    round: 2,
-    status: "scheduled",
-    overs: state.maxOvers,
-    maxWickets: state.maxWickets,
-    isPlayoff: true,
-    playoffType: "qualifier-2",
-    phase: "playoffs",
-  };
-
-  const final: Match = {
-    id: `F-001`,
-    team1: "TBD", // Winner of Q1
-    team2: "TBD", // Winner of Q2
-    round: 3,
-    status: "scheduled",
-    overs: state.maxOvers,
-    maxWickets: state.maxWickets,
-    isPlayoff: true,
-    playoffType: "final",
-    phase: "playoffs",
-  };
-
-  playoffMatches.push(qualifier1, eliminator, qualifier2, final);
-
-  console.log(
-    "⚡ Qualifier 1:",
-    `${qualifier1.team1} vs ${qualifier1.team2} (Winner → Final)`
-  );
-  console.log(
-    "💥 Eliminator:",
-    `${eliminator.team1} vs ${eliminator.team2} (Loser eliminated)`
-  );
-  console.log(
-    "🔥 Qualifier 2: TBD vs TBD (Generated when Q1 & Eliminator complete)"
-  );
-  console.log("🏆 Final: TBD vs TBD (Generated when Q1 & Q2 complete)");
-
-  return {
-    success: true,
-    playoffMatches,
-    qualifiedTeams,
-  };
-}
-
-/**
- * Generates Qualifier 2 and Final after initial league playoff matches
- */
-export function generateLeagueFinalMatches(state: TournamentState): {
-  success: boolean;
-  finalMatches: Match[];
-  errors?: string[];
-} {
-  console.log("\n🏆 Generating league final matches...");
-
-  // Find completed Qualifier 1 and Eliminator
-  const qualifier1 = state.matches.find(
-    (match) =>
-      match.isPlayoff &&
-      match.playoffType === "qualifier-1" &&
-      match.status === "completed"
-  );
-
-  const eliminator = state.matches.find(
-    (match) =>
-      match.isPlayoff &&
-      match.playoffType === "eliminator" &&
-      match.status === "completed"
-  );
-
-  if (!qualifier1 || !eliminator) {
-    return {
-      success: false,
-      finalMatches: [],
-      errors: ["Both Qualifier 1 and Eliminator must be completed first"],
-    };
-  }
-
-  if (!qualifier1.result || !eliminator.result) {
-    return {
-      success: false,
-      finalMatches: [],
-      errors: ["Match results not found for Qualifier 1 or Eliminator"],
-    };
-  }
-
-  const finalMatches: Match[] = [];
-
-  // Qualifier 2: Loser of Q1 vs Winner of Eliminator
-  const qualifier2: Match = {
-    id: `Q2-001`,
-    team1: qualifier1.result.loser, // Loser of Qualifier 1 (gets second chance)
-    team2: eliminator.result.winner, // Winner of Eliminator
-    round: 2,
-    status: "scheduled",
-    overs: state.maxOvers,
-    maxWickets: state.maxWickets,
-    isPlayoff: true,
-    playoffType: "qualifier-2",
-    phase: "playoffs",
-  };
-
-  // Final: Winner of Q1 vs Winner of Q2 (to be determined)
-  const final: Match = {
-    id: `F-001`,
-    team1: qualifier1.result.winner, // Winner of Qualifier 1 (direct entry)
-    team2: "TBD", // Winner of Qualifier 2
-    round: 3,
-    status: "scheduled",
-    overs: state.maxOvers,
-    maxWickets: state.maxWickets,
-    isPlayoff: true,
-    playoffType: "final",
-    phase: "playoffs",
-  };
-
-  finalMatches.push(qualifier2, final);
-
-  console.log(
-    "🔥 Qualifier 2:",
-    `${qualifier2.team1} vs ${qualifier2.team2} (Winner → Final)`
-  );
-  console.log("🏆 Final:", `${final.team1} vs Winner of Q2`);
-
-  return {
-    success: true,
-    finalMatches,
-  };
-}
-
-/**
- * Updates the final match with Qualifier 2 winner
- */
-export function updateLeagueFinalWithQ2Winner(state: TournamentState): {
-  success: boolean;
-  updatedFinal?: Match;
-  errors?: string[];
-} {
-  console.log("\n🏆 Updating final with Qualifier 2 winner...");
-
-  const qualifier2 = state.matches.find(
-    (match) =>
-      match.isPlayoff &&
-      match.playoffType === "qualifier-2" &&
-      match.status === "completed"
-  );
-
-  const final = state.matches.find(
-    (match) =>
-      match.isPlayoff && match.playoffType === "final" && match.team2 === "TBD"
-  );
-
-  if (!qualifier2?.result || !final) {
-    return {
-      success: false,
-      errors: ["Qualifier 2 result or final match not found"],
-    };
-  }
-
-  const updatedFinal: Match = {
-    ...final,
-    team2: qualifier2.result.winner,
-  };
-
-  console.log(
-    "🏆 Final updated:",
-    `${updatedFinal.team1} vs ${updatedFinal.team2}`
-  );
-
-  return {
-    success: true,
-    updatedFinal,
-  };
-}
-
-/**
- * Checks if league format qualification rounds are complete
- */
-export function canGenerateLeagueQ2(state: TournamentState): {
-  canGenerate: boolean;
-  reasons: string[];
-} {
-  const reasons: string[] = [];
-
-  const qualifier1 = state.matches.find(
-    (match) =>
-      match.isPlayoff &&
-      match.playoffType === "qualifier-1" &&
-      match.status === "completed"
-  );
-
-  const eliminator = state.matches.find(
-    (match) =>
-      match.isPlayoff &&
-      match.playoffType === "eliminator" &&
-      match.status === "completed"
-  );
-
-  if (!qualifier1) {
-    reasons.push("Qualifier 1 must be completed");
-  }
-
-  if (!eliminator) {
-    reasons.push("Eliminator must be completed");
-  }
-
-  const q2Exists = state.matches.some(
-    (match) => match.isPlayoff && match.playoffType === "qualifier-2"
-  );
-
-  if (q2Exists) {
-    reasons.push("Qualifier 2 already generated");
-  }
-
-  return {
-    canGenerate: reasons.length === 0,
-    reasons,
-  };
-}
+// Note: Removed old league playoff generation functions
+// These are replaced by generateLeaguePlayoffMatchesWithTBD which creates all matches immediately
+// with TBD placeholders that get populated automatically when matches complete
 
 /**
  * Gets the current league playoff phase status
@@ -441,5 +94,132 @@ export function getLeaguePlayoffStatus(state: TournamentState): {
   return {
     phase: "completed",
     description: "Tournament completed!",
+  };
+}
+
+/**
+ * Generates league-style playoff matches with TBD placeholders immediately
+ * This function creates playoff matches at tournament start without requiring round robin completion
+ */
+export function generateLeaguePlayoffMatchesWithTBD(state: TournamentState): {
+  success: boolean;
+  playoffMatches: Match[];
+  qualifiedTeams: string[];
+  errors?: string[];
+} {
+  console.log("\n🏆 Generating league playoffs with TBD placeholders...");
+
+  const teamCount = state.teams.length;
+
+  if (teamCount < 3) {
+    return {
+      success: false,
+      playoffMatches: [],
+      qualifiedTeams: [],
+      errors: ["At least 3 teams are required for playoffs"],
+    };
+  }
+
+  const playoffMatches: Match[] = [];
+
+  // Handle 3-team tournament (Simple Final format - League doesn't work with 3 teams)
+  if (teamCount === 3) {
+    console.log("🎯 3-team tournament - TBD Final format (League fallback)");
+
+    const final: Match = {
+      id: `F-001`,
+      team1: "TBD", // 1st place (to be determined)
+      team2: "TBD", // 2nd place (to be determined)
+      round: 1,
+      status: "scheduled",
+      overs: state.maxOvers,
+      maxWickets: state.maxWickets,
+      isPlayoff: true,
+      playoffType: "final",
+      phase: "playoffs",
+    };
+
+    playoffMatches.push(final);
+    console.log(
+      "🏆 Final: TBD vs TBD (Teams will be determined after round robin)"
+    );
+
+    return {
+      success: true,
+      playoffMatches,
+      qualifiedTeams: [], // No qualified teams yet - TBD
+    };
+  }
+
+  // Handle 4+ team tournament (Full League format with TBDs)
+  console.log("🎯 4+ team tournament - TBD League format");
+
+  // Qualifier 1: TBD vs TBD (1st vs 2nd when determined)
+  const qualifier1: Match = {
+    id: `Q1-001`,
+    team1: "TBD", // 1st place
+    team2: "TBD", // 2nd place
+    round: 1,
+    status: "scheduled",
+    overs: state.maxOvers,
+    maxWickets: state.maxWickets,
+    isPlayoff: true,
+    playoffType: "qualifier-1",
+    phase: "playoffs",
+  };
+
+  // Eliminator: TBD vs TBD (3rd vs 4th when determined)
+  const eliminator: Match = {
+    id: `E-001`,
+    team1: "TBD", // 3rd place
+    team2: "TBD", // 4th place
+    round: 1,
+    status: "scheduled",
+    overs: state.maxOvers,
+    maxWickets: state.maxWickets,
+    isPlayoff: true,
+    playoffType: "eliminator",
+    phase: "playoffs",
+  };
+
+  // Qualifier 2: TBD vs TBD (Loser Q1 vs Winner Eliminator)
+  const qualifier2: Match = {
+    id: `Q2-001`,
+    team1: "TBD", // Loser of Q1
+    team2: "TBD", // Winner of Eliminator
+    round: 2,
+    status: "scheduled",
+    overs: state.maxOvers,
+    maxWickets: state.maxWickets,
+    isPlayoff: true,
+    playoffType: "qualifier-2",
+    phase: "playoffs",
+  };
+
+  // Final: TBD vs TBD (Winner Q1 vs Winner Q2)
+  const final: Match = {
+    id: `F-001`,
+    team1: "TBD", // Winner of Q1
+    team2: "TBD", // Winner of Q2
+    round: 3,
+    status: "scheduled",
+    overs: state.maxOvers,
+    maxWickets: state.maxWickets,
+    isPlayoff: true,
+    playoffType: "final",
+    phase: "playoffs",
+  };
+
+  playoffMatches.push(qualifier1, eliminator, qualifier2, final);
+
+  console.log("⚡ Qualifier 1: TBD vs TBD (1st vs 2nd when determined)");
+  console.log("💥 Eliminator: TBD vs TBD (3rd vs 4th when determined)");
+  console.log("🔥 Qualifier 2: TBD vs TBD (Q1 loser vs Eliminator winner)");
+  console.log("🏆 Final: TBD vs TBD (Q1 winner vs Q2 winner)");
+
+  return {
+    success: true,
+    playoffMatches,
+    qualifiedTeams: [], // No qualified teams yet - TBD
   };
 }

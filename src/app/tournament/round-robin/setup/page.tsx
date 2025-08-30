@@ -234,9 +234,9 @@ export default function RoundRobinSetup() {
               <Heading size="md" color="blue.600">
                 Playoff Format
               </Heading>
-              {tournament.state.qualifiedTeams.length > 0 && (
+              {tournament.state.matches.some((m) => m.isPlayoff) && (
                 <Text fontSize="xs" color="gray.500" fontStyle="italic">
-                  🔒 Locked after playoffs generated
+                  🔒 Locked after tournament generated
                 </Text>
               )}
             </HStack>
@@ -246,7 +246,7 @@ export default function RoundRobinSetup() {
           </VStack>
 
           <PlayoffFormatSelector
-            disabled={tournament.state.qualifiedTeams.length > 0}
+            disabled={tournament.state.matches.some((m) => m.isPlayoff)}
           />
         </VStack>
 

@@ -246,3 +246,161 @@ export function hasResolvableTBDTeams(state: TournamentState): boolean {
 
   return false;
 }
+
+/**
+ * Updates initial playoff team assignments from round robin standings
+ * This is used to populate TBD playoff matches with actual team names once round robin is complete
+ */
+export function updateInitialPlayoffTeamsFromStandings(
+  state: TournamentState,
+  standings: { teamName: string }[]
+): {
+  success: boolean;
+  updatedMatches: Match[];
+  updates: string[];
+} {
+  const updates: string[] = [];
+  const updatedMatches = [...state.matches];
+
+  if (state.playoffFormat === "world-cup") {
+    // World Cup format: Update semi-finals and finals with TBD
+    if (standings.length === 3) {
+      // 3-team tournament: Direct final
+      const final = updatedMatches.find(
+        (m) => m.isPlayoff && m.playoffType === "final"
+      );
+      if (final && final.team1 === "TBD" && final.team2 === "TBD") {
+        const finalIndex = updatedMatches.findIndex((m) => m.id === final.id);
+        if (finalIndex !== -1) {
+          updatedMatches[finalIndex] = {
+            ...final,
+            team1: standings[0].teamName, // 1st place
+            team2: standings[1].teamName, // 2nd place
+          };
+          updates.push(
+            `🏆 Final teams set: ${standings[0].teamName} vs ${standings[1].teamName}`
+          );
+        }
+      }
+    } else if (standings.length >= 4) {
+      // 4+ team tournament: Semi-finals
+      const semiFinal1 = updatedMatches.find(
+        (m) => m.isPlayoff && m.playoffType === "semi-final-1"
+      );
+      const semiFinal2 = updatedMatches.find(
+        (m) => m.isPlayoff && m.playoffType === "semi-final-2"
+      );
+
+      if (
+        semiFinal1 &&
+        semiFinal1.team1 === "TBD" &&
+        semiFinal1.team2 === "TBD"
+      ) {
+        const sf1Index = updatedMatches.findIndex(
+          (m) => m.id === semiFinal1.id
+        );
+        if (sf1Index !== -1) {
+          updatedMatches[sf1Index] = {
+            ...semiFinal1,
+            team1: standings[0].teamName, // 1st place
+            team2: standings[3].teamName, // 4th place
+          };
+          updates.push(
+            `⚡ Semi-final 1 teams set: ${standings[0].teamName} vs ${standings[3].teamName}`
+          );
+        }
+      }
+
+      if (
+        semiFinal2 &&
+        semiFinal2.team1 === "TBD" &&
+        semiFinal2.team2 === "TBD"
+      ) {
+        const sf2Index = updatedMatches.findIndex(
+          (m) => m.id === semiFinal2.id
+        );
+        if (sf2Index !== -1) {
+          updatedMatches[sf2Index] = {
+            ...semiFinal2,
+            team1: standings[1].teamName, // 2nd place
+            team2: standings[2].teamName, // 3rd place
+          };
+          updates.push(
+            `⚡ Semi-final 2 teams set: ${standings[1].teamName} vs ${standings[2].teamName}`
+          );
+        }
+      }
+    }
+  } else if (state.playoffFormat === "league") {
+    // League format: Update Qualifier 1 and Eliminator
+    if (standings.length === 3) {
+      // 3-team tournament: Direct final
+      const final = updatedMatches.find(
+        (m) => m.isPlayoff && m.playoffType === "final"
+      );
+      if (final && final.team1 === "TBD" && final.team2 === "TBD") {
+        const finalIndex = updatedMatches.findIndex((m) => m.id === final.id);
+        if (finalIndex !== -1) {
+          updatedMatches[finalIndex] = {
+            ...final,
+            team1: standings[0].teamName, // 1st place
+            team2: standings[1].teamName, // 2nd place
+          };
+          updates.push(
+            `🏆 Final teams set: ${standings[0].teamName} vs ${standings[1].teamName}`
+          );
+        }
+      }
+    } else if (standings.length >= 4) {
+      // 4+ team tournament: Qualifier 1 and Eliminator
+      const qualifier1 = updatedMatches.find(
+        (m) => m.isPlayoff && m.playoffType === "qualifier-1"
+      );
+      const eliminator = updatedMatches.find(
+        (m) => m.isPlayoff && m.playoffType === "eliminator"
+      );
+
+      if (
+        qualifier1 &&
+        qualifier1.team1 === "TBD" &&
+        qualifier1.team2 === "TBD"
+      ) {
+        const q1Index = updatedMatches.findIndex((m) => m.id === qualifier1.id);
+        if (q1Index !== -1) {
+          updatedMatches[q1Index] = {
+            ...qualifier1,
+            team1: standings[0].teamName, // 1st place
+            team2: standings[1].teamName, // 2nd place
+          };
+          updates.push(
+            `⚡ Qualifier 1 teams set: ${standings[0].teamName} vs ${standings[1].teamName}`
+          );
+        }
+      }
+
+      if (
+        eliminator &&
+        eliminator.team1 === "TBD" &&
+        eliminator.team2 === "TBD"
+      ) {
+        const eIndex = updatedMatches.findIndex((m) => m.id === eliminator.id);
+        if (eIndex !== -1) {
+          updatedMatches[eIndex] = {
+            ...eliminator,
+            team1: standings[2].teamName, // 3rd place
+            team2: standings[3].teamName, // 4th place
+          };
+          updates.push(
+            `💥 Eliminator teams set: ${standings[2].teamName} vs ${standings[3].teamName}`
+          );
+        }
+      }
+    }
+  }
+
+  return {
+    success: updates.length > 0,
+    updatedMatches,
+    updates,
+  };
+}
