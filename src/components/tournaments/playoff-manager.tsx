@@ -70,7 +70,7 @@ export function PlayoffManager({
             {tournament.state.qualifiedTeams.map((team, index) => (
               <Badge
                 key={team}
-                colorScheme={
+                colorPalette={
                   index === 0
                     ? "gold"
                     : index === 1
@@ -238,7 +238,7 @@ function PlayoffStatusCard({
               <Text fontSize="2xl">{getStatusIcon(status.phase)}</Text>
               <VStack align="start" gap={0}>
                 <Badge
-                  colorScheme={getStatusColor(status.phase)}
+                  colorPalette={getStatusColor(status.phase)}
                   variant="solid"
                   textTransform="capitalize"
                 >
@@ -258,13 +258,21 @@ function PlayoffStatusCard({
           {/* Action Buttons */}
           <HStack gap={3}>
             {canGeneratePlayoffs.canGenerate && (
-              <Button colorScheme="blue" onClick={onGeneratePlayoffs} size="sm">
+              <Button
+                colorPalette="blue"
+                onClick={onGeneratePlayoffs}
+                size="sm"
+              >
                 🏆 Generate Playoffs
               </Button>
             )}
 
             {canGenerateFinals.canGenerate && (
-              <Button colorScheme="purple" onClick={onGenerateFinals} size="sm">
+              <Button
+                colorPalette="purple"
+                onClick={onGenerateFinals}
+                size="sm"
+              >
                 🔄 Update Playoff Teams
               </Button>
             )}
@@ -388,7 +396,7 @@ function PlayoffMatchCard({ match }: PlayoffMatchCardProps) {
               <Text fontSize="xl">{getMatchTypeIcon(match.playoffType)}</Text>
               <VStack align="start" gap={0}>
                 <Badge
-                  colorScheme={getMatchTypeColor(match.playoffType)}
+                  colorPalette={getMatchTypeColor(match.playoffType)}
                   variant="solid"
                 >
                   {getMatchTypeDisplay(match.playoffType)}
@@ -400,7 +408,7 @@ function PlayoffMatchCard({ match }: PlayoffMatchCardProps) {
             </HStack>
             <VStack align="end" gap={1}>
               <Badge
-                colorScheme={match.status === "completed" ? "green" : "blue"}
+                colorPalette={match.status === "completed" ? "green" : "blue"}
                 variant={match.status === "completed" ? "solid" : "outline"}
               >
                 {match.status}

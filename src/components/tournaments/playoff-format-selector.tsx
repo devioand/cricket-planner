@@ -80,7 +80,7 @@ export function PlayoffFormatSelector({
                       </VStack>
                     </HStack>
                     {isSelected && (
-                      <Badge colorScheme={details.color} variant="solid">
+                      <Badge colorPalette={details.color} variant="solid">
                         Selected
                       </Badge>
                     )}

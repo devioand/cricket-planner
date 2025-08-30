@@ -1,9 +1,10 @@
 "use client";
 
-import { Box, HStack, Button } from "@chakra-ui/react";
+import { Box, HStack } from "@chakra-ui/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useTournament } from "@/contexts/tournament-context";
+import { Button } from "../ui/button";
 
 export function RoundRobinNavigation() {
   const pathname = usePathname();
@@ -67,7 +68,7 @@ function NavButton({ href, label, isActive, isEnabled }: NavButtonProps) {
     <Button
       size={{ base: "sm", md: "md" }}
       variant={isActive ? "solid" : "ghost"}
-      colorScheme={isActive ? "blue" : "gray"}
+      colorPalette={isActive ? "blue" : "gray"}
       w="full"
       opacity={isEnabled ? 1 : 0.5}
       cursor={isEnabled ? "pointer" : "not-allowed"}

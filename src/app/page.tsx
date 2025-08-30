@@ -220,7 +220,7 @@ function AlgorithmCard({ algorithm }: AlgorithmCardProps) {
       {!algorithm.isAvailable && (
         <Box position="absolute" top={4} right={4} zIndex={2}>
           <Badge
-            colorScheme="gray"
+            colorPalette="gray"
             variant="solid"
             px={3}
             py={1}
@@ -264,7 +264,7 @@ function AlgorithmCard({ algorithm }: AlgorithmCardProps) {
             <VStack gap={2}>
               <HStack justify="space-between" w="full" flexWrap="wrap" gap={2}>
                 <Badge
-                  colorScheme={algorithm.color}
+                  colorPalette={algorithm.color}
                   variant="subtle"
                   fontSize="xs"
                   px={2}
@@ -273,7 +273,7 @@ function AlgorithmCard({ algorithm }: AlgorithmCardProps) {
                   {algorithm.estimatedTime}
                 </Badge>
                 <Badge
-                  colorScheme="gray"
+                  colorPalette="gray"
                   variant="outline"
                   fontSize="xs"
                   px={2}
@@ -307,7 +307,7 @@ function AlgorithmCard({ algorithm }: AlgorithmCardProps) {
             <Box mt="auto" pt={4}>
               <Button
                 w="full"
-                colorScheme={algorithm.isAvailable ? algorithm.color : "gray"}
+                colorPalette={algorithm.isAvailable ? algorithm.color : "gray"}
                 size={{ base: "md", md: "lg" }}
                 minH={{ base: "44px", md: "48px" }}
                 disabled={!algorithm.isAvailable}

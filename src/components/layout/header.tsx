@@ -79,7 +79,7 @@ export function Header() {
           <HStack gap={3}>
             {isTournamentPage && (
               <Link href="/">
-                <Button variant="outline" size="sm" colorScheme="blue">
+                <Button variant="outline" size="sm" colorPalette="blue">
                   ← Back to Algorithms
                 </Button>
               </Link>

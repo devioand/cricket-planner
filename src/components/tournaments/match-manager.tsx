@@ -44,7 +44,7 @@ export function MatchManager({ showCompleted = true }: MatchManagerProps) {
             <>
               <Button
                 size="sm"
-                colorScheme="orange"
+                colorPalette="orange"
                 variant="outline"
                 onClick={() => tournament.generateAllTosses()}
               >
@@ -52,7 +52,7 @@ export function MatchManager({ showCompleted = true }: MatchManagerProps) {
               </Button>
               <Button
                 size="sm"
-                colorScheme="purple"
+                colorPalette="purple"
                 variant="outline"
                 onClick={handleGenerateSampleResults}
               >
@@ -201,13 +201,13 @@ function MatchScoreInput({ match }: MatchScoreInputProps) {
               {match.team1} vs {match.team2}
             </Text>
             <HStack gap={2}>
-              <Badge colorScheme="blue" variant="subtle">
+              <Badge colorPalette="blue" variant="subtle">
                 {match.id}
               </Badge>
-              <Badge colorScheme="gray" variant="outline">
+              <Badge colorPalette="gray" variant="outline">
                 Round {match.round}
               </Badge>
-              <Badge colorScheme="orange" variant="outline">
+              <Badge colorPalette="orange" variant="outline">
                 {match.overs} overs
               </Badge>
             </HStack>
@@ -336,7 +336,7 @@ function MatchScoreInput({ match }: MatchScoreInputProps) {
 
         {/* Submit Button */}
         <Button
-          colorScheme="green"
+          colorPalette="green"
           onClick={handleSubmit}
           disabled={
             isSubmitting ||
@@ -384,13 +384,13 @@ function CompletedMatchCard({ match }: CompletedMatchCardProps) {
               {match.team1} vs {match.team2}
             </Text>
             <HStack gap={2}>
-              <Badge colorScheme="green" variant="subtle">
+              <Badge colorPalette="green" variant="subtle">
                 {match.id}
               </Badge>
-              <Badge colorScheme="gray" variant="outline">
+              <Badge colorPalette="gray" variant="outline">
                 Round {match.round}
               </Badge>
-              <Badge colorScheme="green" variant="solid">
+              <Badge colorPalette="green" variant="solid">
                 Completed
               </Badge>
             </HStack>

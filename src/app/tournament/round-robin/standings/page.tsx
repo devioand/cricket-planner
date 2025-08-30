@@ -43,7 +43,7 @@ export default function RoundRobinStandings() {
           </Text>
           <Button
             onClick={() => router.push("/tournament/round-robin/setup")}
-            colorScheme="yellow"
+            colorPalette="yellow"
             size="lg"
           >
             ← Go to Setup

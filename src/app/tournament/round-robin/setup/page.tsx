@@ -2,7 +2,6 @@
 
 import {
   Box,
-  Button,
   Heading,
   Input,
   Text,
@@ -23,6 +22,7 @@ import {
 } from "@/contexts/tournament-context";
 
 import { PlayoffFormatSelector } from "@/components/tournaments/playoff-format-selector";
+import { Button } from "@/components/ui/button";
 
 export default function RoundRobinSetup() {
   const tournament = useTournament();
@@ -100,37 +100,24 @@ export default function RoundRobinSetup() {
 
   return (
     <>
-      {/* Header */}
-      <VStack gap={4} align="stretch" mb={8}>
-        <Box textAlign="center">
-          <Heading size={{ base: "lg", md: "xl" }} color="blue.600" mb={2}>
-            🔄 Tournament Setup
-          </Heading>
-          <Text
-            color="gray.600"
-            fontSize={{ base: "sm", md: "md" }}
-            maxW="xl"
-            mx="auto"
-          >
-            Add teams and configure match settings for your group stage
-            tournament
-          </Text>
-        </Box>
-      </VStack>
-
       <VStack gap={8} align="stretch">
         {/* Teams Section */}
         <Box>
-          <HStack justify="space-between" align="center" mb={4}>
-            <Heading size="md" color="blue.600">
-              Teams ({tournament.state.teams.length})
-            </Heading>
-            {tournament.state.isGenerated && (
-              <Text fontSize="xs" color="gray.500" fontStyle="italic">
-                🔒 Locked during tournament
-              </Text>
-            )}
-          </HStack>
+          <VStack align="stretch" gap={1} mb={4}>
+            <HStack justify="space-between" align="center">
+              <Heading size="md" color="blue.600">
+                Teams ({tournament.state.teams.length})
+              </Heading>
+              {tournament.state.isGenerated && (
+                <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                  🔒 Locked during tournament
+                </Text>
+              )}
+            </HStack>
+            <Text fontSize="sm" color="gray.600">
+              Add teams. Each team plays others once.
+            </Text>
+          </VStack>
 
           <VStack gap={3} align="stretch">
             {/* Team Cards */}
@@ -149,7 +136,7 @@ export default function RoundRobinSetup() {
               <Button
                 onClick={() => setIsAddTeamOpen(true)}
                 variant="outline"
-                colorScheme="blue"
+                colorPalette="blue"
                 size="lg"
                 w="full"
                 minH="48px"
@@ -165,16 +152,21 @@ export default function RoundRobinSetup() {
 
         {/* Match Settings */}
         <VStack gap={4} align="stretch">
-          <HStack justify="space-between" align="center">
-            <Heading size="md" color="blue.600">
-              Match Settings
-            </Heading>
-            {tournament.state.isGenerated && (
-              <Text fontSize="xs" color="gray.500" fontStyle="italic">
-                🔒 Locked during tournament
-              </Text>
-            )}
-          </HStack>
+          <VStack align="stretch" gap={1} mb={4}>
+            <HStack justify="space-between" align="center">
+              <Heading size="md" color="blue.600">
+                Match Settings
+              </Heading>
+              {tournament.state.isGenerated && (
+                <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                  🔒 Locked during tournament
+                </Text>
+              )}
+            </HStack>
+            <Text fontSize="sm" color="gray.600">
+              Set overs and wickets for matches.
+            </Text>
+          </VStack>
 
           {/* Max Overs */}
           <Box>
@@ -237,16 +229,21 @@ export default function RoundRobinSetup() {
 
         {/* Playoff Format Selection */}
         <VStack gap={4} align="stretch">
-          <HStack justify="space-between" align="center">
-            <Heading size="md" color="blue.600">
-              Playoff Format
-            </Heading>
-            {tournament.state.qualifiedTeams.length > 0 && (
-              <Text fontSize="xs" color="gray.500" fontStyle="italic">
-                🔒 Locked after playoffs generated
-              </Text>
-            )}
-          </HStack>
+          <VStack align="stretch" gap={1} mb={4}>
+            <HStack justify="space-between" align="center">
+              <Heading size="md" color="blue.600">
+                Playoff Format
+              </Heading>
+              {tournament.state.qualifiedTeams.length > 0 && (
+                <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                  🔒 Locked after playoffs generated
+                </Text>
+              )}
+            </HStack>
+            <Text fontSize="sm" color="gray.600">
+              Choose playoff style for top teams.
+            </Text>
+          </VStack>
 
           <PlayoffFormatSelector
             disabled={tournament.state.qualifiedTeams.length > 0}
@@ -259,10 +256,8 @@ export default function RoundRobinSetup() {
             <Button
               onClick={handleStartTournament}
               disabled={tournament.state.teams.length < 2}
-              colorScheme="green"
-              size="xl"
+              // size="md"
               w="full"
-              minH="56px"
             >
               {tournament.state.teams.length < 2
                 ? "Add at least 2 teams"
@@ -271,10 +266,9 @@ export default function RoundRobinSetup() {
           ) : (
             <Button
               onClick={handleFinishTournament}
-              colorScheme="green"
-              size="xl"
+              colorPalette="green"
+              // size="xl"
               w="full"
-              minH="56px"
             >
               🏁 Finish Tournament
             </Button>
@@ -336,7 +330,7 @@ export default function RoundRobinSetup() {
                         Cancel
                       </Button>
                       <Button
-                        colorScheme="blue"
+                        colorPalette="blue"
                         flex="1"
                         onClick={editingTeam ? handleUpdateTeam : handleAddTeam}
                         disabled={
@@ -402,7 +396,7 @@ export default function RoundRobinSetup() {
                         Cancel
                       </Button>
                       <Button
-                        colorScheme="red"
+                        colorPalette="red"
                         flex="1"
                         onClick={confirmFinishTournament}
                       >
@@ -465,7 +459,7 @@ function TeamCard({
                 aria-label="Edit team"
                 size="sm"
                 variant="ghost"
-                colorScheme="blue"
+                colorPalette="blue"
                 onClick={onEdit}
               >
                 ✏️
@@ -474,7 +468,7 @@ function TeamCard({
                 aria-label="Delete team"
                 size="sm"
                 variant="ghost"
-                colorScheme="red"
+                colorPalette="red"
                 onClick={onDelete}
               >
                 🗑️
