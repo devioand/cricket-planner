@@ -18,10 +18,8 @@ export const initialTournamentState: TournamentState = {
   matches: [],
   isGenerated: false,
   teamStats: {},
-  phase: "setup",
-  playoffFormat: "world-cup", // Default to world cup style
-  qualifiedTeams: [],
-  playoffMatches: [],
+  phase: "setup", // Tournament phase tracking
+  playoffFormat: "world-cup", // Default playoff format
 };
 
 // State actions
@@ -39,9 +37,6 @@ export type TournamentAction =
   | { type: "RESET_TOURNAMENT" }
   | { type: "SET_PHASE"; payload: TournamentPhase }
   | { type: "SET_PLAYOFF_FORMAT"; payload: PlayoffFormat }
-  | { type: "SET_QUALIFIED_TEAMS"; payload: string[] }
-  | { type: "SET_PLAYOFF_MATCHES"; payload: Match[] }
-  | { type: "ADD_PLAYOFF_MATCH"; payload: Match }
   | { type: "HYDRATE_STATE"; payload: TournamentState };
 
 // State reducer
@@ -169,21 +164,8 @@ export function tournamentReducer(
       console.log(`🏏 Playoff format set to: ${action.payload}`);
       return { ...state, playoffFormat: action.payload };
 
-    case "SET_QUALIFIED_TEAMS":
-      console.log("🎯 Qualified teams set:", action.payload);
-      return { ...state, qualifiedTeams: action.payload };
-
-    case "SET_PLAYOFF_MATCHES":
-      console.log("🏏 Playoff matches set:", action.payload.length, "matches");
-      return { ...state, playoffMatches: action.payload };
-
-    case "ADD_PLAYOFF_MATCH":
-      console.log("➕ Playoff match added:", action.payload.id);
-      return {
-        ...state,
-        playoffMatches: [...state.playoffMatches, action.payload],
-        matches: [...state.matches, action.payload],
-      };
+    // Note: Removed SET_QUALIFIED_TEAMS, SET_PLAYOFF_MATCHES, ADD_PLAYOFF_MATCH
+    // Playoff matches are now created directly in main matches array via generateMatches()
 
     case "HYDRATE_STATE":
       console.log("💧 Hydrating state from localStorage");

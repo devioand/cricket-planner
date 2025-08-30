@@ -91,8 +91,6 @@ export interface TournamentState {
   // Playoff specific state
   phase: TournamentPhase;
   playoffFormat: PlayoffFormat;
-  qualifiedTeams: string[];
-  playoffMatches: Match[];
 }
 
 // Extended types for future features
