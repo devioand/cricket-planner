@@ -3,19 +3,21 @@
 import { Box } from "@chakra-ui/react";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
+import { TossManager } from "./toss-manager";
+import { Match } from "@/contexts/tournament-context";
 
 interface MatchActionsProps {
+  match: Match;
   matchState: string;
   onStartMatch: () => void;
-  onTossMatch?: () => void;
   onStartSecondInnings?: () => void;
   onFinishMatch?: () => void;
 }
 
 export function MatchActions({
+  match,
   matchState,
   onStartMatch,
-  onTossMatch,
   onStartSecondInnings,
   onFinishMatch,
 }: MatchActionsProps) {
@@ -32,13 +34,7 @@ export function MatchActions({
   }
 
   if (matchState === "in-progress-need-toss") {
-    return (
-      <Box textAlign="center">
-        <Button onClick={onTossMatch} colorPalette="orange" w="full">
-          🪙 Flip Coin & Toss
-        </Button>
-      </Box>
-    );
+    return <TossManager match={match} />;
   }
 
   if (matchState === "first-innings-ready") {

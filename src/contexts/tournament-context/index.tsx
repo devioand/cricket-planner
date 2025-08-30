@@ -706,7 +706,7 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     getStats,
     getTeamStandings,
     simulateMatchResult,
-    completeMatch: (matchId: string) => completeMatch(matchId) || {},
+    completeMatch,
     updateSingleInnings,
     startMatch,
     startSecondInnings,
