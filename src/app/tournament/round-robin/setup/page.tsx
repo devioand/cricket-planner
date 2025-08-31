@@ -78,7 +78,7 @@ export default function RoundRobinSetup() {
   const handleStartTournament = () => {
     const result = tournament.generateMatches();
     if (result.success) {
-      logTournamentState(tournament.state);
+      logTournamentState();
       // Navigate to matches page immediately after successful generation
       router.push("/tournament/round-robin/matches");
     } else if (result.errors) {

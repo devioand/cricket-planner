@@ -130,8 +130,6 @@ export function generateWorldCupPlayoffMatchesWithTBD(state: TournamentState): {
   qualifiedTeams: string[];
   errors?: string[];
 } {
-  console.log("\n🏆 Generating world cup playoffs with TBD placeholders...");
-
   const teamCount = state.teams.length;
 
   if (teamCount < 3) {
@@ -148,8 +146,6 @@ export function generateWorldCupPlayoffMatchesWithTBD(state: TournamentState): {
 
   // Handle 3-team tournament (Simple Final format)
   if (teamCount === 3) {
-    console.log("🎯 3-team tournament - TBD Final format");
-
     const final: Match = {
       id: `F-001`,
       team1: "TBD", // 1st place (to be determined)
@@ -164,9 +160,6 @@ export function generateWorldCupPlayoffMatchesWithTBD(state: TournamentState): {
     };
 
     playoffMatches.push(final);
-    console.log(
-      "🏆 Final: TBD vs TBD (Teams will be determined after round robin)"
-    );
 
     return {
       success: true,
@@ -176,7 +169,6 @@ export function generateWorldCupPlayoffMatchesWithTBD(state: TournamentState): {
   }
 
   // Handle 4+ team tournament (Standard World Cup format with TBDs)
-  console.log("🎯 4+ team tournament - TBD World Cup format");
 
   // Semi-final 1: TBD vs TBD (1st vs 4th when determined)
   const semiFinal1: Match = {
@@ -221,10 +213,6 @@ export function generateWorldCupPlayoffMatchesWithTBD(state: TournamentState): {
   };
 
   playoffMatches.push(semiFinal1, semiFinal2, final);
-
-  console.log("⚡ Semi-final 1: TBD vs TBD (1st vs 4th when determined)");
-  console.log("⚡ Semi-final 2: TBD vs TBD (2nd vs 3rd when determined)");
-  console.log("🏆 Final: TBD vs TBD (SF winners when determined)");
 
   return {
     success: true,

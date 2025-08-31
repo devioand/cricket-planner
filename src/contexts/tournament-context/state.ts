@@ -46,7 +46,6 @@ export function tournamentReducer(
 ): TournamentState {
   switch (action.type) {
     case "SET_ALGORITHM":
-      console.log(`🏆 Tournament algorithm changed to: ${action.payload}`);
       return {
         ...state,
         algorithm: action.payload,
@@ -56,10 +55,8 @@ export function tournamentReducer(
 
     case "ADD_TEAM":
       if (state.teams.includes(action.payload)) {
-        console.log(`⚠️ Team "${action.payload}" already exists`);
         return state;
       }
-      console.log(`✅ Team "${action.payload}" added`);
 
       // Initialize stats for new team
       const newTeamStats = { ...state.teamStats };
@@ -74,8 +71,6 @@ export function tournamentReducer(
       };
 
     case "REMOVE_TEAM":
-      console.log(`🗑️ Team "${action.payload}" removed`);
-
       // Remove team stats
       const updatedTeamStats = { ...state.teamStats };
       delete updatedTeamStats[action.payload];
@@ -89,8 +84,6 @@ export function tournamentReducer(
       };
 
     case "SET_TEAMS":
-      console.log(`👥 Teams updated:`, action.payload);
-
       // Initialize stats for all teams
       const teamStats: Record<string, CricketTeamStats> = {};
       action.payload.forEach((teamName) => {
@@ -106,21 +99,18 @@ export function tournamentReducer(
       };
 
     case "SET_MAX_OVERS":
-      console.log(`🏏 Max overs set to: ${action.payload}`);
       return {
         ...state,
         maxOvers: action.payload,
       };
 
     case "SET_MAX_WICKETS":
-      console.log(`🎯 Max wickets set to: ${action.payload}`);
       return {
         ...state,
         maxWickets: action.payload,
       };
 
     case "SET_MATCHES":
-      console.log(`📅 Matches generated:`, action.payload.length, "matches");
       return {
         ...state,
         matches: action.payload,
@@ -135,14 +125,12 @@ export function tournamentReducer(
       };
 
     case "UPDATE_TEAM_STATS":
-      console.log("📊 Team stats updated");
       return {
         ...state,
         teamStats: action.payload,
       };
 
     case "INITIALIZE_TEAM_STATS":
-      console.log("🏏 Initializing team stats for:", action.payload);
       const initializedStats: Record<string, CricketTeamStats> = {};
       action.payload.forEach((teamName) => {
         initializedStats[teamName] = initializeTeamStats(teamName);
@@ -153,22 +141,18 @@ export function tournamentReducer(
       };
 
     case "RESET_TOURNAMENT":
-      console.log("🔄 Tournament reset");
       return initialTournamentState;
 
     case "SET_PHASE":
-      console.log(`🏆 Tournament phase changed to: ${action.payload}`);
       return { ...state, phase: action.payload };
 
     case "SET_PLAYOFF_FORMAT":
-      console.log(`🏏 Playoff format set to: ${action.payload}`);
       return { ...state, playoffFormat: action.payload };
 
     // Note: Removed SET_QUALIFIED_TEAMS, SET_PLAYOFF_MATCHES, ADD_PLAYOFF_MATCH
     // Playoff matches are now created directly in main matches array via generateMatches()
 
     case "HYDRATE_STATE":
-      console.log("💧 Hydrating state from localStorage");
       return action.payload;
 
     default:
@@ -177,12 +161,6 @@ export function tournamentReducer(
 }
 
 // Helper functions for logging
-export const logTournamentState = (state: TournamentState) => {
-  console.log("📊 Current Tournament State:");
-  console.log("  Algorithm:", state.algorithm);
-  console.log("  Teams:", state.teams);
-  console.log("  Max Overs:", state.maxOvers);
-  console.log("  Max Wickets:", state.maxWickets);
-  console.log("  Matches:", state.matches.length);
-  console.log("  Generated:", state.isGenerated);
+export const logTournamentState = () => {
+  // Logging removed for production
 };
