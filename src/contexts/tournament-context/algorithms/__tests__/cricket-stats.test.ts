@@ -8,7 +8,12 @@ import {
   calculateRunRate,
   formatNRR,
 } from "../cricket-stats";
-import type { Match, CricketMatchResult, CricketTeamStats } from "../../types";
+import type {
+  Match,
+  CricketMatchResult,
+  CricketTeamStats,
+  InningsScore,
+} from "../../types";
 
 describe("Cricket Stats Module", () => {
   describe("oversToBalls and ballsToOvers", () => {
@@ -456,6 +461,364 @@ describe("Cricket Stats Module", () => {
           expect(standings[i - 1].points).toBeGreaterThan(standings[i].points);
         }
       }
+    });
+  });
+
+  describe("Net Run Rate (NRR) Calculations - 1999 World Cup South Africa Example", () => {
+    /**
+     * This test suite covers the exact scenario from the 1999 Cricket World Cup
+     * where South Africa had a Net Run Rate of +1.495 after 3 matches in Group A.
+     *
+     * The example demonstrates key NRR calculation rules:
+     * - Teams bowled out are calculated as if they faced their full quota of overs
+     * - NRR = (Runs scored / Overs faced) - (Runs conceded / Overs bowled)
+     * - Only completed matches count for NRR calculations
+     */
+
+    let southAfricaStats: CricketTeamStats;
+    let indiaStats: CricketTeamStats;
+    let sriLankaStats: CricketTeamStats;
+    let englandStats: CricketTeamStats;
+
+    beforeEach(() => {
+      southAfricaStats = initializeTeamStats("South Africa");
+      indiaStats = initializeTeamStats("India");
+      sriLankaStats = initializeTeamStats("Sri Lanka");
+      englandStats = initializeTeamStats("England");
+    });
+
+    const createMatch = (
+      id: string,
+      team1: string,
+      team2: string,
+      overs: number = 50
+    ): Match => ({
+      id,
+      team1,
+      team2,
+      round: 1,
+      status: "completed",
+      overs,
+      maxWickets: 10,
+      isPlayoff: false,
+      phase: "round-robin",
+    });
+
+    const createInnings = (
+      teamName: string,
+      runs: number,
+      wickets: number,
+      overs: number,
+      isAllOut: boolean = false
+    ): InningsScore => ({
+      teamName,
+      runs,
+      wickets,
+      overs,
+      ballsFaced: oversToBalls(overs),
+      isAllOut,
+      runRate: calculateRunRate(runs, overs),
+    });
+
+    it("should calculate NRR correctly for South Africa vs India match", () => {
+      // Match 1: South Africa vs India
+      // SA: 254/6 in 47.2 overs, India: 253/5 in 50 overs
+      const match = createMatch("SA-IND", "South Africa", "India");
+      const saInnings = createInnings("South Africa", 254, 6, 47.333, false); // 47.2 overs
+      const indInnings = createInnings("India", 253, 5, 50, false);
+
+      const matchResult: CricketMatchResult = {
+        winner: "South Africa",
+        loser: "India",
+        team1Innings: saInnings,
+        team2Innings: indInnings,
+        marginType: "runs",
+        margin: 1,
+        matchType: "completed",
+      };
+
+      const updatedSA = updateTeamStatsAfterMatch(
+        southAfricaStats,
+        match,
+        matchResult
+      );
+      const updatedIND = updateTeamStatsAfterMatch(
+        indiaStats,
+        match,
+        matchResult
+      );
+
+      // Verify South Africa's stats
+      expect(updatedSA.totalRunsScored).toBe(254);
+      expect(updatedSA.totalOversPlayed).toBeCloseTo(47.333, 3);
+      expect(updatedSA.totalRunsConceded).toBe(253);
+      expect(updatedSA.totalOversBowled).toBe(50);
+      expect(updatedSA.wins).toBe(1);
+      expect(updatedSA.points).toBe(2);
+
+      // Verify India's stats
+      expect(updatedIND.totalRunsScored).toBe(253);
+      expect(updatedIND.totalOversPlayed).toBe(50);
+      expect(updatedIND.totalRunsConceded).toBe(254);
+      expect(updatedIND.totalOversBowled).toBeCloseTo(47.333, 3);
+      expect(updatedIND.losses).toBe(1);
+    });
+
+    it("should handle all-out teams correctly for South Africa vs Sri Lanka", () => {
+      // Match 2: South Africa vs Sri Lanka
+      // SA: 199/9 in 50 overs, Sri Lanka: 110 all out in 35.2 overs
+      const match = createMatch("SA-SL", "South Africa", "Sri Lanka");
+      const saInnings = createInnings("South Africa", 199, 9, 50, false);
+      const slInnings = createInnings("Sri Lanka", 110, 10, 35.333, true); // All out
+
+      const matchResult: CricketMatchResult = {
+        winner: "South Africa",
+        loser: "Sri Lanka",
+        team1Innings: saInnings,
+        team2Innings: slInnings,
+        marginType: "runs",
+        margin: 89,
+        matchType: "completed",
+      };
+
+      const updatedSA = updateTeamStatsAfterMatch(
+        southAfricaStats,
+        match,
+        matchResult
+      );
+      const updatedSL = updateTeamStatsAfterMatch(
+        sriLankaStats,
+        match,
+        matchResult
+      );
+
+      // Key NRR rule: Sri Lanka was all out, so their overs should be counted as full 50
+      expect(updatedSA.totalRunsConceded).toBe(110);
+      expect(updatedSA.totalOversBowled).toBe(50); // Full quota used for all-out team
+
+      expect(updatedSL.totalRunsScored).toBe(110);
+      expect(updatedSL.totalOversPlayed).toBe(50); // Full quota used for all-out team
+      expect(updatedSL.totalRunsConceded).toBe(199);
+      expect(updatedSL.totalOversBowled).toBe(50);
+    });
+
+    it("should handle all-out teams correctly for South Africa vs England", () => {
+      // Match 3: South Africa vs England
+      // SA: 225/7 in 50 overs, England: 103 all out in 41 overs
+      const match = createMatch("SA-ENG", "South Africa", "England");
+      const saInnings = createInnings("South Africa", 225, 7, 50, false);
+      const engInnings = createInnings("England", 103, 10, 41, true); // All out
+
+      const matchResult: CricketMatchResult = {
+        winner: "South Africa",
+        loser: "England",
+        team1Innings: saInnings,
+        team2Innings: engInnings,
+        marginType: "runs",
+        margin: 122,
+        matchType: "completed",
+      };
+
+      const updatedSA = updateTeamStatsAfterMatch(
+        southAfricaStats,
+        match,
+        matchResult
+      );
+      const updatedENG = updateTeamStatsAfterMatch(
+        englandStats,
+        match,
+        matchResult
+      );
+
+      // England was all out, so their overs should be counted as full 50
+      expect(updatedSA.totalRunsConceded).toBe(103);
+      expect(updatedSA.totalOversBowled).toBe(50); // Full quota used for all-out team
+
+      expect(updatedENG.totalRunsScored).toBe(103);
+      expect(updatedENG.totalOversPlayed).toBe(50); // Full quota used for all-out team
+    });
+
+    it("should calculate the exact 1999 World Cup NRR for South Africa after all 3 matches", () => {
+      let saStats = initializeTeamStats("South Africa");
+
+      // Match 1: SA vs India - SA: 254/6 (47.2), India: 253/5 (50)
+      const match1 = createMatch("SA-IND", "South Africa", "India");
+      const saInnings1 = createInnings("South Africa", 254, 6, 47.333, false);
+      const indInnings1 = createInnings("India", 253, 5, 50, false);
+
+      const result1: CricketMatchResult = {
+        winner: "South Africa",
+        loser: "India",
+        team1Innings: saInnings1,
+        team2Innings: indInnings1,
+        marginType: "runs",
+        margin: 1,
+        matchType: "completed",
+      };
+      saStats = updateTeamStatsAfterMatch(saStats, match1, result1);
+
+      // Match 2: SA vs Sri Lanka - SA: 199/9 (50), Sri Lanka: 110 all out (35.2)
+      const match2 = createMatch("SA-SL", "South Africa", "Sri Lanka");
+      const saInnings2 = createInnings("South Africa", 199, 9, 50, false);
+      const slInnings2 = createInnings("Sri Lanka", 110, 10, 35.333, true);
+
+      const result2: CricketMatchResult = {
+        winner: "South Africa",
+        loser: "Sri Lanka",
+        team1Innings: saInnings2,
+        team2Innings: slInnings2,
+        marginType: "runs",
+        margin: 89,
+        matchType: "completed",
+      };
+      saStats = updateTeamStatsAfterMatch(saStats, match2, result2);
+
+      // Match 3: SA vs England - SA: 225/7 (50), England: 103 all out (41)
+      const match3 = createMatch("SA-ENG", "South Africa", "England");
+      const saInnings3 = createInnings("South Africa", 225, 7, 50, false);
+      const engInnings3 = createInnings("England", 103, 10, 41, true);
+
+      const result3: CricketMatchResult = {
+        winner: "South Africa",
+        loser: "England",
+        team1Innings: saInnings3,
+        team2Innings: engInnings3,
+        marginType: "runs",
+        margin: 122,
+        matchType: "completed",
+      };
+      saStats = updateTeamStatsAfterMatch(saStats, match3, result3);
+
+      // Verify the final accumulated stats match the 1999 World Cup table
+      expect(saStats.totalRunsScored).toBe(678); // 254 + 199 + 225
+      expect(saStats.totalOversPlayed).toBeCloseTo(147.333, 3); // 47.333 + 50 + 50
+      expect(saStats.totalRunsConceded).toBe(466); // 253 + 110 + 103
+      expect(saStats.totalOversBowled).toBe(150); // 50 + 50 + 50 (all opponents get full quota)
+
+      // Verify the exact NRR calculation from the example
+      const battingRate = 678 / 147.333; // ≈ 4.602 rpo
+      const bowlingRate = 466 / 150; // ≈ 3.107 rpo
+      const expectedNRR = battingRate - bowlingRate; // ≈ +1.495
+
+      expect(battingRate).toBeCloseTo(4.602, 3);
+      expect(bowlingRate).toBeCloseTo(3.107, 3);
+      expect(expectedNRR).toBeCloseTo(1.495, 3);
+      expect(saStats.netRunRate).toBeCloseTo(1.495, 3);
+
+      // Verify match statistics
+      expect(saStats.matchesPlayed).toBe(3);
+      expect(saStats.wins).toBe(3);
+      expect(saStats.losses).toBe(0);
+      expect(saStats.points).toBe(6);
+    });
+
+    it("should demonstrate all-out team NRR calculation rule with a clear example", () => {
+      // Team A scores 200/8 in 50 overs, Team B all out for 150 in 30 overs
+      const match = createMatch("A-B", "Team A", "Team B");
+      const teamAInnings = createInnings("Team A", 200, 8, 50, false);
+      const teamBInnings = createInnings("Team B", 150, 10, 30, true);
+
+      const matchResult: CricketMatchResult = {
+        winner: "Team A",
+        loser: "Team B",
+        team1Innings: teamAInnings,
+        team2Innings: teamBInnings,
+        marginType: "runs",
+        margin: 50,
+        matchType: "completed",
+      };
+
+      let teamAStats = initializeTeamStats("Team A");
+      teamAStats = updateTeamStatsAfterMatch(teamAStats, match, matchResult);
+
+      // Team A's bowling: 150 runs conceded in 50 overs (not 30) = 3.0 rpo
+      // Team B was all out, so we use full 50 overs for NRR calculation
+      expect(teamAStats.totalRunsConceded).toBe(150);
+      expect(teamAStats.totalOversBowled).toBe(50); // Full quota, not actual 30
+      expect(teamAStats.bowlingRunRate).toBeCloseTo(3.0, 1);
+
+      // Team A's batting: 200 runs in 50 overs = 4.0 rpo
+      expect(teamAStats.totalRunsScored).toBe(200);
+      expect(teamAStats.totalOversPlayed).toBe(50);
+      expect(teamAStats.battingRunRate).toBeCloseTo(4.0, 1);
+
+      // NRR = 4.0 - 3.0 = +1.0
+      expect(teamAStats.netRunRate).toBeCloseTo(1.0, 1);
+    });
+
+    it("should not count playoff matches for NRR calculation", () => {
+      // Create a playoff match
+      const playoffMatch: Match = {
+        id: "FINAL",
+        team1: "Team A",
+        team2: "Team B",
+        round: 1,
+        status: "completed",
+        overs: 50,
+        maxWickets: 10,
+        isPlayoff: true,
+        playoffType: "final",
+        phase: "playoffs",
+      };
+
+      const teamAInnings = createInnings("Team A", 180, 7, 50, false);
+      const teamBInnings = createInnings("Team B", 175, 9, 50, false);
+
+      const matchResult: CricketMatchResult = {
+        winner: "Team A",
+        loser: "Team B",
+        team1Innings: teamAInnings,
+        team2Innings: teamBInnings,
+        marginType: "runs",
+        margin: 5,
+        matchType: "completed",
+      };
+
+      const teamAStats = initializeTeamStats("Team A");
+      const updatedStats = updateTeamStatsAfterMatch(
+        teamAStats,
+        playoffMatch,
+        matchResult
+      );
+
+      // Stats should remain unchanged for playoff matches
+      expect(updatedStats.totalRunsScored).toBe(0);
+      expect(updatedStats.totalOversPlayed).toBe(0);
+      expect(updatedStats.totalRunsConceded).toBe(0);
+      expect(updatedStats.totalOversBowled).toBe(0);
+      expect(updatedStats.netRunRate).toBe(0);
+      expect(updatedStats.matchesPlayed).toBe(0);
+    });
+
+    it("should handle edge cases in NRR calculations", () => {
+      // Test with very small overs (e.g., rain-affected match)
+      const match = createMatch("RAIN", "Team A", "Team B", 10); // 10 over match
+      const teamAInnings = createInnings("Team A", 80, 3, 10, false);
+      const teamBInnings = createInnings("Team B", 85, 4, 9.5, false);
+
+      const matchResult: CricketMatchResult = {
+        winner: "Team B",
+        loser: "Team A",
+        team1Innings: teamAInnings,
+        team2Innings: teamBInnings,
+        marginType: "wickets",
+        margin: 6,
+        matchType: "completed",
+      };
+
+      let teamAStats = initializeTeamStats("Team A");
+      teamAStats = updateTeamStatsAfterMatch(teamAStats, match, matchResult);
+
+      // Verify calculations work for reduced overs matches
+      expect(teamAStats.totalRunsScored).toBe(80);
+      expect(teamAStats.totalOversPlayed).toBe(10);
+      expect(teamAStats.totalRunsConceded).toBe(85);
+      expect(teamAStats.totalOversBowled).toBeCloseTo(9.5, 1);
+
+      // Run rates should be calculated correctly
+      expect(teamAStats.battingRunRate).toBeCloseTo(8.0, 1); // 80/10
+      expect(teamAStats.bowlingRunRate).toBeCloseTo(8.95, 2); // 85/9.5
+      expect(teamAStats.netRunRate).toBeCloseTo(-0.947, 2); // 8.0 - 8.95
     });
   });
 });
