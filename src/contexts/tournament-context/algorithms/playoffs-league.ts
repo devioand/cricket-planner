@@ -107,8 +107,6 @@ export function generateLeaguePlayoffMatchesWithTBD(state: TournamentState): {
   qualifiedTeams: string[];
   errors?: string[];
 } {
-  console.log("\n🏆 Generating league playoffs with TBD placeholders...");
-
   const teamCount = state.teams.length;
 
   if (teamCount < 3) {
@@ -124,8 +122,6 @@ export function generateLeaguePlayoffMatchesWithTBD(state: TournamentState): {
 
   // Handle 3-team tournament (Simple Final format - League doesn't work with 3 teams)
   if (teamCount === 3) {
-    console.log("🎯 3-team tournament - TBD Final format (League fallback)");
-
     const final: Match = {
       id: `F-001`,
       team1: "TBD", // 1st place (to be determined)
@@ -140,9 +136,6 @@ export function generateLeaguePlayoffMatchesWithTBD(state: TournamentState): {
     };
 
     playoffMatches.push(final);
-    console.log(
-      "🏆 Final: TBD vs TBD (Teams will be determined after round robin)"
-    );
 
     return {
       success: true,
@@ -152,7 +145,6 @@ export function generateLeaguePlayoffMatchesWithTBD(state: TournamentState): {
   }
 
   // Handle 4+ team tournament (Full League format with TBDs)
-  console.log("🎯 4+ team tournament - TBD League format");
 
   // Qualifier 1: TBD vs TBD (1st vs 2nd when determined)
   const qualifier1: Match = {
@@ -211,11 +203,6 @@ export function generateLeaguePlayoffMatchesWithTBD(state: TournamentState): {
   };
 
   playoffMatches.push(qualifier1, eliminator, qualifier2, final);
-
-  console.log("⚡ Qualifier 1: TBD vs TBD (1st vs 2nd when determined)");
-  console.log("💥 Eliminator: TBD vs TBD (3rd vs 4th when determined)");
-  console.log("🔥 Qualifier 2: TBD vs TBD (Q1 loser vs Eliminator winner)");
-  console.log("🏆 Final: TBD vs TBD (Q1 winner vs Q2 winner)");
 
   return {
     success: true,

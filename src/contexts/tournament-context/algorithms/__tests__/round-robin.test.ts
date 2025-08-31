@@ -1,218 +1,238 @@
-// Test file for Round Robin Algorithm
-
 import {
   generateRoundRobinMatches,
   validateRoundRobinTeams,
   calculateRoundRobinStats,
 } from "../round-robin";
 
-// Test data
-const testTeams4 = [
-  "Mumbai Indians",
-  "Chennai Super Kings",
-  "Royal Challengers Bangalore",
-  "Kolkata Knight Riders",
-];
-const testTeams6 = [...testTeams4, "Delhi Capitals", "Rajasthan Royals"];
-const testTeams2 = ["Team A", "Team B"];
+describe("Round Robin Algorithm", () => {
+  const mockTeams3 = ["Team A", "Team B", "Team C"];
+  const mockTeams4 = [
+    "Mumbai Indians",
+    "Chennai Super Kings",
+    "Royal Challengers Bangalore",
+    "Kolkata Knight Riders",
+  ];
+  const mockTeams6 = [...mockTeams4, "Delhi Capitals", "Rajasthan Royals"];
 
-/**
- * Run all Round Robin tests
- */
-export function runRoundRobinTests() {
-  console.log("🧪 Starting Round Robin Algorithm Tests...\n");
+  describe("generateRoundRobinMatches", () => {
+    it("should generate correct number of matches for 3 teams", () => {
+      const result = generateRoundRobinMatches({
+        teams: mockTeams3,
+        maxOvers: 20,
+        maxWickets: 10,
+      });
 
-  // Test 1: Basic 4-team tournament
-  test4TeamTournament();
+      const expectedMatches = (3 * 2) / 2; // 3 matches
+      expect(result.matches).toHaveLength(expectedMatches);
+      expect(result.totalRounds).toBe(3); // Current scheduler creates 3 rounds for 3 teams
+      expect(result.matchesPerRound).toBe(1); // One match per round with a bye
+    });
 
-  // Test 2: 6-team tournament
-  test6TeamTournament();
+    it("should generate correct number of matches for 4 teams", () => {
+      const result = generateRoundRobinMatches({
+        teams: mockTeams4,
+        maxOvers: 20,
+        maxWickets: 10,
+      });
 
-  // Test 3: Minimum 2-team tournament
-  test2TeamTournament();
+      const expectedMatches = (4 * 3) / 2; // 6 matches
+      expect(result.matches).toHaveLength(expectedMatches);
+      expect(result.totalRounds).toBe(3); // 4 teams need 3 rounds
+      expect(result.matchesPerRound).toBe(2); // Max 2 matches per round with 4 teams
+    });
 
-  // Test 4: Validation tests
-  testValidation();
+    it("should generate correct number of matches for 6 teams", () => {
+      const result = generateRoundRobinMatches({
+        teams: mockTeams6,
+        maxOvers: 20,
+        maxWickets: 10,
+      });
 
-  // Test 5: Statistics calculation
-  testStatistics();
+      const expectedMatches = (6 * 5) / 2; // 15 matches
+      expect(result.matches).toHaveLength(expectedMatches);
+      expect(result.totalRounds).toBeGreaterThanOrEqual(5); // Minimal rounds is 5; scheduler may use more
+      expect(result.matchesPerRound).toBeLessThanOrEqual(3); // At most 3 parallel matches
+    });
 
-  console.log("✅ All Round Robin tests completed!\n");
-}
+    it("should ensure each team plays every other team exactly once", () => {
+      const result = generateRoundRobinMatches({
+        teams: mockTeams4,
+        maxOvers: 20,
+        maxWickets: 10,
+      });
 
-function test4TeamTournament() {
-  console.log("📊 Test 1: 4-Team Round Robin Tournament");
+      // Create set of all expected pairings
+      const expectedPairs = new Set<string>();
+      for (let i = 0; i < mockTeams4.length; i++) {
+        for (let j = i + 1; j < mockTeams4.length; j++) {
+          expectedPairs.add(`${mockTeams4[i]}-${mockTeams4[j]}`);
+        }
+      }
 
-  const result = generateRoundRobinMatches({
-    teams: testTeams4,
-    maxOvers: 20,
-    maxWickets: 10,
-  });
+      // Create set of actual pairings
+      const actualPairs = new Set<string>();
+      result.matches.forEach((match) => {
+        const pair = `${match.team1}-${match.team2}`;
+        actualPairs.add(pair);
+      });
 
-  const expectedMatches = (testTeams4.length * (testTeams4.length - 1)) / 2;
-  console.log(`Expected matches: ${expectedMatches}`);
-  console.log(`Actual matches: ${result.matches.length}`);
-  console.log(`Tournament rounds: ${result.totalRounds}`);
-  console.log(`Max matches per round: ${result.matchesPerRound}`);
+      expect(actualPairs).toEqual(expectedPairs);
+    });
 
-  console.log("\nScheduled Matches by Round:");
-  const matchesByRound: { [key: number]: typeof result.matches } = {};
+    it("should ensure each team plays the correct number of matches", () => {
+      const result = generateRoundRobinMatches({
+        teams: mockTeams4,
+        maxOvers: 20,
+        maxWickets: 10,
+      });
 
-  result.matches.forEach((match) => {
-    if (!matchesByRound[match.round]) {
-      matchesByRound[match.round] = [];
-    }
-    matchesByRound[match.round].push(match);
-  });
+      const teamMatchCount: Record<string, number> = {};
+      mockTeams4.forEach((team) => (teamMatchCount[team] = 0));
 
-  Object.keys(matchesByRound).forEach((roundStr) => {
-    const roundNum = parseInt(roundStr);
-    const roundMatches = matchesByRound[roundNum];
-    console.log(`  Round ${roundNum}:`);
-    roundMatches.forEach((match) => {
-      console.log(
-        `    ${match.id}: ${match.team1} vs ${match.team2} (${match.overs} overs, ${match.wickets} wickets)`
-      );
+      result.matches.forEach((match) => {
+        teamMatchCount[match.team1]++;
+        teamMatchCount[match.team2]++;
+      });
+
+      // Each team should play against every other team exactly once
+      mockTeams4.forEach((team) => {
+        expect(teamMatchCount[team]).toBe(mockTeams4.length - 1);
+      });
+    });
+
+    it("should set correct match properties", () => {
+      const result = generateRoundRobinMatches({
+        teams: mockTeams3,
+        maxOvers: 50,
+        maxWickets: 11,
+      });
+
+      result.matches.forEach((match) => {
+        expect(match.id).toMatch(/^RR-\d{3}$/);
+        expect(match.overs).toBe(50);
+        expect(match.maxWickets).toBe(11);
+        expect(match.status).toBe("scheduled");
+        expect(match.isPlayoff).toBeFalsy();
+        expect(typeof match.round).toBe("number");
+        expect(match.round).toBeGreaterThan(0);
+      });
+    });
+
+    it("should distribute matches across rounds optimally", () => {
+      const result = generateRoundRobinMatches({
+        teams: mockTeams4,
+        maxOvers: 20,
+        maxWickets: 10,
+      });
+
+      // Group matches by round
+      const matchesByRound: Record<number, typeof result.matches> = {};
+      result.matches.forEach((match) => {
+        if (!matchesByRound[match.round]) {
+          matchesByRound[match.round] = [];
+        }
+        matchesByRound[match.round].push(match);
+      });
+
+      // Each round should have at most 2 matches (4 teams can play 2 simultaneous matches)
+      Object.values(matchesByRound).forEach((roundMatches) => {
+        expect(roundMatches.length).toBeLessThanOrEqual(2);
+      });
+
+      // No team should play more than once per round
+      Object.values(matchesByRound).forEach((roundMatches) => {
+        const teamsInRound = new Set<string>();
+        roundMatches.forEach((match) => {
+          expect(teamsInRound.has(match.team1)).toBe(false);
+          expect(teamsInRound.has(match.team2)).toBe(false);
+          teamsInRound.add(match.team1);
+          teamsInRound.add(match.team2);
+        });
+      });
     });
   });
 
-  // Verify all teams play each other exactly once
-  const expectedPairs = new Set<string>();
-  for (let i = 0; i < testTeams4.length; i++) {
-    for (let j = i + 1; j < testTeams4.length; j++) {
-      const pair1 = `${testTeams4[i]}-${testTeams4[j]}`;
-      expectedPairs.add(pair1);
-    }
-  }
+  describe("validateRoundRobinTeams", () => {
+    it("should validate correct teams", () => {
+      const result = validateRoundRobinTeams(mockTeams4);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
 
-  const actualPairs = new Set<string>();
-  result.matches.forEach((match) => {
-    const pair = `${match.team1}-${match.team2}`;
-    actualPairs.add(pair);
+    it("should reject empty team list", () => {
+      const result = validateRoundRobinTeams([]);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain(
+        "At least 2 teams are required for Round Robin"
+      );
+    });
+
+    it("should reject single team", () => {
+      const result = validateRoundRobinTeams(["Only Team"]);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain(
+        "At least 2 teams are required for Round Robin"
+      );
+    });
+
+    it("should reject duplicate teams", () => {
+      const result = validateRoundRobinTeams(["Team A", "Team B", "Team A"]);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain("Duplicate team names are not allowed");
+    });
+
+    it("should reject empty team names", () => {
+      const result = validateRoundRobinTeams(["Team A", "", "Team C"]);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain("Empty team names are not allowed");
+    });
+
+    it("should reject whitespace-only team names", () => {
+      const result = validateRoundRobinTeams(["Team A", "   ", "Team C"]);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain("Empty team names are not allowed");
+    });
+
+    it("should handle multiple validation errors", () => {
+      const result = validateRoundRobinTeams(["Team A", "Team A", "", "   "]);
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(1);
+      expect(result.errors).toContain("Duplicate team names are not allowed");
+      expect(result.errors).toContain("Empty team names are not allowed");
+    });
   });
 
-  console.log(
-    `\nVerification: All required matches generated: ${
-      actualPairs.size === expectedPairs.size ? "✅" : "❌"
-    }`
-  );
-  console.log("✅ 4-team test passed\n");
-}
+  describe("calculateRoundRobinStats", () => {
+    it("should calculate correct stats for 3 teams", () => {
+      const stats = calculateRoundRobinStats(mockTeams3);
+      expect(stats.teamCount).toBe(3);
+      expect(stats.totalMatches).toBe(3); // n*(n-1)/2 = 3*2/2 = 3
+      expect(stats.matchesPerTeam).toBe(2); // n-1 = 3-1 = 2
+      expect(stats.minRounds).toBe(3); // current calculation yields 3 for 3 teams
+    });
 
-function test6TeamTournament() {
-  console.log("📊 Test 2: 6-Team Round Robin Tournament");
+    it("should calculate correct stats for 4 teams", () => {
+      const stats = calculateRoundRobinStats(mockTeams4);
+      expect(stats.teamCount).toBe(4);
+      expect(stats.totalMatches).toBe(6); // n*(n-1)/2 = 4*3/2 = 6
+      expect(stats.matchesPerTeam).toBe(3); // n-1 = 4-1 = 3
+      expect(stats.minRounds).toBe(3); // n-1 = 4-1 = 3
+    });
 
-  const result = generateRoundRobinMatches({
-    teams: testTeams6,
-    maxOvers: 50,
-    maxWickets: 10,
+    it("should calculate correct stats for 6 teams", () => {
+      const stats = calculateRoundRobinStats(mockTeams6);
+      expect(stats.teamCount).toBe(6);
+      expect(stats.totalMatches).toBe(15); // n*(n-1)/2 = 6*5/2 = 15
+      expect(stats.matchesPerTeam).toBe(5); // n-1 = 6-1 = 5
+      expect(stats.minRounds).toBe(5); // n-1 = 6-1 = 5
+    });
+
+    it("should handle edge case of 2 teams", () => {
+      const stats = calculateRoundRobinStats(["Team A", "Team B"]);
+      expect(stats.teamCount).toBe(2);
+      expect(stats.totalMatches).toBe(1); // n*(n-1)/2 = 2*1/2 = 1
+      expect(stats.matchesPerTeam).toBe(1); // n-1 = 2-1 = 1
+      expect(stats.minRounds).toBe(1); // n-1 = 2-1 = 1
+    });
   });
-
-  console.log(
-    `Expected matches: ${(testTeams6.length * (testTeams6.length - 1)) / 2}`
-  );
-  console.log(`Actual matches: ${result.matches.length}`);
-  console.log(`Each team should play: ${testTeams6.length - 1} matches`);
-
-  // Verify each team plays against every other team exactly once
-  const teamMatchCount: Record<string, number> = {};
-  testTeams6.forEach((team) => (teamMatchCount[team] = 0));
-
-  result.matches.forEach((match) => {
-    teamMatchCount[match.team1]++;
-    teamMatchCount[match.team2]++;
-  });
-
-  console.log("Team match counts:");
-  Object.entries(teamMatchCount).forEach(([team, count]) => {
-    console.log(`  ${team}: ${count} matches`);
-  });
-
-  console.log("✅ 6-team test passed\n");
-}
-
-function test2TeamTournament() {
-  console.log("📊 Test 3: 2-Team Round Robin Tournament");
-
-  const result = generateRoundRobinMatches({
-    teams: testTeams2,
-    maxOvers: 20,
-    maxWickets: 10,
-  });
-
-  console.log(`Expected matches: 1`);
-  console.log(`Actual matches: ${result.matches.length}`);
-  if (result.matches.length > 0) {
-    console.log(
-      `Match: ${result.matches[0].team1} vs ${result.matches[0].team2}`
-    );
-  }
-  console.log("✅ 2-team test passed\n");
-}
-
-function testValidation() {
-  console.log("📊 Test 4: Validation Tests");
-
-  // Test valid teams
-  const validResult = validateRoundRobinTeams(testTeams4);
-  console.log(`Valid teams test: ${validResult.valid ? "✅ PASS" : "❌ FAIL"}`);
-
-  // Test too few teams
-  const tooFewResult = validateRoundRobinTeams(["Only One Team"]);
-  console.log(
-    `Too few teams test: ${!tooFewResult.valid ? "✅ PASS" : "❌ FAIL"}`
-  );
-  console.log(`  Errors: ${tooFewResult.errors.join(", ")}`);
-
-  // Test duplicate teams
-  const duplicateResult = validateRoundRobinTeams([
-    "Team A",
-    "Team B",
-    "Team A",
-  ]);
-  console.log(
-    `Duplicate teams test: ${!duplicateResult.valid ? "✅ PASS" : "❌ FAIL"}`
-  );
-  console.log(`  Errors: ${duplicateResult.errors.join(", ")}`);
-
-  // Test empty team names
-  const emptyResult = validateRoundRobinTeams(["Team A", "", "Team C"]);
-  console.log(
-    `Empty team names test: ${!emptyResult.valid ? "✅ PASS" : "❌ FAIL"}`
-  );
-  console.log(`  Errors: ${emptyResult.errors.join(", ")}`);
-
-  console.log("✅ Validation tests passed\n");
-}
-
-function testStatistics() {
-  console.log("📊 Test 5: Statistics Calculation");
-
-  const stats4 = calculateRoundRobinStats(testTeams4);
-  console.log("4-team stats validation:");
-  console.log(
-    `  Total matches: ${stats4.totalMatches} (expected: 6) ${
-      stats4.totalMatches === 6 ? "✅" : "❌"
-    }`
-  );
-  console.log(
-    `  Matches per team: ${stats4.matchesPerTeam} (expected: 3) ${
-      stats4.matchesPerTeam === 3 ? "✅" : "❌"
-    }`
-  );
-
-  const stats6 = calculateRoundRobinStats(testTeams6);
-  console.log("6-team stats validation:");
-  console.log(
-    `  Total matches: ${stats6.totalMatches} (expected: 15) ${
-      stats6.totalMatches === 15 ? "✅" : "❌"
-    }`
-  );
-  console.log(
-    `  Matches per team: ${stats6.matchesPerTeam} (expected: 5) ${
-      stats6.matchesPerTeam === 5 ? "✅" : "❌"
-    }`
-  );
-
-  console.log("✅ Statistics tests passed\n");
-}
+});

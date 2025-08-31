@@ -32,21 +32,21 @@ export function initializeTeamStats(teamName: string): CricketTeamStats {
 }
 
 /**
- * Convert overs and balls to decimal overs (e.g., 47.2 overs = 47.33 overs)
+ * Convert balls to cricket overs notation (e.g., 31 balls = 5.1 overs)
  */
 export function ballsToOvers(balls: number): number {
   const completeOvers = Math.floor(balls / 6);
   const remainingBalls = balls % 6;
-  return completeOvers + remainingBalls / 6;
+  return Number((completeOvers + remainingBalls / 10).toFixed(1));
 }
 
 /**
- * Convert decimal overs to total balls
+ * Convert cricket overs notation to total balls (e.g., 5.2 overs = 32 balls)
  */
 export function oversToBalls(overs: number): number {
   const completeOvers = Math.floor(overs);
   const fractionalPart = overs - completeOvers;
-  const remainingBalls = Math.round(fractionalPart * 6);
+  const remainingBalls = Math.round(fractionalPart * 10);
   return completeOvers * 6 + remainingBalls;
 }
 
@@ -63,8 +63,6 @@ export function calculateRunRate(runs: number, overs: number): number {
  * NRR = (Runs scored / Overs faced) - (Runs conceded / Overs bowled)
  */
 export function calculateNetRunRate(stats: CricketTeamStats): number {
-  console.log(`🧮 Calculating NRR for ${stats.teamName}`);
-
   // For batting: total runs scored / total overs faced
   const battingRunRate =
     stats.totalOversPlayed > 0
@@ -79,27 +77,6 @@ export function calculateNetRunRate(stats: CricketTeamStats): number {
 
   const nrr = battingRunRate - bowlingRunRate;
 
-  console.log(`   📊 ${stats.teamName} NRR Calculation:`);
-  console.log(
-    `      Batting: ${
-      stats.totalRunsScored
-    } runs in ${stats.totalOversPlayed.toFixed(
-      2
-    )} overs = ${battingRunRate.toFixed(3)} RPO`
-  );
-  console.log(
-    `      Bowling: ${
-      stats.totalRunsConceded
-    } runs in ${stats.totalOversBowled.toFixed(
-      2
-    )} overs = ${bowlingRunRate.toFixed(3)} RPO`
-  );
-  console.log(
-    `      Net Run Rate: ${battingRunRate.toFixed(
-      3
-    )} - ${bowlingRunRate.toFixed(3)} = ${nrr.toFixed(3)}`
-  );
-
   return Number(nrr.toFixed(3));
 }
 
@@ -113,15 +90,8 @@ export function updateTeamStatsAfterMatch(
   match: Match,
   matchResult: CricketMatchResult
 ): CricketTeamStats {
-  console.log(
-    `📈 Updating stats for ${teamStats.teamName} after match ${match.id}`
-  );
-
   // Skip playoff matches - standings should only include round-robin stats
   if (match.isPlayoff) {
-    console.log(
-      `   ⚠️ Skipping playoff match stats for standings - ${match.id}`
-    );
     return teamStats; // Return unchanged stats
   }
 
@@ -136,9 +106,6 @@ export function updateTeamStatsAfterMatch(
 
   // Early return if innings data is missing - can't update stats without complete data
   if (!teamInnings || !opponentInnings) {
-    console.log(
-      `   ⚠️ Missing innings data for ${teamStats.teamName} - skipping stats update`
-    );
     return updatedStats;
   }
 
@@ -149,7 +116,6 @@ export function updateTeamStatsAfterMatch(
   if (matchResult.matchType === "no-result" || matchResult.isNoResult) {
     updatedStats.noResults += 1;
     // No points awarded for no results
-    console.log(`   ⚪ No result - no stats updated for batting/bowling`);
     return updatedStats;
   }
 
@@ -234,12 +200,6 @@ export function updateTeamStatsAfterMatch(
   // Recalculate Net Run Rate
   updatedStats.netRunRate = calculateNetRunRate(updatedStats);
 
-  console.log(`   ✅ Updated stats for ${teamStats.teamName}:`);
-  console.log(
-    `      Matches: ${updatedStats.matchesPlayed}, W: ${updatedStats.wins}, L: ${updatedStats.losses}, Points: ${updatedStats.points}`
-  );
-  console.log(`      NRR: ${updatedStats.netRunRate}`);
-
   return updatedStats;
 }
 
@@ -258,9 +218,11 @@ export function getTournamentStandings(
       return b.points - a.points;
     }
 
-    // Then by Net Run Rate (descending)
-    if (b.netRunRate !== a.netRunRate) {
-      return b.netRunRate - a.netRunRate;
+    // Then by Net Run Rate (descending) - handle NaN values
+    const aNRR = isNaN(a.netRunRate) ? -Infinity : a.netRunRate;
+    const bNRR = isNaN(b.netRunRate) ? -Infinity : b.netRunRate;
+    if (bNRR !== aNRR) {
+      return bNRR - aNRR;
     }
 
     // Then by wins (descending)
@@ -277,10 +239,10 @@ export function getTournamentStandings(
  * Format NRR for display with proper sign
  */
 export function formatNRR(nrr: number): string {
-  const formatted = Math.abs(nrr).toFixed(3);
+  const formatted = Math.abs(nrr).toFixed(2);
   if (nrr > 0) return `+${formatted}`;
   if (nrr < 0) return `-${formatted}`;
-  return "0.000";
+  return "+0.00";
 }
 
 /**
@@ -325,7 +287,13 @@ export function createSampleMatchResult(
   let marginType: "runs" | "wickets";
   let margin: number;
 
-  if (team1Runs > team2Runs) {
+  if (team1Runs === team2Runs) {
+    // Handle tie/draw
+    winner = "";
+    loser = "";
+    marginType = "runs";
+    margin = 0;
+  } else if (team1Runs > team2Runs) {
     winner = team1;
     loser = team2;
     marginType = "runs";
