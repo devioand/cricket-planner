@@ -5,6 +5,8 @@ import {
   useTournament,
   type PlayoffFormat,
 } from "@/contexts/tournament-context";
+import WorldCupTrophyIcon from "../icons/world-cup-trophy-icon";
+import LeagueTrophyIcon from "../icons/league-trophy-icon";
 
 interface PlayoffFormatSelectorProps {
   disabled?: boolean;
@@ -23,7 +25,7 @@ export function PlayoffFormatSelector({
     "world-cup": {
       name: "World Cup Style",
       description: "Simple knockout format",
-      icon: "🏆",
+      icon: <WorldCupTrophyIcon />,
       color: "blue",
       stages: [
         "Semi-Final 1: 1st vs 4th",
@@ -34,8 +36,8 @@ export function PlayoffFormatSelector({
     league: {
       name: "League Style (IPL/BBL/PSL)",
       description: "Top teams get second chances",
-      icon: "🔥",
-      color: "purple",
+      icon: <LeagueTrophyIcon />,
+      color: "blue",
       stages: [
         "Qualifier 1: 1st vs 2nd (Winner → Final)",
         "Eliminator: 3rd vs 4th (Loser eliminated)",

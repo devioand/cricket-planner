@@ -13,6 +13,10 @@ import {
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { useTournament, type Match } from "@/contexts/tournament-context";
+import {
+  formatCricketOvers,
+  isValidCricketOvers,
+} from "@/contexts/tournament-context/algorithms/cricket-stats";
 import { toaster } from "@/components/ui/toaster";
 
 interface TeamScoreInputDialogProps {
@@ -92,6 +96,18 @@ export function TeamScoreInputDialog({
       return;
     }
 
+    // Validate cricket over format (max .6 balls per over)
+    if (!isValidCricketOvers(overs)) {
+      toaster.create({
+        title: "Invalid Over Format",
+        description:
+          "Over format should be like 3.5 (max .6 balls). Example: 15.2 means 15 overs and 2 balls.",
+        type: "error",
+        duration: 4000,
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -99,7 +115,7 @@ export function TeamScoreInputDialog({
       tournament.updateSingleInnings(match.id, isTeam1, {
         runs,
         wickets,
-        overs,
+        overs: formatCricketOvers(overs), // Ensure cricket format
       });
 
       // Reset form and close dialog
@@ -256,6 +272,24 @@ export function TeamScoreInputDialog({
                             });
                           }
                         }}
+                        onBlur={(e) => {
+                          const value = parseFloat(e.target.value);
+                          if (!isNaN(value)) {
+                            const formatted =
+                              formatCricketOvers(value).toFixed(1);
+                            if (isTeam1) {
+                              setTeam1Score({
+                                ...team1Score,
+                                overs: formatted,
+                              });
+                            } else {
+                              setTeam2Score({
+                                ...team2Score,
+                                overs: formatted,
+                              });
+                            }
+                          }
+                        }}
                         size="md"
                       />
                     </Box>
@@ -264,7 +298,7 @@ export function TeamScoreInputDialog({
 
                 {/* Submit Button */}
                 <Button
-                  colorPalette="green"
+                  colorPalette="blue"
                   onClick={handleSubmit}
                   disabled={
                     isSubmitting ||
@@ -279,9 +313,7 @@ export function TeamScoreInputDialog({
                   size="lg"
                   w="full"
                 >
-                  {isSubmitting
-                    ? "Submitting..."
-                    : `🏏 Submit ${teamName} Score`}
+                  {isSubmitting ? "Submitting..." : `Submit ${teamName} Score`}
                 </Button>
               </VStack>
             </Dialog.Body>

@@ -183,20 +183,6 @@ function MatchesFlow() {
           </Box>
         ))}
       </VStack>
-
-      {/* Completion Message - Only show when ALL matches are completed */}
-      {allMatches.length > 0 &&
-        allMatches.every((match) => match.status === "completed") && (
-          <Box p={6} bg="green.50" rounded="lg" textAlign="center">
-            <Text fontSize="xl" fontWeight="bold" color="green.700" mb={2}>
-              🎉 Tournament Complete!
-            </Text>
-            <Text fontSize="md" color="green.600">
-              All matches have been played. Check the standings to see the final
-              results!
-            </Text>
-          </Box>
-        )}
     </VStack>
   );
 }

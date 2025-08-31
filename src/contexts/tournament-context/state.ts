@@ -106,21 +106,21 @@ export function tournamentReducer(
       };
 
     case "SET_MAX_OVERS":
-      console.log(`🏏 Max overs set to: ${action.payload}`);
+      console.log(`Max overs set to: ${action.payload}`);
       return {
         ...state,
         maxOvers: action.payload,
       };
 
     case "SET_MAX_WICKETS":
-      console.log(`🎯 Max wickets set to: ${action.payload}`);
+      console.log(`Max wickets set to: ${action.payload}`);
       return {
         ...state,
         maxWickets: action.payload,
       };
 
     case "SET_MATCHES":
-      console.log(`📅 Matches generated:`, action.payload.length, "matches");
+      console.log(`Matches generated:`, action.payload.length, "matches");
       return {
         ...state,
         matches: action.payload,
@@ -142,7 +142,7 @@ export function tournamentReducer(
       };
 
     case "INITIALIZE_TEAM_STATS":
-      console.log("🏏 Initializing team stats for:", action.payload);
+      console.log("Initializing team stats for:", action.payload);
       const initializedStats: Record<string, CricketTeamStats> = {};
       action.payload.forEach((teamName) => {
         initializedStats[teamName] = initializeTeamStats(teamName);
@@ -161,7 +161,7 @@ export function tournamentReducer(
       return { ...state, phase: action.payload };
 
     case "SET_PLAYOFF_FORMAT":
-      console.log(`🏏 Playoff format set to: ${action.payload}`);
+      console.log(`Playoff format set to: ${action.payload}`);
       return { ...state, playoffFormat: action.payload };
 
     // Note: Removed SET_QUALIFIED_TEAMS, SET_PLAYOFF_MATCHES, ADD_PLAYOFF_MATCH

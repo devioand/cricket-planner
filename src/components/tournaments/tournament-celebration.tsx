@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   Portal,
@@ -9,8 +9,8 @@ import {
   Heading,
   Text,
   Button,
-  Badge,
   HStack,
+  Box,
 } from "@chakra-ui/react";
 import confetti from "canvas-confetti";
 
@@ -25,239 +25,254 @@ export function TournamentCelebration({
   onClose,
   winner,
 }: TournamentCelebrationProps) {
+  const [showContent, setShowContent] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
-      // Trigger celebration animations
-      triggerCelebration();
+      // Delay content appearance for dramatic effect
+      const timer = setTimeout(() => setShowContent(true), 300);
+      triggerElegantCelebration();
+      return () => clearTimeout(timer);
+    } else {
+      setShowContent(false);
     }
   }, [isOpen]);
 
-  const triggerCelebration = () => {
-    // Multiple confetti bursts for epic celebration
-    const duration = 3000;
-    const end = Date.now() + duration;
+  const triggerElegantCelebration = () => {
+    // Sophisticated confetti with elegant colors
+    const elegantColors = [
+      "#C9A961", // Champagne gold
+      "#E6D7C0", // Warm ivory
+      "#F4E7D1", // Cream
+      "#B8860B", // Dark goldenrod
+      "#DAA520", // Goldenrod
+    ];
 
-    // First burst - colorful confetti from both sides
+    // Initial gentle burst
     confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6, x: 0.1 },
-      colors: ["#FFD700", "#FF6347", "#32CD32", "#1E90FF", "#FF69B4"],
-      zIndex: 2000, // Higher than dialog z-index
+      particleCount: 60,
+      spread: 50,
+      origin: { y: 0.7, x: 0.2 },
+      colors: elegantColors,
+      gravity: 0.8,
+      drift: 0.1,
+      zIndex: 2000,
     });
 
     confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6, x: 0.9 },
-      colors: ["#FFD700", "#FF6347", "#32CD32", "#1E90FF", "#FF69B4"],
-      zIndex: 2000, // Higher than dialog z-index
+      particleCount: 60,
+      spread: 50,
+      origin: { y: 0.7, x: 0.8 },
+      colors: elegantColors,
+      gravity: 0.8,
+      drift: -0.1,
+      zIndex: 2000,
     });
 
-    // Continuous celebration
-    const interval = setInterval(() => {
-      if (Date.now() > end) {
-        clearInterval(interval);
-        return;
-      }
-
-      // Random bursts
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: {
-          y: Math.random() * 0.3 + 0.4,
-          x: Math.random() * 0.6 + 0.2,
-        },
-        colors: ["#FFD700", "#FFA500", "#FF6347"],
-        zIndex: 2000, // Higher than dialog z-index
-      });
-    }, 200);
-
-    // Trophy-colored golden confetti shower
+    // Cascade effect
     setTimeout(() => {
       confetti({
-        particleCount: 200,
-        spread: 100,
-        origin: { y: 0.2 },
-        colors: ["#FFD700", "#FFA500", "#FFFF00"],
-        shapes: ["circle", "square"],
-        zIndex: 2000, // Higher than dialog z-index
+        particleCount: 120,
+        spread: 90,
+        origin: { y: 0.3 },
+        colors: elegantColors,
+        shapes: ["circle"],
+        gravity: 0.6,
+        scalar: 0.8,
+        zIndex: 2000,
       });
-    }, 500);
+    }, 600);
+  };
 
-    // Final big burst
-    setTimeout(() => {
-      confetti({
-        particleCount: 300,
-        spread: 120,
-        origin: { y: 0.5 },
-        colors: [
-          "#FFD700",
-          "#FF6347",
-          "#32CD32",
-          "#1E90FF",
-          "#FF69B4",
-          "#FFA500",
-        ],
-        zIndex: 2000, // Higher than dialog z-index
-      });
-    }, 1500);
+  const triggerMoreCelebration = () => {
+    // Premium celebration effect
+    const premiumColors = ["#C9A961", "#E6D7C0", "#DAA520"];
+
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: premiumColors,
+      shapes: ["star", "circle"],
+      gravity: 0.7,
+      scalar: 1.2,
+      zIndex: 2000,
+    });
   };
 
   return (
     <Dialog.Root
       open={isOpen}
       onOpenChange={(e) => !e.open && onClose()}
-      size="xl"
+      size="md"
       placement="center"
       closeOnInteractOutside={false}
-      motionPreset="scale"
+      motionPreset="slide-in-bottom"
     >
       <Portal>
-        <Dialog.Backdrop bg="blackAlpha.300" backdropFilter="blur(5px)" />
+        {/* Sophisticated backdrop */}
+        <Dialog.Backdrop
+          bg="blackAlpha.600"
+          backdropFilter="blur(4px)"
+          style={{
+            background:
+              "radial-gradient(circle at center, rgba(201, 169, 97, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%)",
+          }}
+        />
         <Dialog.Positioner>
           <Dialog.Content
-            bg="gradient(to-br, yellow.50, orange.50)"
-            border="3px solid"
-            borderColor="yellow.400"
-            borderRadius="xl"
-            boxShadow="2xl"
+            bg="white"
+            border="1px solid"
+            borderColor="gray.100"
+            borderRadius="2xl"
+            boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05)"
             position="relative"
             overflow="hidden"
+            maxW="400px"
+            p={0}
+            transform={showContent ? "scale(1)" : "scale(0.9)"}
+            opacity={showContent ? 1 : 0}
+            transition="all 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
           >
-            {/* Animated background gradient */}
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background:
-                  "linear-gradient(45deg, #FFD700, #FFA500, #FF6347, #FFD700)",
-                backgroundSize: "400% 400%",
-                animation: "gradient 3s ease infinite",
-                opacity: 0.1,
-                zIndex: 0,
-              }}
+            {/* Elegant gradient overlay */}
+            <Box
+              position="absolute"
+              top="0"
+              left="0"
+              right="0"
+              h="120px"
+              bgGradient="linear(to-b, rgba(201, 169, 97, 0.08), transparent)"
+              pointerEvents="none"
             />
 
-            <style jsx>{`
-              @keyframes gradient {
-                0% {
-                  background-position: 0% 50%;
-                }
-                50% {
-                  background-position: 100% 50%;
-                }
-                100% {
-                  background-position: 0% 50%;
-                }
-              }
-            `}</style>
-
-            <Dialog.Header position="relative" zIndex={1} textAlign="center">
-              <VStack gap={3} align="center" w="full" mt={6}>
-                <Text fontSize="6xl" role="img" aria-label="trophy">
-                  🏆
-                </Text>
-              </VStack>
-            </Dialog.Header>
-
+            {/* Minimalist close button */}
             <Dialog.CloseTrigger
               asChild
               position="absolute"
               top={4}
               right={4}
-              zIndex={1}
+              zIndex={10}
             >
-              <CloseButton size="md" />
+              <CloseButton
+                size="sm"
+                variant="ghost"
+                color="gray.500"
+                _hover={{
+                  bg: "gray.100",
+                  color: "gray.700",
+                }}
+              />
             </Dialog.CloseTrigger>
 
-            <Dialog.Body pb={8} position="relative" zIndex={1}>
-              <VStack gap={6} align="center">
-                {/* Winner Announcement */}
-                <VStack gap={3}>
-                  <Badge
-                    colorPalette="yellow"
-                    fontSize="lg"
-                    px={4}
-                    py={2}
-                    borderRadius="full"
-                    textTransform="uppercase"
-                    letterSpacing="wider"
-                    fontWeight="bold"
-                  >
-                    🎉 Champion 🎉
-                  </Badge>
-
-                  <Heading
-                    size="2xl"
-                    color="yellow.600"
-                    textAlign="center"
-                    textShadow="2px 2px 4px rgba(0,0,0,0.2)"
-                    style={{
-                      background: "linear-gradient(45deg, #FFD700, #FFA500)",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                      backgroundClip: "text",
-                    }}
-                  >
-                    {winner}
-                  </Heading>
-
+            <VStack gap={0} align="center" position="relative" zIndex={1}>
+              {/* Modern trophy icon */}
+              <Box pt={12} pb={4}>
+                <Box
+                  w="80px"
+                  h="80px"
+                  bg="linear-gradient(135deg, #C9A961 0%, #E6D7C0 100%)"
+                  borderRadius="full"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  boxShadow="0 8px 32px rgba(201, 169, 97, 0.3)"
+                  position="relative"
+                  _before={{
+                    content: '""',
+                    position: "absolute",
+                    inset: "2px",
+                    borderRadius: "full",
+                    padding: "2px",
+                    background:
+                      "linear-gradient(135deg, transparent, rgba(255,255,255,0.3))",
+                    WebkitMask:
+                      "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                    WebkitMaskComposite: "exclude",
+                  }}
+                >
                   <Text
-                    fontSize="lg"
-                    color="gray.600"
-                    textAlign="center"
-                    fontWeight="medium"
+                    fontSize="2xl"
+                    filter="drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
                   >
-                    Wins the Tournament!
+                    🏆
                   </Text>
-                </VStack>
+                </Box>
+              </Box>
 
-                {/* Celebration Message */}
-                <Text fontSize="md" color="gray.700" textAlign="center">
-                  🎊 Congratulations! 🎊
+              {/* Clean typography */}
+              <VStack gap={3} pb={8} px={8}>
+                <Text
+                  fontSize="sm"
+                  fontWeight="500"
+                  color="gray.500"
+                  textTransform="uppercase"
+                  letterSpacing="wider"
+                >
+                  Tournament Winner
                 </Text>
 
-                {/* Action Buttons */}
-                <HStack gap={4} pt={4}>
-                  <Button
-                    colorPalette="yellow"
-                    size="lg"
-                    onClick={() => {
-                      // More celebration with proper z-index
-                      confetti({
-                        particleCount: 150,
-                        spread: 80,
-                        origin: { y: 0.6 },
-                        colors: [
-                          "#FFD700",
-                          "#FFA500",
-                          "#FF6347",
-                          "#32CD32",
-                          "#1E90FF",
-                        ],
-                        zIndex: 2000,
-                      });
-                    }}
-                  >
-                    🎉 More Celebration!
-                  </Button>
+                <Heading
+                  size="xl"
+                  color="gray.900"
+                  textAlign="center"
+                  fontWeight="600"
+                  letterSpacing="-0.025em"
+                >
+                  {winner}
+                </Heading>
 
-                  <Button
-                    colorPalette="blue"
-                    variant="outline"
-                    size="lg"
-                    onClick={onClose}
-                  >
-                    Continue
-                  </Button>
-                </HStack>
+                <Text
+                  fontSize="md"
+                  color="gray.600"
+                  textAlign="center"
+                  fontWeight="400"
+                >
+                  Congratulations on your victory
+                </Text>
               </VStack>
-            </Dialog.Body>
+
+              {/* Modern button design */}
+              <HStack gap={3} pb={8} px={8} w="full">
+                <Button
+                  flex="1"
+                  size="md"
+                  h="44px"
+                  bg="linear-gradient(135deg, #C9A961 0%, #DAA520 100%)"
+                  color="white"
+                  borderRadius="lg"
+                  fontSize="sm"
+                  fontWeight="500"
+                  _hover={{
+                    bg: "linear-gradient(135deg, #B8860B 0%, #C9A961 100%)",
+                    transform: "translateY(-1px)",
+                    boxShadow: "0 4px 12px rgba(201, 169, 97, 0.4)",
+                  }}
+                  _active={{ transform: "translateY(0)" }}
+                  transition="all 0.2s"
+                  onClick={triggerMoreCelebration}
+                >
+                  Celebrate
+                </Button>
+
+                <Button
+                  flex="1"
+                  size="md"
+                  h="44px"
+                  variant="ghost"
+                  color="gray.600"
+                  borderRadius="lg"
+                  fontSize="sm"
+                  fontWeight="500"
+                  _hover={{
+                    bg: "gray.50",
+                    color: "gray.900",
+                  }}
+                  onClick={onClose}
+                >
+                  Continue
+                </Button>
+              </HStack>
+            </VStack>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>

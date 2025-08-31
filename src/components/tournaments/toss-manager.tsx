@@ -95,7 +95,7 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
   return (
     <Dialog.Root open={isOpen} onOpenChange={(e) => setIsOpen(e.open)}>
       <Dialog.Trigger asChild>
-        <Button size="sm" colorPalette="blue">
+        <Button size="sm" width="full" colorPalette="blue">
           🪙 Flip Coin
         </Button>
       </Dialog.Trigger>
@@ -112,7 +112,7 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
             border="1px solid"
             borderColor="gray.200"
           >
-            <Dialog.Header pb={3}>
+            <Dialog.Header px={2} pb={3}>
               <VStack gap={1} w="full" align="center">
                 <Text fontSize="lg" color="blue.600" fontWeight="500">
                   {match.team1} vs {match.team2}
@@ -130,7 +130,7 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
               </Dialog.CloseTrigger>
             </Dialog.Header>
 
-            <Dialog.Body>
+            <Dialog.Body p={2}>
               <VStack gap={4} w="full">
                 {/* Team Call Selection */}
                 <Box w="full">
@@ -314,17 +314,11 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                     size="md"
                     w="full"
                     h="44px"
-                    bg="gray.900"
                     color="white"
                     borderRadius="lg"
                     fontSize="sm"
                     fontWeight="500"
-                    _hover={{ bg: "gray.800" }}
-                    _disabled={{
-                      bg: "gray.400",
-                      cursor: "not-allowed",
-                      _hover: { bg: "gray.400" },
-                    }}
+                    colorPalette="blue"
                   >
                     {isFlipping ? "Flipping..." : "Flip the Coin!"}
                   </Button>
@@ -334,12 +328,11 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                     size="md"
                     w="full"
                     h="44px"
-                    bg="green.600"
                     color="white"
                     borderRadius="lg"
                     fontSize="sm"
+                    colorPalette="green"
                     fontWeight="500"
-                    _hover={{ bg: "green.700" }}
                   >
                     Confirm Toss
                   </Button>

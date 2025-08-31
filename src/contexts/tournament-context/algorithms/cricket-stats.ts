@@ -32,22 +32,57 @@ export function initializeTeamStats(teamName: string): CricketTeamStats {
 }
 
 /**
- * Convert overs and balls to decimal overs (e.g., 47.2 overs = 47.33 overs)
+ * Convert total balls to cricket over format (e.g., 47 balls = 7.5 overs)
  */
 export function ballsToOvers(balls: number): number {
   const completeOvers = Math.floor(balls / 6);
   const remainingBalls = balls % 6;
-  return completeOvers + remainingBalls / 6;
+  return parseFloat(`${completeOvers}.${remainingBalls}`);
 }
 
 /**
- * Convert decimal overs to total balls
+ * Convert cricket over format to total balls (e.g., 7.5 overs = 47 balls)
  */
 export function oversToBalls(overs: number): number {
   const completeOvers = Math.floor(overs);
-  const fractionalPart = overs - completeOvers;
-  const remainingBalls = Math.round(fractionalPart * 6);
+  const fractionalPart = Number((overs - completeOvers).toFixed(1));
+  const remainingBalls = Math.round(fractionalPart * 10); // Since it's .1, .2, .3, etc.
   return completeOvers * 6 + remainingBalls;
+}
+
+/**
+ * Format overs input to proper cricket format (max .6)
+ * Converts invalid decimals like 3.7 to 4.1, 3.12 to 5.0, etc.
+ */
+export function formatCricketOvers(input: number): number {
+  const completeOvers = Math.floor(input);
+  const fractionalPart = input - completeOvers;
+
+  // Convert fractional part to balls (multiply by 10 to handle .1, .2, etc.)
+  const balls = Math.round(fractionalPart * 10);
+
+  // If balls > 6, convert to additional overs
+  const extraOvers = Math.floor(balls / 6);
+  const remainingBalls = balls % 6;
+
+  return completeOvers + extraOvers + remainingBalls / 10;
+}
+
+/**
+ * Validate if overs input is in proper cricket format (.0 to .6)
+ */
+export function isValidCricketOvers(overs: number): boolean {
+  const fractionalPart = overs - Math.floor(overs);
+  const balls = Math.round(fractionalPart * 10);
+  return balls >= 0 && balls <= 6;
+}
+
+/**
+ * Format overs for display with exactly 1 decimal place for cricket format
+ */
+export function displayCricketOvers(overs: number): string {
+  const formatted = formatCricketOvers(overs);
+  return formatted.toFixed(1);
 }
 
 /**

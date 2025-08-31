@@ -12,6 +12,7 @@ import {
 import { ColorModeButton } from "@/components/ui/color-mode";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Logo from "../icons/logo";
 
 export function Header() {
   const pathname = usePathname();
@@ -41,7 +42,7 @@ export function Header() {
                   transition="transform 0.2s"
                   _hover={{ transform: "scale(1.1)" }}
                 >
-                  🏏
+                  <Logo />
                 </Box>
                 <Box>
                   <Heading
@@ -61,9 +62,7 @@ export function Header() {
               </Link>
             ) : (
               <>
-                <Box fontSize="2xl" role="img" aria-label="Cricket">
-                  🏏
-                </Box>
+                <Logo />
                 <Box>
                   <Heading size="md" lineHeight="1">
                     Cricket Planner

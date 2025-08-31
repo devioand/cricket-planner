@@ -3,6 +3,7 @@
 import { Box, Text, VStack, HStack, IconButton } from "@chakra-ui/react";
 import { useState } from "react";
 import { useTournament, type Match } from "@/contexts/tournament-context";
+import { displayCricketOvers } from "@/contexts/tournament-context/algorithms/cricket-stats";
 import { MatchStatus } from "./match-status";
 import { MatchActions } from "./match-actions";
 import { TeamScoreInputDialog } from "./team-score-input-dialog";
@@ -73,6 +74,7 @@ export function MatchCard({
 
   const isCompleted = match.status === "completed";
   const isInProgress = match.status === "in-progress";
+  const isDraw = !!match.result?.isDraw;
   const hasToss = match.toss !== undefined;
 
   // Check if this is a TBD (To Be Determined) match
@@ -120,11 +122,15 @@ export function MatchCard({
 
   const matchState = getMatchState();
   const team1Score = match.result?.team1Innings
-    ? `${match.result.team1Innings.runs}/${match.result.team1Innings.wickets} (${match.result.team1Innings.overs})`
-    : "0/0 (0)";
+    ? `${match.result.team1Innings.runs}/${
+        match.result.team1Innings.wickets
+      } (${displayCricketOvers(match.result.team1Innings.overs)})`
+    : "0/0 (0.0)";
   const team2Score = match.result?.team2Innings
-    ? `${match.result.team2Innings.runs}/${match.result.team2Innings.wickets} (${match.result.team2Innings.overs})`
-    : "0/0 (0)";
+    ? `${match.result.team2Innings.runs}/${
+        match.result.team2Innings.wickets
+      } (${displayCricketOvers(match.result.team2Innings.overs)})`
+    : "0/0 (0.0)";
 
   // Determine which team should show edit icon based on match progression
   const shouldShowTeam1EditIcon = () => {
@@ -175,29 +181,60 @@ export function MatchCard({
     return false;
   };
 
-  // Get playoff-specific styling
+  // Get match card styling based on match state and type
   const getCardStyling = () => {
-    if (isPlayoff) {
-      return {
-        bg: isCompleted ? "green.50" : isInProgress ? "yellow.50" : "orange.50",
-        borderColor: isCompleted
-          ? "green.300"
-          : isInProgress
-          ? "yellow.300"
-          : "orange.300",
+    // Base styling configuration
+    const baseStyles = {
+      playoff: {
         borderWidth: 2,
         shadow: "lg",
-      };
+      },
+      regular: {
+        borderWidth: 1,
+        shadow: "sm",
+      },
+    };
+
+    // Color schemes for different match states
+    const colorSchemes = {
+      draw: {
+        bg: "red.50",
+        borderColor: "red.300",
+      },
+      completed: {
+        bg: "green.50",
+        borderColor: isPlayoff ? "green.300" : "green.200",
+      },
+      inProgress: {
+        bg: isPlayoff ? "yellow.50" : "blue.50",
+        borderColor: isPlayoff ? "yellow.300" : "blue.200",
+      },
+      scheduled: {
+        bg: isPlayoff ? "orange.50" : "gray.50",
+        borderColor: isPlayoff ? "orange.300" : "gray.200",
+      },
+    };
+
+    // Determine match state priority (highest to lowest priority)
+    let matchStateKey: keyof typeof colorSchemes;
+
+    if (isCompleted && isDraw) {
+      matchStateKey = "draw";
+    } else if (isCompleted) {
+      matchStateKey = "completed";
+    } else if (isInProgress) {
+      matchStateKey = "inProgress";
+    } else {
+      matchStateKey = "scheduled";
     }
+
+    // Get appropriate color scheme and base styles
+    const colorScheme = colorSchemes[matchStateKey];
+    const baseStyle = isPlayoff ? baseStyles.playoff : baseStyles.regular;
+
     return {
-      bg: isCompleted ? "green.50" : isInProgress ? "blue.50" : "gray.50",
-      borderColor: isCompleted
-        ? "green.200"
-        : isInProgress
-        ? "blue.200"
-        : "gray.200",
-      borderWidth: 1,
-      shadow: "sm",
+      ...colorScheme,
+      ...baseStyle,
     };
   };
 

@@ -118,7 +118,7 @@ export default function TournamentSelection() {
             fontWeight="bold"
             mb={4}
           >
-            🏏 Choose Your Tournament Format
+            Choose Your Tournament Format
           </Text>
           <Text
             fontSize={{ base: "lg", md: "xl" }}

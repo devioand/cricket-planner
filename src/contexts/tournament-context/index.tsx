@@ -310,7 +310,7 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     }
 
     console.log(
-      `🏏 Setting scores for match ${matchId}: ${match.team1} vs ${match.team2}`
+      `Setting scores for match ${matchId}: ${match.team1} vs ${match.team2}`
     );
 
     // Create match result
@@ -360,7 +360,7 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
       (isTeam1 && team1BatsFirst) || (!isTeam1 && !team1BatsFirst);
 
     console.log(
-      `🏏 Updating ${
+      `Updating ${
         isFirstInnings ? "first" : "second"
       } innings for match ${matchId}`
     );
@@ -426,7 +426,7 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
       m.id === matchId ? { ...m, secondInningsStarted: true } : m
     );
     dispatch({ type: "SET_MATCHES", payload: updatedMatches });
-    console.log(`🏏 Second innings started for match ${matchId}`);
+    console.log(`Second innings started for match ${matchId}`);
   };
 
   const completeMatch = (matchId: string) => {

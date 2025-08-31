@@ -14,6 +14,10 @@ import {
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { useTournament, type Match } from "@/contexts/tournament-context";
+import {
+  formatCricketOvers,
+  isValidCricketOvers,
+} from "@/contexts/tournament-context/algorithms/cricket-stats";
 import { TossManager } from "./toss-manager";
 
 interface MatchManagerProps {
@@ -38,7 +42,7 @@ export function MatchManager({ showCompleted = true }: MatchManagerProps) {
   return (
     <VStack align="stretch" gap={6}>
       <HStack justify="space-between" align="center">
-        <Heading size="md">🏏 Match Manager</Heading>
+        <Heading size="md">Match Manager</Heading>
         <HStack gap={2}>
           {scheduledMatches.length > 0 && (
             <>
@@ -171,13 +175,29 @@ function MatchScoreInput({ match }: MatchScoreInputProps) {
       return;
     }
 
+    // Validate cricket over format (max .6 balls per over)
+    if (!isValidCricketOvers(team1Overs) || !isValidCricketOvers(team2Overs)) {
+      alert(
+        "Invalid over format. Please use cricket format like 3.5 (max .6 balls). Example: 15.2 means 15 overs and 2 balls."
+      );
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       tournament.simulateMatchResult(
         match.id,
-        { runs: team1Runs, wickets: team1Wickets, overs: team1Overs },
-        { runs: team2Runs, wickets: team2Wickets, overs: team2Overs }
+        {
+          runs: team1Runs,
+          wickets: team1Wickets,
+          overs: formatCricketOvers(team1Overs),
+        },
+        {
+          runs: team2Runs,
+          wickets: team2Wickets,
+          overs: formatCricketOvers(team2Overs),
+        }
       );
 
       // Reset form
@@ -349,7 +369,7 @@ function MatchScoreInput({ match }: MatchScoreInputProps) {
           }
           size="sm"
         >
-          {isSubmitting ? "Submitting..." : "🏏 Submit Match Result"}
+          {isSubmitting ? "Submitting..." : "Submit Match Result"}
         </Button>
       </VStack>
     </Card.Root>

@@ -105,7 +105,7 @@ export default function RoundRobinSetup() {
         <Box>
           <VStack align="stretch" gap={1} mb={4}>
             <HStack justify="space-between" align="center">
-              <Heading size="md" color="blue.600">
+              <Heading size="md">
                 Teams ({tournament.state.teams.length})
               </Heading>
               {tournament.state.isGenerated && (
@@ -154,9 +154,7 @@ export default function RoundRobinSetup() {
         <VStack gap={4} align="stretch">
           <VStack align="stretch" gap={1} mb={4}>
             <HStack justify="space-between" align="center">
-              <Heading size="md" color="blue.600">
-                Match Settings
-              </Heading>
+              <Heading size="md">Match Settings</Heading>
               {tournament.state.isGenerated && (
                 <Text fontSize="xs" color="gray.500" fontStyle="italic">
                   🔒 Locked during tournament
@@ -231,9 +229,7 @@ export default function RoundRobinSetup() {
         <VStack gap={4} align="stretch">
           <VStack align="stretch" gap={1} mb={4}>
             <HStack justify="space-between" align="center">
-              <Heading size="md" color="blue.600">
-                Playoff Format
-              </Heading>
+              <Heading size="md">Playoff Format</Heading>
               {tournament.state.matches.some((m) => m.isPlayoff) && (
                 <Text fontSize="xs" color="gray.500" fontStyle="italic">
                   🔒 Locked after tournament generated
@@ -270,7 +266,7 @@ export default function RoundRobinSetup() {
               // size="xl"
               w="full"
             >
-              🏁 Finish Tournament
+              Finish Tournament
             </Button>
           )}
         </VStack>
@@ -281,19 +277,36 @@ export default function RoundRobinSetup() {
           onOpenChange={(e) => !e.open && handleDialogClose()}
         >
           <Portal>
-            <Dialog.Backdrop />
+            <Dialog.Backdrop bg="blackAlpha.400" backdropFilter="blur(4px)" />
             <Dialog.Positioner>
-              <Dialog.Content maxW="md" bg="white" borderRadius="lg" p={6}>
-                <Dialog.Header>
-                  <Text fontSize="xl" fontWeight="bold" textAlign="center">
-                    {editingTeam ? "Edit Team" : "Add New Team"}
-                  </Text>
+              <Dialog.Content
+                maxW="380px"
+                bg="white"
+                borderRadius="xl"
+                p={4}
+                boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+                border="1px solid"
+                borderColor="gray.200"
+              >
+                <Dialog.Header px={2} pb={3}>
+                  <VStack gap={1} w="full" align="center">
+                    <Text fontSize="lg" fontWeight="500">
+                      {editingTeam ? "Edit Team" : "Add New Team"}
+                    </Text>
+                  </VStack>
                   <Dialog.CloseTrigger asChild>
-                    <CloseButton position="absolute" top={4} right={4} />
+                    <CloseButton
+                      position="absolute"
+                      top={4}
+                      right={4}
+                      size="sm"
+                      color="gray.500"
+                      _hover={{ color: "gray.700", bg: "gray.100" }}
+                    />
                   </Dialog.CloseTrigger>
                 </Dialog.Header>
 
-                <Dialog.Body>
+                <Dialog.Body p={2}>
                   <VStack gap={4} w="full">
                     <Box w="full">
                       <Text fontSize="sm" fontWeight="medium" mb={2}>
@@ -325,6 +338,12 @@ export default function RoundRobinSetup() {
                       <Button
                         variant="outline"
                         flex="1"
+                        size="md"
+                        h="44px"
+                        borderRadius="lg"
+                        fontSize="sm"
+                        colorPalette="gray"
+                        fontWeight="500"
                         onClick={handleDialogClose}
                       >
                         Cancel
@@ -332,6 +351,11 @@ export default function RoundRobinSetup() {
                       <Button
                         colorPalette="blue"
                         flex="1"
+                        size="md"
+                        h="44px"
+                        borderRadius="lg"
+                        fontSize="sm"
+                        fontWeight="500"
                         onClick={editingTeam ? handleUpdateTeam : handleAddTeam}
                         disabled={
                           !teamInput.trim() || teamInput.trim().length > 10
@@ -353,24 +377,36 @@ export default function RoundRobinSetup() {
           onOpenChange={(e) => !e.open && setShowFinishConfirm(false)}
         >
           <Portal>
-            <Dialog.Backdrop />
+            <Dialog.Backdrop bg="blackAlpha.400" backdropFilter="blur(4px)" />
             <Dialog.Positioner>
-              <Dialog.Content maxW="md" bg="white" borderRadius="lg" p={6}>
-                <Dialog.Header>
-                  <Text
-                    fontSize="xl"
-                    fontWeight="bold"
-                    textAlign="center"
-                    color="red.600"
-                  >
-                    🏁 Finish Tournament?
-                  </Text>
+              <Dialog.Content
+                maxW="420px"
+                bg="white"
+                borderRadius="xl"
+                p={4}
+                boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+                border="1px solid"
+                borderColor="gray.200"
+              >
+                <Dialog.Header pb={3}>
+                  <VStack gap={1} w="full" align="center">
+                    <Text fontSize="lg" fontWeight="500" color="red.600">
+                      Finish Tournament?
+                    </Text>
+                  </VStack>
                   <Dialog.CloseTrigger asChild>
-                    <CloseButton position="absolute" top={4} right={4} />
+                    <CloseButton
+                      position="absolute"
+                      top={4}
+                      right={4}
+                      size="sm"
+                      color="gray.500"
+                      _hover={{ color: "gray.700", bg: "gray.100" }}
+                    />
                   </Dialog.CloseTrigger>
                 </Dialog.Header>
 
-                <Dialog.Body>
+                <Dialog.Body px={2}>
                   <VStack gap={4} w="full">
                     <Text textAlign="center" color="gray.700">
                       This will permanently end the tournament and reset all
@@ -391,6 +427,12 @@ export default function RoundRobinSetup() {
                       <Button
                         variant="outline"
                         flex="1"
+                        size="md"
+                        h="44px"
+                        borderRadius="lg"
+                        fontSize="sm"
+                        fontWeight="500"
+                        colorPalette="gray"
                         onClick={() => setShowFinishConfirm(false)}
                       >
                         Cancel
@@ -398,9 +440,14 @@ export default function RoundRobinSetup() {
                       <Button
                         colorPalette="red"
                         flex="1"
+                        size="md"
+                        h="44px"
+                        borderRadius="lg"
+                        fontSize="sm"
+                        fontWeight="500"
                         onClick={confirmFinishTournament}
                       >
-                        Yes, Finish Tournament
+                        Finish Tournament
                       </Button>
                     </HStack>
                   </VStack>
@@ -437,7 +484,7 @@ function TeamCard({
       transition="all 0.2s"
       opacity={isLocked ? 0.7 : 1}
     >
-      <Card.Body p={4}>
+      <Card.Body pl={4} pr={2} py={2}>
         <HStack justify="space-between" align="center">
           <HStack gap={2}>
             <Text

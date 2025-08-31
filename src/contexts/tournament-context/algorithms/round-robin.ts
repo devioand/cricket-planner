@@ -26,7 +26,7 @@ export function generateRoundRobinMatches(
 
   console.log("🔄 Generating Round Robin tournament...");
   console.log(`📊 Teams: ${teams.length}`);
-  console.log(`🏏 Max Overs: ${maxOvers}`);
+  console.log(`Max Overs: ${maxOvers}`);
   console.log(`🎯 Max Wickets: ${maxWickets}`);
 
   if (teams.length < 2) {

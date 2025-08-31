@@ -53,9 +53,9 @@ export function MatchActions({
           }
           colorPalette="orange"
           w="full"
-          opacity={0.5}
+          // opacity={0.5}
         >
-          🏏 Start Second Innings
+          Start Second Innings
         </Button>
       </Box>
     );
@@ -64,8 +64,8 @@ export function MatchActions({
   if (matchState === "first-innings-complete") {
     return (
       <Box textAlign="center">
-        <Button onClick={onStartSecondInnings} colorPalette="orange" w="full">
-          🏏 Start Second Innings
+        <Button onClick={onStartSecondInnings} colorPalette="blue" w="full">
+          Start Second Innings
         </Button>
       </Box>
     );
@@ -87,9 +87,9 @@ export function MatchActions({
           }
           colorPalette="green"
           w="full"
-          opacity={0.5}
+          // opacity={0.5}
         >
-          🏁 Finish Match
+          Finish Match
         </Button>
       </Box>
     );
@@ -99,7 +99,7 @@ export function MatchActions({
     return (
       <Box textAlign="center">
         <Button onClick={onFinishMatch} colorPalette="green" w="full">
-          🏁 Finish Match
+          Finish Match
         </Button>
       </Box>
     );

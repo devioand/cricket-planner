@@ -28,7 +28,7 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
 
       case "in-progress-need-toss":
         return {
-          text: "🏏 Match in progress - Toss required",
+          text: "Match in progress - Toss required",
           color: "blue.700",
           bg: "blue.50",
         };
@@ -66,13 +66,13 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
           const target = firstInnings.runs + 1;
 
           return {
-            text: `✅ ${battingFirst}: ${firstInnings.runs}/${firstInnings.wickets} (${firstInnings.overs}). ${chasingTeam} needs ${target} runs`,
+            text: `${battingFirst}: ${firstInnings.runs}/${firstInnings.wickets} (${firstInnings.overs}). ${chasingTeam} needs ${target} runs`,
             color: "green.700",
             bg: "green.50",
           };
         }
         return {
-          text: "🏏 First innings complete",
+          text: "First innings complete",
           color: "green.700",
           bg: "green.50",
         };
@@ -94,20 +94,20 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
           const target = firstInningsReady.runs + 1;
 
           return {
-            text: `🎯 ${battingFirst}: ${firstInningsReady.runs}/${firstInningsReady.wickets}. ${chasingTeam} needs ${target} runs`,
+            text: `${battingFirst}: ${firstInningsReady.runs}/${firstInningsReady.wickets}. ${chasingTeam} needs ${target} runs`,
             color: "orange.700",
             bg: "orange.50",
           };
         }
         return {
-          text: "🏏 Second innings ready",
+          text: "Second innings ready",
           color: "blue.700",
           bg: "blue.50",
         };
 
       case "ready-to-finish":
         return {
-          text: "🏏 Both teams have played. Ready to finish the match!",
+          text: "Both teams have played. Ready to finish the match!",
           color: "purple.700",
           bg: "purple.50",
         };
