@@ -308,8 +308,6 @@ function AlgorithmCard({ algorithm }: AlgorithmCardProps) {
               <Button
                 w="full"
                 colorPalette={algorithm.isAvailable ? algorithm.color : "gray"}
-                size={{ base: "md", md: "lg" }}
-                minH={{ base: "44px", md: "48px" }}
                 disabled={!algorithm.isAvailable}
                 variant={algorithm.isAvailable ? "solid" : "outline"}
               >

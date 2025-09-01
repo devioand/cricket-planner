@@ -137,9 +137,7 @@ export default function RoundRobinSetup() {
                 onClick={() => setIsAddTeamOpen(true)}
                 variant="outline"
                 colorPalette="blue"
-                size="lg"
                 w="full"
-                minH="48px"
               >
                 <HStack gap={2}>
                   <Text fontSize="lg">+</Text>
