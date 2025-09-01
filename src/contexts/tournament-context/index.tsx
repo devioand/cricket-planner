@@ -138,12 +138,10 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
   // Action methods
   const addTeam = (teamName: string): boolean => {
     if (!teamName.trim()) {
-      console.warn("⚠️ Team name cannot be empty");
       return false;
     }
 
     if (state.teams.includes(teamName.trim())) {
-      console.warn(`⚠️ Team "${teamName}" already exists`);
       return false;
     }
 
@@ -157,7 +155,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
 
   const setMaxOvers = (overs: number): void => {
     if (overs < 1 || overs > 50) {
-      console.warn("⚠️ Overs must be between 1 and 50");
       return;
     }
     dispatch({ type: "SET_MAX_OVERS", payload: overs });
@@ -165,7 +162,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
 
   const setMaxWickets = (wickets: number): void => {
     if (wickets < 1 || wickets > 11) {
-      console.warn("⚠️ Wickets must be between 1 and 11");
       return;
     }
     dispatch({ type: "SET_MAX_WICKETS", payload: wickets });
@@ -176,12 +172,9 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
   };
 
   const generateMatches = (): { success: boolean; errors?: string[] } => {
-    console.log("\n🚀 Starting tournament generation from context...");
-
     // Validate teams first
     const validation = validateRoundRobinTeams(state.teams);
     if (!validation.valid) {
-      console.error("❌ Validation failed:", validation.errors);
       return { success: false, errors: validation.errors };
     }
 
@@ -210,12 +203,7 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
 
           if (playoffResult.success) {
             allMatches = [...allMatches, ...playoffResult.playoffMatches];
-            console.log("✅ Playoff matches with TBD placeholders generated!");
           } else {
-            console.warn(
-              "⚠️ Failed to generate playoff placeholders:",
-              playoffResult.errors
-            );
             // Continue without playoffs - they can be generated later
           }
 
@@ -226,7 +214,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
         case "double-elimination":
         case "triple-elimination":
           // Placeholder for future algorithms
-          console.warn(`⚠️ ${state.algorithm} algorithm not yet implemented`);
           return {
             success: false,
             errors: [`${state.algorithm} algorithm not yet implemented`],
@@ -238,12 +225,8 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
           };
       }
 
-      console.log(
-        "\n🎉 Tournament generation complete with playoff placeholders!"
-      );
       return { success: true };
-    } catch (error) {
-      console.error("❌ Error generating matches:", error);
+    } catch {
       return {
         success: false,
         errors: ["Failed to generate matches. Please try again."],
@@ -258,7 +241,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
   const clearAllData = (): void => {
     clearTournamentState();
     dispatch({ type: "RESET_TOURNAMENT" });
-    console.log("🗑️ All tournament data cleared");
   };
 
   const getTournamentWinner = (): string | null => {
@@ -305,13 +287,8 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
   ) => {
     const match = state.matches.find((m) => m.id === matchId);
     if (!match) {
-      console.error(`Match ${matchId} not found`);
       return;
     }
-
-    console.log(
-      `Setting scores for match ${matchId}: ${match.team1} vs ${match.team2}`
-    );
 
     // Create match result
     const matchResult = createSampleMatchResult(
@@ -335,8 +312,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
 
     // Dispatch updates
     dispatch({ type: "SET_MATCHES", payload: updatedMatches });
-
-    console.log(`📝 Match ${matchId} scores set, waiting for completion`);
   };
 
   const updateSingleInnings = (
@@ -346,7 +321,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
   ) => {
     const match = state.matches.find((m) => m.id === matchId);
     if (!match) {
-      console.error(`Match ${matchId} not found`);
       return;
     }
 
@@ -406,11 +380,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
 
     // Dispatch updates
     dispatch({ type: "SET_MATCHES", payload: updatedMatches });
-    console.log(
-      `📝 ${
-        isFirstInnings ? "First" : "Second"
-      } innings updated for match ${matchId}`
-    );
   };
 
   const startMatch = (matchId: string) => {
@@ -418,7 +387,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
       m.id === matchId ? { ...m, status: "in-progress" as const } : m
     );
     dispatch({ type: "SET_MATCHES", payload: updatedMatches });
-    console.log(`🚀 Match ${matchId} started and in progress`);
   };
 
   const startSecondInnings = (matchId: string) => {
@@ -426,29 +394,21 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
       m.id === matchId ? { ...m, secondInningsStarted: true } : m
     );
     dispatch({ type: "SET_MATCHES", payload: updatedMatches });
-    console.log(`Second innings started for match ${matchId}`);
   };
 
   const completeMatch = (matchId: string) => {
     const match = state.matches.find((m) => m.id === matchId);
     if (!match) {
-      console.error(`Match ${matchId} not found`);
       return {};
     }
 
     if (!match.result) {
-      console.error(`Match ${matchId} has no result to complete`);
       return {};
     }
-
-    console.log(
-      `🏁 Completing match ${matchId}: ${match.team1} vs ${match.team2}`
-    );
 
     // Calculate winner and margin for the match result
     const { team1Innings, team2Innings } = match.result;
     if (!team1Innings || !team2Innings) {
-      console.error(`Match ${matchId} missing innings data`);
       return {};
     }
 
@@ -508,7 +468,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     );
 
     // Auto-update playoff teams after any match completion (using final updated data)
-    console.log("🔄 Checking for playoff team updates...");
     const playoffUpdate =
       state.playoffFormat === "league"
         ? updateLeaguePlayoffTeams({
@@ -527,10 +486,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
       ? playoffUpdate.updatedMatches
       : finalUpdatedMatches;
 
-    if (playoffUpdate.success) {
-      console.log("📋 Playoff team updates:", playoffUpdate.updates);
-    }
-
     // Check if round robin just completed and update initial playoff teams from standings
     const updatedStateForStandingCheck = {
       ...state,
@@ -546,10 +501,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
       );
 
       if (standingsUpdate.success) {
-        console.log(
-          "🎯 Initial playoff teams updated from standings:",
-          standingsUpdate.updates
-        );
         matchesToSet = standingsUpdate.updatedMatches;
       }
     }
@@ -558,32 +509,14 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     dispatch({ type: "SET_MATCHES", payload: matchesToSet });
     dispatch({ type: "UPDATE_TEAM_STATS", payload: finalUpdatedTeamStats });
 
-    console.log(`✅ Match ${matchId} completed with result:`, {
-      winner: isDraw ? "Tie/Draw" : winner,
-      loser: isDraw ? "Tie/Draw" : loser,
-      margin,
-      marginType,
-      team1Runs: team1Innings.runs,
-      team2Runs: team2Innings.runs,
-      isDraw,
-    });
-
     // Find next pending match for auto-navigation
     const nextMatch = matchesToSet.find((m) => m.status === "scheduled");
     const nextMatchId = nextMatch?.id;
-
-    if (nextMatchId) {
-      console.log(`🎯 Next match available: ${nextMatchId}`);
-    } else {
-      console.log(`🏆 All matches completed!`);
-    }
 
     return { nextMatchId };
   };
 
   const generateSampleResults = () => {
-    console.log("🎲 Generating sample match results...");
-
     const scheduledMatches = state.matches.filter(
       (m) => m.status === "scheduled" && m.team1 !== "TBD" && m.team2 !== "TBD"
     );
@@ -626,7 +559,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
   ) => {
     const match = state.matches.find((m) => m.id === matchId);
     if (!match) {
-      console.error(`❌ Match ${matchId} not found`);
       return;
     }
 
@@ -644,21 +576,16 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
     );
 
     dispatch({ type: "SET_MATCHES", payload: updatedMatches });
-    console.log(
-      `🪙 Toss set for ${matchId}: ${tossWinner} won and chose to ${decision}`
-    );
   };
 
   const generateRandomToss = (matchId: string) => {
     const match = state.matches.find((m) => m.id === matchId);
     if (!match) {
-      console.error(`❌ Match ${matchId} not found`);
       return;
     }
 
     // Skip if toss already exists
     if (match.toss) {
-      console.log(`⚠️ Toss already exists for match ${matchId}`);
       return;
     }
 
@@ -677,15 +604,10 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
 
   const generateAllTosses = () => {
     const matchesWithoutToss = state.matches.filter((m) => !m.toss);
-    console.log(
-      `🎲 Generating random tosses for ${matchesWithoutToss.length} matches`
-    );
 
     matchesWithoutToss.forEach((match) => {
       generateRandomToss(match.id);
     });
-
-    console.log("✅ All tosses generated!");
   };
 
   const contextValue: TournamentContextType = {

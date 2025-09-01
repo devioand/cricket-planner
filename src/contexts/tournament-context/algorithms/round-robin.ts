@@ -24,13 +24,7 @@ export function generateRoundRobinMatches(
 ): RoundRobinResult {
   const { teams, maxOvers, maxWickets } = options;
 
-  console.log("🔄 Generating Round Robin tournament...");
-  console.log(`📊 Teams: ${teams.length}`);
-  console.log(`Max Overs: ${maxOvers}`);
-  console.log(`🎯 Max Wickets: ${maxWickets}`);
-
   if (teams.length < 2) {
-    console.log("❌ Need at least 2 teams for Round Robin");
     return {
       matches: [],
       totalRounds: 0,
@@ -46,8 +40,6 @@ export function generateRoundRobinMatches(
     }
   }
 
-  console.log(`📋 Generated ${allPairs.length} total matches needed`);
-
   // Now schedule matches in rounds with optimal rest
   const scheduledMatches = scheduleMatchesInRounds(allPairs);
 
@@ -56,7 +48,6 @@ export function generateRoundRobinMatches(
   let matchId = 1;
 
   scheduledMatches.forEach((round, roundIndex) => {
-    console.log(`\n🏟️ Round ${roundIndex + 1}:`);
     round.forEach((pair) => {
       const match: Match = {
         id: `RR-${matchId.toString().padStart(3, "0")}`,
@@ -70,24 +61,11 @@ export function generateRoundRobinMatches(
 
       matches.push(match);
       matchId++;
-
-      console.log(`   ⚡ Match ${match.id}: ${match.team1} vs ${match.team2}`);
     });
   });
 
   const totalRounds = scheduledMatches.length;
   const maxMatchesPerRound = Math.max(...scheduledMatches.map((r) => r.length));
-
-  console.log(`\n✅ Round Robin scheduling complete!`);
-  console.log(`📊 Tournament Statistics:`);
-  console.log(`   • Total matches: ${matches.length}`);
-  console.log(
-    `   • Expected matches: ${(teams.length * (teams.length - 1)) / 2}`
-  );
-  console.log(`   • Each team plays: ${teams.length - 1} matches`);
-  console.log(`   • Tournament rounds: ${totalRounds}`);
-  console.log(`   • Max matches per round: ${maxMatchesPerRound}`);
-  console.log(`   • Teams get rest between rounds: ✅`);
 
   return {
     matches,
@@ -105,8 +83,6 @@ function scheduleMatchesInRounds(
 ): { team1: string; team2: string }[][] {
   const rounds: { team1: string; team2: string }[][] = [];
   const remainingPairs = [...pairs];
-
-  console.log("🔄 Optimizing match schedule for team rest...");
 
   while (remainingPairs.length > 0) {
     const currentRound: { team1: string; team2: string }[] = [];
@@ -129,13 +105,6 @@ function scheduleMatchesInRounds(
     }
 
     rounds.push(currentRound);
-
-    console.log(
-      `   📅 Round ${rounds.length}: ${currentRound.length} matches scheduled`
-    );
-    currentRound.forEach((match) => {
-      console.log(`      • ${match.team1} vs ${match.team2}`);
-    });
   }
 
   return rounds;
@@ -155,12 +124,6 @@ export function calculateRoundRobinStats(teams: string[]) {
     matchesPerTeam,
     minRounds: Math.ceil(totalMatches / Math.floor(teamCount / 2)), // Minimum rounds if we can play multiple matches simultaneously
   };
-
-  console.log("📈 Round Robin Statistics:");
-  console.log(`   • Teams: ${stats.teamCount}`);
-  console.log(`   • Total matches: ${stats.totalMatches}`);
-  console.log(`   • Matches per team: ${stats.matchesPerTeam}`);
-  console.log(`   • Minimum rounds needed: ${stats.minRounds}`);
 
   return stats;
 }
@@ -198,12 +161,6 @@ export function validateRoundRobinTeams(teams: string[]): {
 
   const valid = errors.length === 0;
 
-  if (valid) {
-    console.log("✅ Round Robin teams validation passed");
-  } else {
-    console.log("❌ Round Robin teams validation failed:", errors);
-  }
-
   return { valid, errors };
 }
 
@@ -220,13 +177,9 @@ export function generateOptimizedRoundRobinSchedule(
     return result;
   }
 
-  console.log("🎯 Optimizing Round Robin schedule...");
-
   // For now, we'll keep it simple and put all matches in round 1
   // In a more advanced version, we could distribute matches across multiple rounds
   // to minimize conflicts (same team playing multiple matches in the same round)
-
-  console.log("✅ Schedule optimization complete");
 
   return result;
 }

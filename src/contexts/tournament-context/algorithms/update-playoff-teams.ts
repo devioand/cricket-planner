@@ -41,7 +41,7 @@ export function updateLeaguePlayoffTeams(state: TournamentState): {
           team1: qualifier1.result.loser, // Q1 loser gets second chance
         };
         updates.push(
-          `🔥 Qualifier 2 team1 updated: ${qualifier1.result.loser} (Q1 loser)`
+          `Qualifier 2 team1 updated: ${qualifier1.result.loser} (Q1 loser)`
         );
       }
     }
@@ -61,7 +61,7 @@ export function updateLeaguePlayoffTeams(state: TournamentState): {
           team2: eliminator.result.winner, // Eliminator winner advances
         };
         updates.push(
-          `🔥 Qualifier 2 team2 updated: ${eliminator.result.winner} (Eliminator winner)`
+          `Qualifier 2 team2 updated: ${eliminator.result.winner} (Eliminator winner)`
         );
       }
     }
@@ -76,7 +76,7 @@ export function updateLeaguePlayoffTeams(state: TournamentState): {
           ...final,
           team1: qualifier1.result.winner, // Q1 winner gets direct entry to final
         };
-        updates.push(`🏆 Final team1 updated: ${qualifier1.result.winner}`);
+        updates.push(`Final team1 updated: ${qualifier1.result.winner}`);
       }
     }
   }
@@ -93,7 +93,7 @@ export function updateLeaguePlayoffTeams(state: TournamentState): {
           ...updatedMatches[finalIndex],
           team2: updatedQ2.result.winner, // Q2 winner advances to final
         };
-        updates.push(`🏆 Final team2 updated: ${updatedQ2.result.winner}`);
+        updates.push(`Final team2 updated: ${updatedQ2.result.winner}`);
       }
     }
   }
@@ -137,7 +137,7 @@ export function updateWorldCupPlayoffTeams(state: TournamentState): {
           team1: semiFinal1.result.winner, // SF1 winner
         };
         updates.push(
-          `🏆 Final team1 updated: ${semiFinal1.result.winner} (SF1 winner)`
+          `Final team1 updated: ${semiFinal1.result.winner} (SF1 winner)`
         );
       }
     }
@@ -155,7 +155,7 @@ export function updateWorldCupPlayoffTeams(state: TournamentState): {
           team2: semiFinal2.result.winner, // SF2 winner
         };
         updates.push(
-          `🏆 Final team2 updated: ${semiFinal2.result.winner} (SF2 winner)`
+          `Final team2 updated: ${semiFinal2.result.winner} (SF2 winner)`
         );
       }
     }
@@ -176,7 +176,7 @@ export function updateWorldCupPlayoffTeams(state: TournamentState): {
       updatedFinal.team2 !== "TBD"
     ) {
       updates.push(
-        `🎉 Final matchup complete: ${updatedFinal.team1} vs ${updatedFinal.team2}`
+        `Final matchup complete: ${updatedFinal.team1} vs ${updatedFinal.team2}`
       );
     }
   }
@@ -278,7 +278,7 @@ export function updateInitialPlayoffTeamsFromStandings(
             team2: standings[1].teamName, // 2nd place
           };
           updates.push(
-            `🏆 Final teams set: ${standings[0].teamName} vs ${standings[1].teamName}`
+            `Final teams set: ${standings[0].teamName} vs ${standings[1].teamName}`
           );
         }
       }
@@ -306,7 +306,7 @@ export function updateInitialPlayoffTeamsFromStandings(
             team2: standings[3].teamName, // 4th place
           };
           updates.push(
-            `⚡ Semi-final 1 teams set: ${standings[0].teamName} vs ${standings[3].teamName}`
+            `Semi-final 1 teams set: ${standings[0].teamName} vs ${standings[3].teamName}`
           );
         }
       }
@@ -326,7 +326,7 @@ export function updateInitialPlayoffTeamsFromStandings(
             team2: standings[2].teamName, // 3rd place
           };
           updates.push(
-            `⚡ Semi-final 2 teams set: ${standings[1].teamName} vs ${standings[2].teamName}`
+            `Semi-final 2 teams set: ${standings[1].teamName} vs ${standings[2].teamName}`
           );
         }
       }
@@ -347,7 +347,7 @@ export function updateInitialPlayoffTeamsFromStandings(
             team2: standings[1].teamName, // 2nd place
           };
           updates.push(
-            `🏆 Final teams set: ${standings[0].teamName} vs ${standings[1].teamName}`
+            `Final teams set: ${standings[0].teamName} vs ${standings[1].teamName}`
           );
         }
       }
@@ -373,7 +373,7 @@ export function updateInitialPlayoffTeamsFromStandings(
             team2: standings[1].teamName, // 2nd place
           };
           updates.push(
-            `⚡ Qualifier 1 teams set: ${standings[0].teamName} vs ${standings[1].teamName}`
+            `Qualifier 1 teams set: ${standings[0].teamName} vs ${standings[1].teamName}`
           );
         }
       }
@@ -391,7 +391,7 @@ export function updateInitialPlayoffTeamsFromStandings(
             team2: standings[3].teamName, // 4th place
           };
           updates.push(
-            `💥 Eliminator teams set: ${standings[2].teamName} vs ${standings[3].teamName}`
+            `Eliminator teams set: ${standings[2].teamName} vs ${standings[3].teamName}`
           );
         }
       }
