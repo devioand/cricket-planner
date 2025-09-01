@@ -1,90 +1,24 @@
 "use client";
 
-import {
-  Box,
-  Heading,
-  Input,
-  Text,
-  VStack,
-  HStack,
-  NumberInput,
-  Dialog,
-  Portal,
-  CloseButton,
-  Card,
-  IconButton,
-} from "@chakra-ui/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  useTournament,
-  logTournamentState,
-} from "@/contexts/tournament-context";
-
-import { PlayoffFormatSelector } from "@/components/tournaments/playoff-format-selector";
+  VStack,
+  Heading,
+  Text,
+  Dialog,
+  Portal,
+  CloseButton,
+  HStack,
+} from "@chakra-ui/react";
 import { Button } from "@/components/ui/button";
+import { TournamentSetupWizard } from "@/components/tournaments/setup-wizard/tournament-setup-wizard";
+import { useTournament } from "@/contexts/tournament-context";
 
 export default function RoundRobinSetup() {
   const tournament = useTournament();
   const router = useRouter();
-  const [teamInput, setTeamInput] = useState("");
-  const [isAddTeamOpen, setIsAddTeamOpen] = useState(false);
-  const [editingTeam, setEditingTeam] = useState<{
-    index: number;
-    name: string;
-  } | null>(null);
-
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
-
-  const handleAddTeam = () => {
-    if (teamInput.trim() && teamInput.trim().length <= 10) {
-      const success = tournament.addTeam(teamInput.trim());
-      if (success) {
-        setTeamInput("");
-        setIsAddTeamOpen(false);
-      }
-    }
-  };
-
-  const handleRemoveTeam = (teamName: string) => {
-    tournament.removeTeam(teamName);
-  };
-
-  const handleEditTeam = (index: number, currentName: string) => {
-    setEditingTeam({ index, name: currentName });
-    setTeamInput(currentName);
-    setIsAddTeamOpen(true);
-  };
-
-  const handleUpdateTeam = () => {
-    if (editingTeam && teamInput.trim() && teamInput.trim().length <= 10) {
-      // Remove old team and add new one
-      tournament.removeTeam(editingTeam.name);
-      const success = tournament.addTeam(teamInput.trim());
-      if (success) {
-        setTeamInput("");
-        setEditingTeam(null);
-        setIsAddTeamOpen(false);
-      }
-    }
-  };
-
-  const handleDialogClose = () => {
-    setIsAddTeamOpen(false);
-    setEditingTeam(null);
-    setTeamInput("");
-  };
-
-  const handleStartTournament = () => {
-    const result = tournament.generateMatches();
-    if (result.success) {
-      logTournamentState();
-      // Navigate to matches page immediately after successful generation
-      router.push("/tournament/round-robin/matches");
-    } else if (result.errors) {
-      console.error("❌ Failed to generate matches:", result.errors);
-    }
-  };
 
   const handleFinishTournament = () => {
     setShowFinishConfirm(true);
@@ -93,259 +27,57 @@ export default function RoundRobinSetup() {
   const confirmFinishTournament = () => {
     tournament.resetTournament();
     setShowFinishConfirm(false);
-    console.log("🔄 Tournament finished and reset");
+    router.push("/");
   };
 
-  // Celebration should happen on matches page, not setup page
-
-  return (
-    <>
-      <VStack gap={8} align="stretch">
-        {/* Teams Section */}
-        <Box>
-          <VStack align="stretch" gap={1} mb={4}>
-            <HStack justify="space-between" align="center">
-              <Heading size="md" color="blue.600">
-                Teams ({tournament.state.teams.length})
-              </Heading>
-              {tournament.state.isGenerated && (
-                <Text fontSize="xs" color="gray.500" fontStyle="italic">
-                  🔒 Locked during tournament
-                </Text>
-              )}
-            </HStack>
-            <Text fontSize="sm" color="gray.600">
-              Add teams. Each team plays others once.
+  // If tournament is already generated, show finish option
+  if (tournament.state.isGenerated) {
+    return (
+      <>
+        <VStack gap={8} align="stretch" w="full" maxW="4xl" mx="auto" p={6}>
+          <VStack align="stretch" gap={2}>
+            <Heading size="xl" color="green.600">
+              🏆 Tournament Active
+            </Heading>
+            <Text fontSize="md" color="gray.600">
+              Your tournament is currently running. You can manage matches or
+              finish the tournament.
             </Text>
           </VStack>
 
-          <VStack gap={3} align="stretch">
-            {/* Team Cards */}
-            {tournament.state.teams.map((team: string, index: number) => (
-              <TeamCard
-                key={`${team}-${index}`}
-                teamName={team}
-                onEdit={() => handleEditTeam(index, team)}
-                onDelete={() => handleRemoveTeam(team)}
-                isLocked={tournament.state.isGenerated}
-              />
-            ))}
-
-            {/* Add Team Button */}
-            {!tournament.state.isGenerated && (
-              <Button
-                onClick={() => setIsAddTeamOpen(true)}
-                variant="outline"
-                colorPalette="blue"
-                size="lg"
-                w="full"
-                minH="48px"
-              >
-                <HStack gap={2}>
-                  <Text fontSize="lg">+</Text>
-                  <Text>Add Team</Text>
-                </HStack>
-              </Button>
-            )}
-          </VStack>
-        </Box>
-
-        {/* Match Settings */}
-        <VStack gap={4} align="stretch">
-          <VStack align="stretch" gap={1} mb={4}>
-            <HStack justify="space-between" align="center">
-              <Heading size="md" color="blue.600">
-                Match Settings
-              </Heading>
-              {tournament.state.isGenerated && (
-                <Text fontSize="xs" color="gray.500" fontStyle="italic">
-                  🔒 Locked during tournament
-                </Text>
-              )}
-            </HStack>
-            <Text fontSize="sm" color="gray.600">
-              Set overs and wickets for matches.
-            </Text>
-          </VStack>
-
-          {/* Max Overs */}
-          <Box>
-            <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
-              Max Overs
-            </Text>
-            <NumberInput.Root
-              value={tournament.state.maxOvers.toString()}
-              min={1}
-              max={50}
-              onValueChange={(details) => {
-                if (!tournament.state.isGenerated) {
-                  const value = parseInt(details.value);
-                  if (!isNaN(value)) {
-                    tournament.setMaxOvers(value);
-                  }
-                }
-              }}
-              size="lg"
-              disabled={tournament.state.isGenerated}
-            >
-              <NumberInput.Control />
-              <NumberInput.Input readOnly={tournament.state.isGenerated} />
-            </NumberInput.Root>
-            <Text fontSize="xs" color="gray.500" mt={1}>
-              T20 = 20, ODI = 50
-              {tournament.state.isGenerated && " (Locked during tournament)"}
-            </Text>
-          </Box>
-
-          {/* Max Wickets */}
-          <Box>
-            <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
-              Max Wickets
-            </Text>
-            <NumberInput.Root
-              value={tournament.state.maxWickets.toString()}
-              min={1}
-              max={11}
-              onValueChange={(details) => {
-                if (!tournament.state.isGenerated) {
-                  const value = parseInt(details.value);
-                  if (!isNaN(value)) {
-                    tournament.setMaxWickets(value);
-                  }
-                }
-              }}
-              size="lg"
-              disabled={tournament.state.isGenerated}
-            >
-              <NumberInput.Control />
-              <NumberInput.Input readOnly={tournament.state.isGenerated} />
-            </NumberInput.Root>
-            <Text fontSize="xs" color="gray.500" mt={1}>
-              Standard: 10 wickets
-              {tournament.state.isGenerated && " (Locked during tournament)"}
-            </Text>
-          </Box>
-        </VStack>
-
-        {/* Playoff Format Selection */}
-        <VStack gap={4} align="stretch">
-          <VStack align="stretch" gap={1} mb={4}>
-            <HStack justify="space-between" align="center">
-              <Heading size="md" color="blue.600">
-                Playoff Format
-              </Heading>
-              {tournament.state.matches.some((m) => m.isPlayoff) && (
-                <Text fontSize="xs" color="gray.500" fontStyle="italic">
-                  🔒 Locked after tournament generated
-                </Text>
-              )}
-            </HStack>
-            <Text fontSize="sm" color="gray.600">
-              Choose playoff style for top teams.
-            </Text>
-          </VStack>
-
-          <PlayoffFormatSelector
-            disabled={tournament.state.matches.some((m) => m.isPlayoff)}
-          />
-        </VStack>
-
-        {/* Main Action Button */}
-        <VStack gap={4}>
-          {!tournament.state.isGenerated ? (
+          <VStack gap={4}>
             <Button
-              onClick={handleStartTournament}
-              disabled={tournament.state.teams.length < 2}
-              // size="md"
+              onClick={() => router.push("/tournament/round-robin/matches")}
+              colorPalette="blue"
+              size="lg"
               w="full"
+              maxW="md"
             >
-              {tournament.state.teams.length < 2
-                ? "Add at least 2 teams"
-                : "🚀 Start Tournament"}
+              📋 Manage Matches
             </Button>
-          ) : (
+
+            <Button
+              onClick={() => router.push("/tournament/round-robin/standings")}
+              colorPalette="purple"
+              size="lg"
+              w="full"
+              maxW="md"
+            >
+              📊 View Standings
+            </Button>
+
             <Button
               onClick={handleFinishTournament}
-              colorPalette="green"
-              // size="xl"
+              colorPalette="red"
+              variant="outline"
+              size="lg"
               w="full"
+              maxW="md"
             >
               🏁 Finish Tournament
             </Button>
-          )}
+          </VStack>
         </VStack>
-
-        {/* Add/Edit Team Dialog */}
-        <Dialog.Root
-          open={isAddTeamOpen}
-          onOpenChange={(e) => !e.open && handleDialogClose()}
-        >
-          <Portal>
-            <Dialog.Backdrop />
-            <Dialog.Positioner>
-              <Dialog.Content maxW="md" bg="white" borderRadius="lg" p={6}>
-                <Dialog.Header>
-                  <Text fontSize="xl" fontWeight="bold" textAlign="center">
-                    {editingTeam ? "Edit Team" : "Add New Team"}
-                  </Text>
-                  <Dialog.CloseTrigger asChild>
-                    <CloseButton position="absolute" top={4} right={4} />
-                  </Dialog.CloseTrigger>
-                </Dialog.Header>
-
-                <Dialog.Body>
-                  <VStack gap={4} w="full">
-                    <Box w="full">
-                      <Text fontSize="sm" fontWeight="medium" mb={2}>
-                        Team Name (max 10 characters)
-                      </Text>
-                      <Input
-                        placeholder="Enter team name"
-                        value={teamInput}
-                        onChange={(e) => setTeamInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            if (editingTeam) {
-                              handleUpdateTeam();
-                            } else {
-                              handleAddTeam();
-                            }
-                          }
-                        }}
-                        maxLength={10}
-                        size="lg"
-                        autoFocus
-                      />
-                      <Text fontSize="xs" color="gray.500" mt={1}>
-                        {teamInput.length}/10 characters
-                      </Text>
-                    </Box>
-
-                    <HStack gap={3} w="full">
-                      <Button
-                        variant="outline"
-                        flex="1"
-                        onClick={handleDialogClose}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        colorPalette="blue"
-                        flex="1"
-                        onClick={editingTeam ? handleUpdateTeam : handleAddTeam}
-                        disabled={
-                          !teamInput.trim() || teamInput.trim().length > 10
-                        }
-                      >
-                        {editingTeam ? "Update" : "Add"}
-                      </Button>
-                    </HStack>
-                  </VStack>
-                </Dialog.Body>
-              </Dialog.Content>
-            </Dialog.Positioner>
-          </Portal>
-        </Dialog.Root>
 
         {/* Finish Tournament Confirmation Dialog */}
         <Dialog.Root
@@ -357,25 +89,16 @@ export default function RoundRobinSetup() {
             <Dialog.Positioner>
               <Dialog.Content maxW="md" bg="white" borderRadius="lg" p={6}>
                 <Dialog.Header>
-                  <Text
-                    fontSize="xl"
-                    fontWeight="bold"
-                    textAlign="center"
-                    color="red.600"
-                  >
-                    🏁 Finish Tournament?
-                  </Text>
-                  <Dialog.CloseTrigger asChild>
-                    <CloseButton position="absolute" top={4} right={4} />
-                  </Dialog.CloseTrigger>
+                  <Dialog.Title color="red.600">
+                    🏁 Finish Tournament
+                  </Dialog.Title>
+                  <CloseButton onClick={() => setShowFinishConfirm(false)} />
                 </Dialog.Header>
 
                 <Dialog.Body>
-                  <VStack gap={4} w="full">
-                    <Text textAlign="center" color="gray.700">
-                      This will permanently end the tournament and reset all
-                      data. You&apos;ll lose all match results and team
-                      statistics.
+                  <VStack gap={4} align="stretch">
+                    <Text fontSize="sm" textAlign="center" color="gray.700">
+                      Are you sure you want to finish this tournament?
                     </Text>
 
                     <Text
@@ -409,74 +132,23 @@ export default function RoundRobinSetup() {
             </Dialog.Positioner>
           </Portal>
         </Dialog.Root>
-      </VStack>
-    </>
-  );
-}
+      </>
+    );
+  }
 
-// Team Card Component
-interface TeamCardProps {
-  teamName: string;
-  onEdit: () => void;
-  onDelete: () => void;
-  isLocked?: boolean;
-}
-
-function TeamCard({
-  teamName,
-  onEdit,
-  onDelete,
-  isLocked = false,
-}: TeamCardProps) {
+  // Show setup wizard for new tournaments
   return (
-    <Card.Root
-      borderWidth={1}
-      borderColor={isLocked ? "gray.100" : "gray.200"}
-      bg={isLocked ? "gray.50" : "white"}
-      _hover={!isLocked ? { borderColor: "blue.300", shadow: "sm" } : {}}
-      transition="all 0.2s"
-      opacity={isLocked ? 0.7 : 1}
-    >
-      <Card.Body p={4}>
-        <HStack justify="space-between" align="center">
-          <HStack gap={2}>
-            <Text
-              fontWeight="medium"
-              fontSize="md"
-              color={isLocked ? "gray.500" : "gray.800"}
-            >
-              {teamName}
-            </Text>
-            {isLocked && (
-              <Text fontSize="xs" color="gray.400">
-                🔒
-              </Text>
-            )}
-          </HStack>
-          {!isLocked && (
-            <HStack gap={1}>
-              <IconButton
-                aria-label="Edit team"
-                size="sm"
-                variant="ghost"
-                colorPalette="blue"
-                onClick={onEdit}
-              >
-                ✏️
-              </IconButton>
-              <IconButton
-                aria-label="Delete team"
-                size="sm"
-                variant="ghost"
-                colorPalette="red"
-                onClick={onDelete}
-              >
-                🗑️
-              </IconButton>
-            </HStack>
-          )}
-        </HStack>
-      </Card.Body>
-    </Card.Root>
+    <VStack gap={6} align="stretch" w="full" minH="100vh" bg="gray.50" p={4}>
+      <VStack align="stretch" gap={2} maxW="4xl" mx="auto" w="full">
+        <Heading size="xl" color="blue.600" textAlign="center">
+          🏏 Tournament Setup
+        </Heading>
+        <Text fontSize="md" color="gray.600" textAlign="center">
+          Let's set up your cricket tournament step by step
+        </Text>
+      </VStack>
+
+      <TournamentSetupWizard />
+    </VStack>
   );
 }
