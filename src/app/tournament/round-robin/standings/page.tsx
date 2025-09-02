@@ -14,11 +14,16 @@ export default function RoundRobinStandings() {
       {/* Header */}
       <VStack gap={4} align="stretch" mb={8}>
         <Box textAlign="center">
-          <Heading size={{ base: "lg", md: "xl" }} color="blue.600" mb={2}>
+          <Heading
+            size={{ base: "lg", md: "xl" }}
+            color="colorPalette.600"
+            colorPalette="blue"
+            mb={2}
+          >
             🏆 Tournament Standings
           </Heading>
           <Text
-            color="gray.600"
+            color="fg.muted"
             fontSize={{ base: "sm", md: "md" }}
             maxW="2xl"
             mx="auto"
@@ -29,21 +34,21 @@ export default function RoundRobinStandings() {
       </VStack>
 
       {!tournament.state.isGenerated ? (
-        <Box p={8} bg="yellow.50" rounded="lg" textAlign="center">
+        <Box p={8} bg="bg.subtle" rounded="lg" textAlign="center">
           <Text
             fontSize={{ base: "lg", md: "xl" }}
             fontWeight="semibold"
-            color="yellow.700"
+            color="fg.default"
             mb={4}
           >
             📊 No Tournament Data
           </Text>
-          <Text fontSize="md" color="yellow.600" mb={6}>
+          <Text fontSize="md" color="fg.muted" mb={6}>
             Generate tournament matches and play some games to see standings
           </Text>
           <Button
             onClick={() => router.push("/tournament/round-robin/setup")}
-            colorPalette="yellow"
+            colorPalette="blue"
             size="lg"
           >
             ← Go to Setup

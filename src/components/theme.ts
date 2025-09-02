@@ -80,16 +80,16 @@ const config = defineConfig({
         },
         // Gray color scale - modern neutral colors
         gray: {
-          50: { value: "#f8fafc" },
-          100: { value: "#f1f5f9" },
-          200: { value: "#e2e8f0" },
-          300: { value: "#cbd5e1" },
-          400: { value: "#94a3b8" },
-          500: { value: "#64748b" },
-          600: { value: "#475569" },
-          700: { value: "#334155" },
-          800: { value: "#1e293b" },
-          900: { value: "#0f172a" },
+          50: { value: "#F7FAFC" },
+          100: { value: "#EDF2F7" },
+          200: { value: "#E2E8F0" },
+          300: { value: "#CBD5E0" },
+          400: { value: "#A0AEC0" },
+          500: { value: "#718096" },
+          600: { value: "#4A5568" },
+          700: { value: "#2D3748" },
+          800: { value: "#1A202C" },
+          900: { value: "#171923" },
           950: { value: "#020617" },
         },
       },
@@ -99,51 +99,51 @@ const config = defineConfig({
         // Background tokens
         bg: {
           canvas: {
-            value: { base: "white", _dark: "gray.950" },
+            value: { base: "{colors.white}", _dark: "{colors.gray.950}" },
           },
           surface: {
-            value: { base: "white", _dark: "gray.900" },
+            value: { base: "{colors.white}", _dark: "{colors.gray.900}" },
           },
           subtle: {
-            value: { base: "gray.50", _dark: "gray.800" },
+            value: { base: "{colors.gray.50}", _dark: "{colors.gray.800}" },
           },
           muted: {
-            value: { base: "gray.100", _dark: "gray.700" },
+            value: { base: "{colors.gray.100}", _dark: "{colors.gray.700}" },
           },
         },
 
         // Foreground/text tokens
         fg: {
           default: {
-            value: { base: "gray.900", _dark: "gray.100" },
+            value: { base: "{colors.gray.900}", _dark: "{colors.gray.100}" },
           },
           muted: {
-            value: { base: "gray.600", _dark: "gray.400" },
+            value: { base: "{colors.gray.600}", _dark: "{colors.gray.400}" },
           },
           subtle: {
-            value: { base: "gray.500", _dark: "gray.500" },
+            value: { base: "{colors.gray.500}", _dark: "{colors.gray.700}" },
           },
           disabled: {
-            value: { base: "gray.400", _dark: "gray.600" },
+            value: { base: "{colors.gray.400}", _dark: "{colors.gray.600}" },
           },
           placeholder: {
-            value: { base: "gray.400", _dark: "gray.600" },
+            value: { base: "{colors.gray.400}", _dark: "{colors.gray.600}" },
           },
         },
 
         // Border tokens
         border: {
           default: {
-            value: { base: "gray.200", _dark: "gray.700" },
+            value: { base: "{colors.gray.200}", _dark: "{colors.gray.700}" },
           },
           subtle: {
-            value: { base: "gray.100", _dark: "gray.800" },
+            value: { base: "{colors.gray.100}", _dark: "{colors.gray.800}" },
           },
           muted: {
-            value: { base: "gray.300", _dark: "gray.600" },
+            value: { base: "{colors.gray.300}", _dark: "{colors.gray.600}" },
           },
           emphasized: {
-            value: { base: "gray.400", _dark: "gray.500" },
+            value: { base: "{colors.gray.400}", _dark: "{colors.gray.500}" },
           },
         },
 
@@ -215,10 +215,10 @@ const config = defineConfig({
         // Component specific semantic tokens
         card: {
           bg: {
-            value: { base: "white", _dark: "gray.800" },
+            value: { base: "{colors.white}", _dark: "{colors.gray.900}" },
           },
           border: {
-            value: { base: "gray.200", _dark: "gray.700" },
+            value: { base: "{colors.gray.200}", _dark: "{colors.gray.700}" },
           },
           selected: {
             value: {
@@ -236,22 +236,25 @@ const config = defineConfig({
 
         input: {
           bg: {
-            value: { base: "white", _dark: "gray.800" },
+            value: { base: "{colors.white}", _dark: "{colors.gray.800}" },
           },
           border: {
-            value: { base: "gray.300", _dark: "gray.600" },
+            value: { base: "{colors.gray.300}", _dark: "{colors.gray.600}" },
           },
           focusBorder: {
-            value: { base: "blue.500", _dark: "blue.400" },
+            value: { base: "{colors.blue.500}", _dark: "{colors.blue.400}" },
           },
         },
 
         dialog: {
           bg: {
-            value: { base: "white", _dark: "black" },
+            value: { base: "{colors.white}", _dark: "{colors.gray.900}" },
           },
           backdrop: {
-            value: { base: "blackAlpha.400", _dark: "blackAlpha.600" },
+            value: {
+              base: "{colors.blackAlpha.400}",
+              _dark: "{colors.blackAlpha.600}",
+            },
           },
         },
       },

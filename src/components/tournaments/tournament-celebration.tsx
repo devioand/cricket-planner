@@ -112,7 +112,7 @@ export function TournamentCelebration({
       <Portal>
         {/* Sophisticated backdrop */}
         <Dialog.Backdrop
-          bg="blackAlpha.600"
+          bg="dialog.backdrop"
           backdropFilter="blur(4px)"
           style={{
             background:
@@ -121,9 +121,7 @@ export function TournamentCelebration({
         />
         <Dialog.Positioner>
           <Dialog.Content
-            bg="white"
-            border="1px solid"
-            borderColor="gray.100"
+            bg="dialog.bg"
             borderRadius="2xl"
             boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05)"
             position="relative"
@@ -156,10 +154,10 @@ export function TournamentCelebration({
               <CloseButton
                 size="sm"
                 variant="ghost"
-                color="gray.500"
+                color="fg.muted"
                 _hover={{
-                  bg: "gray.100",
-                  color: "gray.700",
+                  bg: "bg.subtle",
+                  color: "fg.default",
                 }}
               />
             </Dialog.CloseTrigger>
@@ -193,6 +191,7 @@ export function TournamentCelebration({
                   <Text
                     fontSize="2xl"
                     filter="drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
+                    color="fg.default"
                   >
                     🏆
                   </Text>
@@ -204,7 +203,7 @@ export function TournamentCelebration({
                 <Text
                   fontSize="sm"
                   fontWeight="500"
-                  color="gray.500"
+                  color="fg.muted"
                   textTransform="uppercase"
                   letterSpacing="wider"
                 >
@@ -213,7 +212,7 @@ export function TournamentCelebration({
 
                 <Heading
                   size="xl"
-                  color="gray.900"
+                  color="fg.default"
                   textAlign="center"
                   fontWeight="600"
                   letterSpacing="-0.025em"
@@ -223,7 +222,7 @@ export function TournamentCelebration({
 
                 <Text
                   fontSize="md"
-                  color="gray.600"
+                  color="fg.muted"
                   textAlign="center"
                   fontWeight="400"
                 >
@@ -259,14 +258,11 @@ export function TournamentCelebration({
                   size="md"
                   h="44px"
                   variant="ghost"
-                  color="gray.600"
+                  color="fg.muted"
                   borderRadius="lg"
                   fontSize="sm"
                   fontWeight="500"
-                  _hover={{
-                    bg: "gray.50",
-                    color: "gray.900",
-                  }}
+                  bg="bg.muted"
                   onClick={onClose}
                 >
                   Continue

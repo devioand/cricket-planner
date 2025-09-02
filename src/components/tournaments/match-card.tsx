@@ -187,10 +187,10 @@ export function MatchCard({
     const baseStyles = {
       playoff: {
         borderWidth: 2,
-        shadow: "lg",
+        shadow: "sm",
       },
       regular: {
-        borderWidth: 1,
+        borderWidth: 2,
         shadow: "sm",
       },
     };
@@ -198,16 +198,16 @@ export function MatchCard({
     // Color schemes for different match states
     const colorSchemes = {
       draw: {
-        bg: "bg.muted",
+        bg: "card.bg",
         borderColor: "red.300",
       },
       completed: {
-        bg: "bg.subtle",
-        borderColor: isPlayoff ? "green.300" : "green.200",
+        bg: "card.bg",
+        borderColor: isPlayoff ? "green.500" : "green.400",
       },
       inProgress: {
-        bg: "bg.subtle",
-        borderColor: isPlayoff ? "yellow.300" : "blue.200",
+        bg: "card.bg",
+        borderColor: isPlayoff ? "yellow.300" : "blue.300",
       },
       scheduled: {
         bg: "card.bg",
@@ -276,6 +276,11 @@ export function MatchCard({
         shadow={cardStyle.shadow}
         position="relative"
         overflow="hidden"
+        _hover={{
+          transform: "scale(1.01)",
+          shadow: "md",
+        }}
+        transition="all 0.2s ease"
       >
         {/* Playoff Background Effect */}
         {isPlayoff && (

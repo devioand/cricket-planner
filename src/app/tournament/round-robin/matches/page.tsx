@@ -158,24 +158,13 @@ function MatchesFlow() {
         {/* Playoff Matches */}
         {playoffMatches.map((match, index) => (
           <Box key={match.id} position="relative">
-            {/* Special Playoff Styling Wrapper */}
-            <Box
-              p={1}
-              borderRadius="xl"
-              _hover={{
-                transform: "scale(1.01)",
-                shadow: "md",
-              }}
-              transition="all 0.2s ease"
-            >
-              <MatchCard
-                key={match.id}
-                match={match}
-                matchNumber={index + 1}
-                totalMatches={playoffMatches.length}
-                isPlayoff={true}
-              />
-            </Box>
+            <MatchCard
+              key={match.id}
+              match={match}
+              matchNumber={index + 1}
+              totalMatches={playoffMatches.length}
+              isPlayoff={true}
+            />
           </Box>
         ))}
       </VStack>
