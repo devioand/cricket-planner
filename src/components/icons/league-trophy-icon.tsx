@@ -1,7 +1,14 @@
 import * as React from "react";
 import { SVGProps } from "react";
 
-const LeagueTrophyIcon = (props: SVGProps<SVGSVGElement>) => (
+interface LeagueTrophyIconProps extends SVGProps<SVGSVGElement> {
+  color?: string;
+}
+
+const LeagueTrophyIcon = ({
+  color = "currentColor",
+  ...props
+}: LeagueTrophyIconProps) => (
   <svg
     width={32}
     height={32}
@@ -12,7 +19,7 @@ const LeagueTrophyIcon = (props: SVGProps<SVGSVGElement>) => (
   >
     <path
       d="M12.392 22.6667C11.592 20.2338 11.0169 17.5671 10.6666 14.6667C10.184 10.6667 10.184 6.66669 10.6666 2.66669H21.3333C21.7475 7.10491 21.7475 11.1049 21.3333 14.6667C21.0133 17.3812 20.4388 20.0597 19.6173 22.6667H20C20.7072 22.6667 21.3855 22.9476 21.8856 23.4477C22.3857 23.9478 22.6666 24.6261 22.6666 25.3334V29.3334H9.33331V25.3334C9.33331 24.6261 9.61426 23.9478 10.1144 23.4477C10.6145 22.9476 11.2927 22.6667 12 22.6667H12.392ZM13.3333 24V26.6667H18.6666V24H13.3333Z"
-      fill="#1A365D"
+      fill={color}
     />
   </svg>
 );

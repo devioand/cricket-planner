@@ -37,16 +37,16 @@ export default function RoundRobinMatches() {
     <>
       <VStack gap={{ base: 6, md: 8 }} align="stretch">
         {!tournament.state.isGenerated ? (
-          <Box p={8} bg="blue.50" rounded="lg" textAlign="center">
+          <Box p={8} bg="bg.subtle" rounded="lg" textAlign="center">
             <Text
               fontSize={{ base: "lg", md: "xl" }}
               fontWeight="semibold"
-              color="blue.700"
+              color="fg.default"
               mb={4}
             >
               📋 No Tournament Generated
             </Text>
-            <Text fontSize="md" color="blue.600" mb={6}>
+            <Text fontSize="md" color="fg.muted" mb={6}>
               Please set up your tournament first by adding teams and generating
               matches
             </Text>
@@ -115,15 +115,6 @@ function MatchesFlow() {
       {/* Group Stage Matches Section */}
       {roundRobinMatches.length > 0 && (
         <VStack align="stretch" gap={4}>
-          <Box textAlign="center" py={4}>
-            <Text fontSize="xl" fontWeight="bold" color="blue.600" mb={1}>
-              🔄 Group Stage
-            </Text>
-            <Text fontSize="sm" color="gray.600">
-              Every team plays every other team once
-            </Text>
-          </Box>
-
           {roundRobinMatches.map((match, index) => (
             <MatchCard
               key={match.id}
@@ -139,20 +130,26 @@ function MatchesFlow() {
       <VStack align="stretch" gap={4}>
         {/* Option 1: Simple Clean Header (like Round Robin) */}
         <Box textAlign="center" py={4}>
-          <Text fontSize="xl" fontWeight="bold" color="yellow.700" mb={1}>
+          <Text
+            fontSize="xl"
+            fontWeight="bold"
+            color="colorPalette.700"
+            mb={1}
+            colorPalette="yellow"
+          >
             🏆 Playoff Stage
           </Text>
-          <Text fontSize="sm" color="gray.600">
+          <Text fontSize="sm" color="fg.muted">
             Top teams compete for the championship
           </Text>
         </Box>
 
         {playoffMatches.length === 0 && (
-          <Box p={6} bg="yellow.50" rounded="lg" textAlign="center">
-            <Text fontSize="xl" fontWeight="bold" color="yellow.700" mb={2}>
+          <Box p={6} bg="bg.subtle" rounded="lg" textAlign="center">
+            <Text fontSize="xl" fontWeight="bold" color="fg.default" mb={2}>
               🚨 No Playoff Matches
             </Text>
-            <Text fontSize="md" color="yellow.600">
+            <Text fontSize="md" color="fg.muted">
               Playoff matches will appear here once the tournament is generated.
             </Text>
           </Box>
@@ -164,11 +161,10 @@ function MatchesFlow() {
             {/* Special Playoff Styling Wrapper */}
             <Box
               p={1}
-              bgGradient="linear(to-r, yellow.200, orange.200, yellow.200)"
               borderRadius="xl"
               _hover={{
-                bgGradient: "linear(to-r, yellow.300, orange.300, yellow.300)",
                 transform: "scale(1.01)",
+                shadow: "md",
               }}
               transition="all 0.2s ease"
             >

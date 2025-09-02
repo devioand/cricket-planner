@@ -109,12 +109,12 @@ export default function RoundRobinSetup() {
                 Teams ({tournament.state.teams.length})
               </Heading>
               {tournament.state.isGenerated && (
-                <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                <Text fontSize="xs" color="fg.muted" fontStyle="italic">
                   🔒 Locked during tournament
                 </Text>
               )}
             </HStack>
-            <Text fontSize="sm" color="gray.600">
+            <Text fontSize="sm" color="fg.muted">
               Add teams. Each team plays others once.
             </Text>
           </VStack>
@@ -154,19 +154,19 @@ export default function RoundRobinSetup() {
             <HStack justify="space-between" align="center">
               <Heading size="md">Match Settings</Heading>
               {tournament.state.isGenerated && (
-                <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                <Text fontSize="xs" color="fg.muted" fontStyle="italic">
                   🔒 Locked during tournament
                 </Text>
               )}
             </HStack>
-            <Text fontSize="sm" color="gray.600">
+            <Text fontSize="sm" color="fg.muted">
               Set overs and wickets for matches.
             </Text>
           </VStack>
 
           {/* Max Overs */}
           <Box>
-            <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
+            <Text fontSize="sm" fontWeight="medium" mb={2} color="fg.default">
               Max Overs
             </Text>
             <NumberInput.Root
@@ -185,9 +185,18 @@ export default function RoundRobinSetup() {
               disabled={tournament.state.isGenerated}
             >
               <NumberInput.Control />
-              <NumberInput.Input readOnly={tournament.state.isGenerated} />
+              <NumberInput.Input
+                readOnly={tournament.state.isGenerated}
+                bg="input.bg"
+                borderColor="input.border"
+                color="fg.default"
+                _focus={{
+                  borderColor: "input.focusBorder",
+                  boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
+                }}
+              />
             </NumberInput.Root>
-            <Text fontSize="xs" color="gray.500" mt={1}>
+            <Text fontSize="xs" color="fg.muted" mt={1}>
               T20 = 20, ODI = 50
               {tournament.state.isGenerated && " (Locked during tournament)"}
             </Text>
@@ -195,7 +204,7 @@ export default function RoundRobinSetup() {
 
           {/* Max Wickets */}
           <Box>
-            <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
+            <Text fontSize="sm" fontWeight="medium" mb={2} color="fg.default">
               Max Wickets
             </Text>
             <NumberInput.Root
@@ -214,9 +223,18 @@ export default function RoundRobinSetup() {
               disabled={tournament.state.isGenerated}
             >
               <NumberInput.Control />
-              <NumberInput.Input readOnly={tournament.state.isGenerated} />
+              <NumberInput.Input
+                readOnly={tournament.state.isGenerated}
+                bg="input.bg"
+                borderColor="input.border"
+                color="fg.default"
+                _focus={{
+                  borderColor: "input.focusBorder",
+                  boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
+                }}
+              />
             </NumberInput.Root>
-            <Text fontSize="xs" color="gray.500" mt={1}>
+            <Text fontSize="xs" color="fg.muted" mt={1}>
               Standard: 10 wickets
               {tournament.state.isGenerated && " (Locked during tournament)"}
             </Text>
@@ -229,12 +247,12 @@ export default function RoundRobinSetup() {
             <HStack justify="space-between" align="center">
               <Heading size="md">Playoff Format</Heading>
               {tournament.state.matches.some((m) => m.isPlayoff) && (
-                <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                <Text fontSize="xs" color="fg.muted" fontStyle="italic">
                   🔒 Locked after tournament generated
                 </Text>
               )}
             </HStack>
-            <Text fontSize="sm" color="gray.600">
+            <Text fontSize="sm" color="fg.muted">
               Choose playoff style for top teams.
             </Text>
           </VStack>
@@ -279,12 +297,10 @@ export default function RoundRobinSetup() {
             <Dialog.Positioner>
               <Dialog.Content
                 maxW="380px"
-                bg="white"
+                bg="dialog.bg"
                 borderRadius="xl"
                 p={4}
                 boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-                border="1px solid"
-                borderColor="gray.200"
               >
                 <Dialog.Header px={2} pb={3}>
                   <VStack gap={1} w="full" align="center">
@@ -298,8 +314,8 @@ export default function RoundRobinSetup() {
                       top={4}
                       right={4}
                       size="sm"
-                      color="gray.500"
-                      _hover={{ color: "gray.700", bg: "gray.100" }}
+                      color="fg.muted"
+                      _hover={{ color: "fg.default", bg: "bg.subtle" }}
                     />
                   </Dialog.CloseTrigger>
                 </Dialog.Header>
@@ -326,8 +342,17 @@ export default function RoundRobinSetup() {
                         maxLength={10}
                         size="lg"
                         autoFocus
+                        bg="input.bg"
+                        borderColor="input.border"
+                        color="fg.default"
+                        _placeholder={{ color: "fg.placeholder" }}
+                        _focus={{
+                          borderColor: "input.focusBorder",
+                          boxShadow:
+                            "0 0 0 1px var(--colors-input-focus-border)",
+                        }}
                       />
-                      <Text fontSize="xs" color="gray.500" mt={1}>
+                      <Text fontSize="xs" color="fg.muted" mt={1}>
                         {teamInput.length}/10 characters
                       </Text>
                     </Box>
@@ -375,16 +400,14 @@ export default function RoundRobinSetup() {
           onOpenChange={(e) => !e.open && setShowFinishConfirm(false)}
         >
           <Portal>
-            <Dialog.Backdrop bg="blackAlpha.400" backdropFilter="blur(4px)" />
+            <Dialog.Backdrop bg="dialog.backdrop" backdropFilter="blur(4px)" />
             <Dialog.Positioner>
               <Dialog.Content
                 maxW="420px"
-                bg="white"
+                bg="dialog.bg"
                 borderRadius="xl"
                 p={4}
                 boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-                border="1px solid"
-                borderColor="gray.200"
               >
                 <Dialog.Header pb={3}>
                   <VStack gap={1} w="full" align="center">
@@ -398,15 +421,15 @@ export default function RoundRobinSetup() {
                       top={4}
                       right={4}
                       size="sm"
-                      color="gray.500"
-                      _hover={{ color: "gray.700", bg: "gray.100" }}
+                      color="fg.muted"
+                      _hover={{ color: "fg.default", bg: "bg.subtle" }}
                     />
                   </Dialog.CloseTrigger>
                 </Dialog.Header>
 
                 <Dialog.Body px={2}>
                   <VStack gap={4} w="full">
-                    <Text textAlign="center" color="gray.700">
+                    <Text textAlign="center" color="fg.default">
                       This will permanently end the tournament and reset all
                       data. You&apos;ll lose all match results and team
                       statistics.
@@ -476,8 +499,8 @@ function TeamCard({
   return (
     <Card.Root
       borderWidth={1}
-      borderColor={isLocked ? "gray.100" : "gray.200"}
-      bg={isLocked ? "gray.50" : "white"}
+      borderColor={isLocked ? "border.subtle" : "card.border"}
+      bg={isLocked ? "bg.subtle" : "card.bg"}
       _hover={!isLocked ? { borderColor: "blue.300", shadow: "sm" } : {}}
       transition="all 0.2s"
       opacity={isLocked ? 0.7 : 1}
@@ -488,12 +511,12 @@ function TeamCard({
             <Text
               fontWeight="medium"
               fontSize="md"
-              color={isLocked ? "gray.500" : "gray.800"}
+              color={isLocked ? "fg.muted" : "fg.default"}
             >
               {teamName}
             </Text>
             {isLocked && (
-              <Text fontSize="xs" color="gray.400">
+              <Text fontSize="xs" color="fg.subtle">
                 🔒
               </Text>
             )}

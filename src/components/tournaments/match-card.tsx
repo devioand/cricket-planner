@@ -48,7 +48,7 @@ function PlayoffConsequences({ playoffType }: { playoffType?: string }) {
   const consequences = getConsequences(playoffType);
 
   return (
-    <Text fontSize="xs" color="gray.600" fontWeight="bold" textAlign="center">
+    <Text fontSize="xs" color="fg.muted" fontWeight="bold" textAlign="center">
       Note: Winner {consequences.winner.toLowerCase()} and loser{" "}
       {consequences.loser.toLowerCase()}.
     </Text>
@@ -198,20 +198,20 @@ export function MatchCard({
     // Color schemes for different match states
     const colorSchemes = {
       draw: {
-        bg: "red.50",
+        bg: "bg.muted",
         borderColor: "red.300",
       },
       completed: {
-        bg: "green.50",
+        bg: "bg.subtle",
         borderColor: isPlayoff ? "green.300" : "green.200",
       },
       inProgress: {
-        bg: isPlayoff ? "yellow.50" : "blue.50",
+        bg: "bg.subtle",
         borderColor: isPlayoff ? "yellow.300" : "blue.200",
       },
       scheduled: {
-        bg: isPlayoff ? "orange.50" : "gray.50",
-        borderColor: isPlayoff ? "orange.300" : "gray.200",
+        bg: "card.bg",
+        borderColor: isPlayoff ? "orange.300" : "border.default",
       },
     };
 
@@ -297,9 +297,10 @@ export function MatchCard({
           <HStack justify="center" align="center">
             <Text
               fontSize={isPlayoff ? "lg" : "sm"}
-              color={isPlayoff ? "orange.700" : "gray.600"}
+              color={isPlayoff ? "colorPalette.700" : "fg.muted"}
               fontWeight={isPlayoff ? "bold" : "medium"}
               textAlign="center"
+              colorPalette="orange"
             >
               {isPlayoff
                 ? (match.playoffType === "final" ? "🏆 " : "") +
@@ -312,7 +313,7 @@ export function MatchCard({
           <VStack align="stretch" gap={2}>
             {/* Team 1 */}
             <HStack justify="space-between" align="center">
-              <Text fontSize="md" fontWeight="medium" color="gray.800">
+              <Text fontSize="md" fontWeight="medium" color="fg.default">
                 👤 {match.team1}
               </Text>
               <HStack gap={2} align="center">
@@ -327,7 +328,7 @@ export function MatchCard({
                     ✏️
                   </IconButton>
                 )}
-                <Text fontSize="md" fontFamily="mono" color="gray.700">
+                <Text fontSize="md" fontFamily="mono" color="fg.default">
                   {team1Score}
                 </Text>
               </HStack>
@@ -335,7 +336,7 @@ export function MatchCard({
 
             {/* Team 2 */}
             <HStack justify="space-between" align="center">
-              <Text fontSize="md" fontWeight="medium" color="gray.800">
+              <Text fontSize="md" fontWeight="medium" color="fg.default">
                 👤 {match.team2}
               </Text>
               <HStack gap={2} align="center">
@@ -350,7 +351,7 @@ export function MatchCard({
                     ✏️
                   </IconButton>
                 )}
-                <Text fontSize="md" fontFamily="mono" color="gray.700">
+                <Text fontSize="md" fontFamily="mono" color="fg.default">
                   {team2Score}
                 </Text>
               </HStack>
@@ -363,13 +364,13 @@ export function MatchCard({
           ) : (
             <Box
               p={3}
-              bg="gray.50"
+              bg="bg.subtle"
               rounded="md"
               textAlign="center"
               borderWidth={1}
-              borderColor="gray.200"
+              borderColor="border.subtle"
             >
-              <Text fontSize="sm" color="gray.600" fontWeight="medium">
+              <Text fontSize="sm" color="fg.muted" fontWeight="medium">
                 ⏳ Teams will be determined after previous matches complete
               </Text>
             </Box>

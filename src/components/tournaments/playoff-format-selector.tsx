@@ -59,24 +59,44 @@ export function PlayoffFormatSelector({
               key={format}
               w="full"
               borderWidth={2}
-              borderColor={isSelected ? `${details.color}.400` : "gray.200"}
-              bg={isSelected ? `${details.color}.50` : "white"}
+              borderColor={isSelected ? "card.selectedBorder" : "gray.700"}
+              bg={isSelected ? "card.selected" : "card.bg"}
               cursor={disabled ? "not-allowed" : "pointer"}
               opacity={disabled ? 0.6 : 1}
               onClick={() => !disabled && handleFormatChange(format)}
-              _hover={!disabled ? { borderColor: `${details.color}.300` } : {}}
+              _hover={
+                !disabled
+                  ? {
+                      transform: "translateY(-1px)",
+                      shadow: "sm",
+                    }
+                  : {}
+              }
+              colorPalette={details.color}
             >
               <Card.Body p={4}>
                 <VStack align="stretch" gap={3}>
                   {/* Header */}
                   <HStack justify="space-between" align="center">
                     <HStack gap={2}>
-                      <Text fontSize="xl">{details.icon}</Text>
+                      <Text
+                        fontSize="xl"
+                        color={isSelected ? "fg.default" : "gray.400"}
+                      >
+                        {details.icon}
+                      </Text>
                       <VStack align="start" gap={0}>
-                        <Text fontWeight="bold" fontSize="sm">
+                        <Text
+                          fontWeight="bold"
+                          fontSize="sm"
+                          color={isSelected ? "fg.default" : "gray.400"}
+                        >
                           {details.name}
                         </Text>
-                        <Text fontSize="xs" color="gray.600">
+                        <Text
+                          fontSize="xs"
+                          color={isSelected ? "fg.default" : "gray.400"}
+                        >
                           {details.description}
                         </Text>
                       </VStack>
@@ -91,7 +111,11 @@ export function PlayoffFormatSelector({
                   {/* Stages */}
                   <VStack align="start" gap={1}>
                     {details.stages.map((stage, index) => (
-                      <Text key={index} fontSize="xs" color="gray.600">
+                      <Text
+                        key={index}
+                        fontSize="xs"
+                        color={isSelected ? "fg.default" : "gray.400"}
+                      >
                         {index + 1}. {stage}
                       </Text>
                     ))}

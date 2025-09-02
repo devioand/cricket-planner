@@ -28,16 +28,17 @@ export function TossManager({ match }: TossManagerProps) {
     return (
       <Box
         p={4}
-        bg="green.50"
+        bg="colorPalette.50"
         borderRadius="xl"
         border="2px solid"
-        borderColor="green.200"
+        borderColor="colorPalette.200"
+        colorPalette="green"
       >
         <VStack gap={2} align="center">
-          <Text fontSize="md" fontWeight="700" color="green.700">
+          <Text fontSize="md" fontWeight="700" color="colorPalette.700">
             Toss Complete
           </Text>
-          <Text fontSize="sm" color="green.600" fontWeight="500">
+          <Text fontSize="sm" color="colorPalette.600" fontWeight="500">
             {match.toss.tossWinner} won and chose to {match.toss.decision} first
           </Text>
         </VStack>
@@ -47,7 +48,7 @@ export function TossManager({ match }: TossManagerProps) {
 
   return (
     <VStack gap={3}>
-      <Text fontSize="md" color="gray.700" fontWeight="600">
+      <Text fontSize="md" color="fg.default" fontWeight="600">
         Toss Required
       </Text>
       <CoinFlipDialog match={match} />
@@ -105,16 +106,19 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
         <Dialog.Positioner>
           <Dialog.Content
             maxW="380px"
-            bg="white"
+            bg="dialog.bg"
             borderRadius="xl"
             p={4}
             boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-            border="1px solid"
-            borderColor="gray.200"
           >
             <Dialog.Header px={2} pb={3}>
               <VStack gap={1} w="full" align="center">
-                <Text fontSize="lg" color="blue.600" fontWeight="500">
+                <Text
+                  fontSize="lg"
+                  color="colorPalette.600"
+                  fontWeight="500"
+                  colorPalette="blue"
+                >
                   {match.team1} vs {match.team2}
                 </Text>
               </VStack>
@@ -124,8 +128,8 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                   top={4}
                   right={4}
                   size="sm"
-                  color="gray.500"
-                  _hover={{ color: "gray.700", bg: "gray.100" }}
+                  color="fg.muted"
+                  _hover={{ color: "fg.default", bg: "bg.subtle" }}
                 />
               </Dialog.CloseTrigger>
             </Dialog.Header>
@@ -137,7 +141,7 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                   <Text
                     fontSize="sm"
                     fontWeight="500"
-                    color="gray.700"
+                    color="fg.default"
                     mb={2}
                     textAlign="center"
                   >
@@ -157,9 +161,9 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                         w="100px"
                         h="40px"
                         border="2px solid"
-                        borderColor="gray.200"
+                        borderColor="border.default"
                         borderRadius="lg"
-                        bg="white"
+                        bg="card.bg"
                         _hover={{ cursor: "pointer" }}
                         _checked={{
                           borderColor: "blue.500",
@@ -177,7 +181,7 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                           <RadioCard.ItemText
                             fontSize="sm"
                             fontWeight="500"
-                            color="gray.700"
+                            color="fg.default"
                           >
                             HEADS
                           </RadioCard.ItemText>
@@ -188,9 +192,9 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                         w="100px"
                         h="40px"
                         border="2px solid"
-                        borderColor="gray.200"
+                        borderColor="border.default"
                         borderRadius="lg"
-                        bg="white"
+                        bg="card.bg"
                         _hover={{ cursor: "pointer" }}
                         _checked={{
                           borderColor: "blue.500",
@@ -208,7 +212,7 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                           <RadioCard.ItemText
                             fontSize="sm"
                             fontWeight="500"
-                            color="gray.700"
+                            color="fg.default"
                           >
                             TAILS
                           </RadioCard.ItemText>
@@ -227,9 +231,10 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                     <Text
                       fontSize="sm"
                       fontWeight="500"
-                      color="green.700"
+                      color="colorPalette.700"
                       mb={2}
                       textAlign="center"
+                      colorPalette="green"
                     >
                       {tossWinner} won and chooses to:
                     </Text>
@@ -246,9 +251,9 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                           w="110px"
                           h="40px"
                           border="2px solid"
-                          borderColor="gray.200"
+                          borderColor="border.default"
                           borderRadius="lg"
-                          bg="white"
+                          bg="card.bg"
                           _hover={{ cursor: "pointer" }}
                           _checked={{
                             borderColor: "green.500",
@@ -265,7 +270,7 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                             <RadioCard.ItemText
                               fontSize="sm"
                               fontWeight="500"
-                              color="gray.700"
+                              color="fg.default"
                             >
                               BAT FIRST
                             </RadioCard.ItemText>
@@ -276,9 +281,9 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                           w="110px"
                           h="40px"
                           border="2px solid"
-                          borderColor="gray.200"
+                          borderColor="border.default"
                           borderRadius="lg"
-                          bg="white"
+                          bg="card.bg"
                           _hover={{ cursor: "pointer" }}
                           _checked={{
                             borderColor: "green.500",
@@ -295,7 +300,7 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
                             <RadioCard.ItemText
                               fontSize="sm"
                               fontWeight="500"
-                              color="gray.700"
+                              color="fg.default"
                             >
                               BOWL FIRST
                             </RadioCard.ItemText>

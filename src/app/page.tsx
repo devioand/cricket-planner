@@ -122,7 +122,7 @@ export default function TournamentSelection() {
           </Text>
           <Text
             fontSize={{ base: "lg", md: "xl" }}
-            color="gray.600"
+            color="fg.muted"
             maxW="2xl"
             mx="auto"
             lineHeight="1.6"
@@ -149,35 +149,35 @@ export default function TournamentSelection() {
         {/* Help Section */}
         <Box
           p={{ base: 4, md: 6 }}
-          bg="gray.50"
+          bg="bg.subtle"
           borderRadius="xl"
           textAlign="center"
         >
-          <Heading size={{ base: "md", md: "lg" }} mb={3} color="gray.700">
+          <Heading size={{ base: "md", md: "lg" }} mb={3} color="fg.default">
             🤔 Need Help Choosing?
           </Heading>
           <VStack gap={3} maxW="4xl" mx="auto">
             <HStack gap={4} flexWrap="wrap" justify="center">
-              <Text fontSize="sm" color="gray.600">
+              <Text fontSize="sm" color="fg.muted">
                 <Text as="span" fontWeight="bold" color="blue.600">
                   Quick Tournament:
                 </Text>{" "}
                 Single Elimination
               </Text>
-              <Text fontSize="sm" color="gray.600">
+              <Text fontSize="sm" color="fg.muted">
                 <Text as="span" fontWeight="bold" color="orange.600">
                   Balanced:
                 </Text>{" "}
                 Double Elimination
               </Text>
-              <Text fontSize="sm" color="gray.600">
+              <Text fontSize="sm" color="fg.muted">
                 <Text as="span" fontWeight="bold" color="purple.600">
                   Most Fair:
                 </Text>{" "}
                 Round Robin
               </Text>
             </HStack>
-            <Text fontSize="sm" color="gray.500" fontStyle="italic">
+            <Text fontSize="sm" color="fg.subtle" fontStyle="italic">
               Round Robin is currently available. Other formats are coming soon!
             </Text>
           </VStack>
@@ -198,9 +198,9 @@ function AlgorithmCard({ algorithm }: AlgorithmCardProps) {
       minH={{ base: "auto", md: "400px" }}
       borderWidth={2}
       borderColor={
-        algorithm.isAvailable ? `${algorithm.color}.200` : "gray.200"
+        algorithm.isAvailable ? `${algorithm.color}.200` : "border.default"
       }
-      bg={algorithm.isAvailable ? "white" : "gray.50"}
+      bg={algorithm.isAvailable ? "card.bg" : "bg.subtle"}
       opacity={algorithm.isAvailable ? 1 : 0.7}
       cursor="pointer"
       transition="all 0.2s"
@@ -236,20 +236,22 @@ function AlgorithmCard({ algorithm }: AlgorithmCardProps) {
         <VStack align="stretch" gap={4} h="full">
           {/* Header */}
           <VStack align="center" gap={3}>
-            <Text fontSize={{ base: "3xl", md: "4xl" }}>{algorithm.icon}</Text>
+            <Text fontSize={{ base: "3xl", md: "4xl" }} color="fg.default">
+              {algorithm.icon}
+            </Text>
             <VStack gap={1}>
               <Heading
                 size={{ base: "md", md: "lg" }}
                 textAlign="center"
                 color={
-                  algorithm.isAvailable ? `${algorithm.color}.600` : "gray.500"
+                  algorithm.isAvailable ? `${algorithm.color}.600` : "fg.muted"
                 }
               >
                 {algorithm.name}
               </Heading>
               <Text
                 fontSize="sm"
-                color="gray.600"
+                color="fg.muted"
                 textAlign="center"
                 lineHeight="1.5"
               >
@@ -286,7 +288,7 @@ function AlgorithmCard({ algorithm }: AlgorithmCardProps) {
 
             {/* Features List */}
             <VStack align="stretch" gap={2}>
-              <Text fontSize="sm" fontWeight="semibold" color="gray.700">
+              <Text fontSize="sm" fontWeight="semibold" color="fg.default">
                 Key Features:
               </Text>
               <VStack align="stretch" gap={1}>
@@ -295,7 +297,7 @@ function AlgorithmCard({ algorithm }: AlgorithmCardProps) {
                     <Text color={`${algorithm.color}.500`} fontSize="xs">
                       ●
                     </Text>
-                    <Text fontSize="sm" color="gray.600" lineHeight="1.4">
+                    <Text fontSize="sm" color="fg.muted" lineHeight="1.4">
                       {feature}
                     </Text>
                   </HStack>

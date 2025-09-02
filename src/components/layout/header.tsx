@@ -41,6 +41,7 @@ export function Header() {
                   aria-label="Cricket"
                   transition="transform 0.2s"
                   _hover={{ transform: "scale(1.1)" }}
+                  color="fg.default"
                 >
                   <Logo />
                 </Box>
@@ -62,7 +63,9 @@ export function Header() {
               </Link>
             ) : (
               <>
-                <Logo />
+                <Box color="fg.default">
+                  <Logo />
+                </Box>
                 <Box>
                   <Heading size="md" lineHeight="1">
                     Cricket Planner
