@@ -1,18 +1,24 @@
 "use client";
 
 import { Box, Heading, Text, VStack, Input, Field } from "@chakra-ui/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { authClient } from "@/lib/auth-client";
+import { authClient, useSession } from "@/lib/auth-client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // A genuinely signed-in user (validated session) shouldn't see the login page.
+  useEffect(() => {
+    if (session && !isSubmitting) router.replace("/");
+  }, [session, isSubmitting, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

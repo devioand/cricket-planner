@@ -95,7 +95,7 @@ export function TournamentsList({
               Resume an ongoing tournament or revisit a completed one.
             </Text>
           </Box>
-          <Link href="/tournaments/new">
+          <Link href="/">
             <Button colorPalette="blue">
               <HStack gap={2}>
                 <Text fontSize="lg">+</Text>
@@ -122,7 +122,7 @@ export function TournamentsList({
             <Text color="fg.muted" mb={6}>
               Create your first tournament to get started.
             </Text>
-            <Link href="/tournaments/new">
+            <Link href="/">
               <Button colorPalette="blue" size="lg">
                 🚀 Create a Tournament
               </Button>

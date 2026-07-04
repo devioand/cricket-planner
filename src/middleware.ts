@@ -3,30 +3,31 @@ import { getSessionCookie } from "better-auth/cookies";
 
 /**
  * The whole app is behind login. This middleware does an *optimistic* check
- * (cookie presence only — fast, edge-safe) and redirects:
- *   - unauthenticated users to /login (preserving where they were headed)
- *   - authenticated users away from /login and /signup
+ * (cookie presence only — fast, edge-safe) and redirects unauthenticated
+ * users to /login, preserving where they were headed.
  *
- * Real session validation still happens in Server Components / Server Actions
- * via `auth.api.getSession`.
+ * It deliberately does NOT redirect users *away* from /login when a cookie is
+ * present: a stale/invalid cookie (localhost cookies are shared across ports)
+ * would otherwise bounce /login -> home while the server -> /login, creating a
+ * redirect loop. Real session validation happens in Server Components /
+ * Server Actions via `auth.api.getSession`, and the auth pages redirect
+ * genuinely-signed-in users client-side.
  */
 const PUBLIC_PATHS = ["/login", "/signup"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const sessionCookie = getSessionCookie(request);
   const isPublic = PUBLIC_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`)
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
 
-  if (!sessionCookie && !isPublic) {
+  if (isPublic) return NextResponse.next();
+
+  const sessionCookie = getSessionCookie(request);
+  if (!sessionCookie) {
     const loginUrl = new URL("/login", request.url);
     if (pathname !== "/") loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  if (sessionCookie && isPublic) {
-    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();

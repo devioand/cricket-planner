@@ -22,7 +22,7 @@ export function Header() {
     router.refresh();
   };
 
-  const homeHref = isAuthed ? "/tournaments" : "/login";
+  const homeHref = isAuthed ? "/" : "/login";
 
   return (
     <Box
