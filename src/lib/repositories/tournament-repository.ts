@@ -1,4 +1,5 @@
-import type { PoolClient } from "pg";
+import type { Pool, PoolClient } from "pg";
+import { cache } from "react";
 import { pool, withTransaction } from "@/lib/db";
 import type {
   TournamentState,
@@ -59,7 +60,8 @@ export interface CreateTournamentInput {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const num = (v: unknown): number => (v === null || v === undefined ? 0 : Number(v));
+const num = (v: unknown): number =>
+  v === null || v === undefined ? 0 : Number(v);
 const numOrUndef = (v: unknown): number | undefined =>
   v === null || v === undefined ? undefined : Number(v);
 const strOrUndef = (v: unknown): string | undefined =>
@@ -74,7 +76,7 @@ function deriveStatus(state: TournamentState): TournamentStatus {
 /** The champion's name, or null if the final hasn't been decided. */
 function getFinalWinner(state: TournamentState): string | null {
   const finalMatch = state.matches.find(
-    (m) => m.isPlayoff && m.playoffType === "final" && m.status === "completed"
+    (m) => m.isPlayoff && m.playoffType === "final" && m.status === "completed",
   );
   return finalMatch?.result?.winner || null;
 }
@@ -127,10 +129,8 @@ function rowToInnings(r: Row): InningsScore {
 }
 
 function rowToMatch(r: Row, innings: Row[]): Match {
-  const team1Innings =
-    innings.find((i) => i.team_slot === "team1") ?? null;
-  const team2Innings =
-    innings.find((i) => i.team_slot === "team2") ?? null;
+  const team1Innings = innings.find((i) => i.team_slot === "team1") ?? null;
+  const team2Innings = innings.find((i) => i.team_slot === "team2") ?? null;
 
   const toss: TossResult | undefined = r.toss_winner
     ? {
@@ -147,7 +147,8 @@ function rowToMatch(r: Row, innings: Row[]): Match {
     ? {
         winner: (r.result_winner as string) ?? "",
         loser: (r.result_loser as string) ?? "",
-        isDraw: r.result_is_draw == null ? undefined : Boolean(r.result_is_draw),
+        isDraw:
+          r.result_is_draw == null ? undefined : Boolean(r.result_is_draw),
         isNoResult:
           r.result_is_no_result == null
             ? undefined
@@ -184,7 +185,7 @@ function rowToMatch(r: Row, innings: Row[]): Match {
 // ── Reads ────────────────────────────────────────────────────────────────────
 
 export async function listTournaments(
-  userId: string
+  userId: string,
 ): Promise<TournamentSummary[]> {
   const { rows } = await pool.query(
     `select t.id, t.name, t.algorithm, t.status, t.playoff_format,
@@ -193,7 +194,7 @@ export async function listTournaments(
        from public.tournaments t
       where t.user_id = $1
       order by t.updated_at desc`,
-    [userId]
+    [userId],
   );
 
   return rows.map((r) => ({
@@ -211,35 +212,31 @@ export async function listTournaments(
   }));
 }
 
-export async function getTournament(
-  userId: string,
-  id: string
-): Promise<TournamentRecord | null> {
-  const { rows: tournamentRows } = await pool.query(
-    `select * from public.tournaments where id = $1 and user_id = $2`,
-    [id, userId]
-  );
-  const t = tournamentRows[0];
-  if (!t) return null;
+/** Anything that can run a query — the shared pool or a transaction client. */
+type Db = Pool | PoolClient;
+
+/** Build a full TournamentRecord from an already-fetched tournament row. */
+async function loadRecord(db: Db, t: Row): Promise<TournamentRecord> {
+  const id = String(t.id);
 
   const [teamsRes, statsRes, matchesRes] = await Promise.all([
-    pool.query(
+    db.query(
       `select name from public.teams where tournament_id = $1 order by position asc`,
-      [id]
+      [id],
     ),
-    pool.query(`select * from public.team_stats where tournament_id = $1`, [id]),
-    pool.query(
+    db.query(`select * from public.team_stats where tournament_id = $1`, [id]),
+    db.query(
       `select * from public.matches where tournament_id = $1 order by match_order asc`,
-      [id]
+      [id],
     ),
   ]);
 
   const matchIds = matchesRes.rows.map((m) => m.id);
   const inningsByMatch = new Map<string, Row[]>();
   if (matchIds.length > 0) {
-    const inningsRes = await pool.query(
+    const inningsRes = await db.query(
       `select * from public.innings where match_id = any($1::uuid[])`,
-      [matchIds]
+      [matchIds],
     );
     for (const inn of inningsRes.rows) {
       const list = inningsByMatch.get(String(inn.match_id)) ?? [];
@@ -254,7 +251,7 @@ export async function getTournament(
   }
 
   const matches: Match[] = matchesRes.rows.map((m) =>
-    rowToMatch(m, inningsByMatch.get(String(m.id)) ?? [])
+    rowToMatch(m, inningsByMatch.get(String(m.id)) ?? []),
   );
 
   const state: TournamentState = {
@@ -270,18 +267,33 @@ export async function getTournament(
   };
 
   return {
-    id: String(t.id),
+    id,
     name: String(t.name),
     status: t.status as TournamentStatus,
     state,
   };
 }
 
+/**
+ * Load a tournament the user owns. Wrapped in React `cache()` so the layout and
+ * page in a single request share one set of queries.
+ */
+export const getTournament = cache(
+  async (userId: string, id: string): Promise<TournamentRecord | null> => {
+    const { rows } = await pool.query(
+      `select * from public.tournaments where id = $1 and user_id = $2`,
+      [id, userId],
+    );
+    if (!rows[0]) return null;
+    return loadRecord(pool, rows[0]);
+  },
+);
+
 // ── Writes ───────────────────────────────────────────────────────────────────
 
 export async function createTournament(
   userId: string,
-  input: CreateTournamentInput
+  input: CreateTournamentInput,
 ): Promise<string> {
   const { rows } = await pool.query(
     `insert into public.tournaments
@@ -296,78 +308,115 @@ export async function createTournament(
       input.playoffFormat,
       input.maxOvers,
       input.maxWickets,
-    ]
+    ],
   );
   return String(rows[0].id);
 }
 
 export async function deleteTournament(
   userId: string,
-  id: string
+  id: string,
 ): Promise<void> {
   await pool.query(
     `delete from public.tournaments where id = $1 and user_id = $2`,
-    [id, userId]
+    [id, userId],
   );
 }
 
+/** Update the parent row + replace all child rows on an open transaction client. */
+async function writeState(
+  client: PoolClient,
+  userId: string,
+  id: string,
+  state: TournamentState,
+): Promise<void> {
+  const upd = await client.query(
+    `update public.tournaments
+        set algorithm = $1, playoff_format = $2, max_overs = $3,
+            max_wickets = $4, is_generated = $5, phase = $6, status = $7,
+            winner = $8
+      where id = $9 and user_id = $10`,
+    [
+      state.algorithm,
+      state.playoffFormat,
+      state.maxOvers,
+      state.maxWickets,
+      state.isGenerated,
+      state.phase,
+      deriveStatus(state),
+      getFinalWinner(state),
+      id,
+      userId,
+    ],
+  );
+  if (upd.rowCount === 0) {
+    throw new Error("Tournament not found or not owned by user");
+  }
+
+  // Replace children (innings cascade-delete with matches).
+  await client.query(`delete from public.teams where tournament_id = $1`, [id]);
+  await client.query(`delete from public.team_stats where tournament_id = $1`, [
+    id,
+  ]);
+  await client.query(`delete from public.matches where tournament_id = $1`, [
+    id,
+  ]);
+
+  await insertTeams(client, id, state.teams);
+  await insertTeamStats(client, id, state.teamStats);
+  await insertMatches(client, id, state.matches);
+}
+
 /**
- * Persist the whole tournament state. Verifies ownership, updates the parent
- * row, then replaces all child rows inside one transaction.
+ * Persist the whole tournament state (verifies ownership + full child replace,
+ * all inside one transaction).
  */
 export async function saveTournamentState(
   userId: string,
   id: string,
-  state: TournamentState
+  state: TournamentState,
 ): Promise<void> {
-  const status = deriveStatus(state);
-  const winner = getFinalWinner(state);
+  await withTransaction((client) => writeState(client, userId, id, state));
+}
 
-  await withTransaction(async (client) => {
-    const upd = await client.query(
-      `update public.tournaments
-          set algorithm = $1, playoff_format = $2, max_overs = $3,
-              max_wickets = $4, is_generated = $5, phase = $6, status = $7,
-              winner = $8
-        where id = $9 and user_id = $10`,
-      [
-        state.algorithm,
-        state.playoffFormat,
-        state.maxOvers,
-        state.maxWickets,
-        state.isGenerated,
-        state.phase,
-        status,
-        winner,
-        id,
-        userId,
-      ]
+/**
+ * Atomically apply a state transition. Locks the tournament row
+ * (`SELECT … FOR UPDATE`), loads the current state, runs `transition`, and
+ * persists the result — all in one transaction. This serializes concurrent
+ * mutations so an older write can never clobber a newer one.
+ */
+export async function mutateTournament<T>(
+  userId: string,
+  id: string,
+  transition: (state: TournamentState) => {
+    state: TournamentState;
+    result?: T;
+  },
+): Promise<T | undefined> {
+  return withTransaction(async (client) => {
+    const { rows } = await client.query(
+      `select * from public.tournaments where id = $1 and user_id = $2 for update`,
+      [id, userId],
     );
-    if (upd.rowCount === 0) {
+    if (!rows[0]) {
       throw new Error("Tournament not found or not owned by user");
     }
-
-    // Replace children.
-    await client.query(`delete from public.teams where tournament_id = $1`, [id]);
-    await client.query(`delete from public.team_stats where tournament_id = $1`, [id]);
-    // innings cascade-delete with matches
-    await client.query(`delete from public.matches where tournament_id = $1`, [id]);
-
-    await insertTeams(client, id, state.teams);
-    await insertTeamStats(client, id, state.teamStats);
-    await insertMatches(client, id, state.matches);
+    const record = await loadRecord(client, rows[0]);
+    const { state: nextState, result } = transition(record.state);
+    await writeState(client, userId, id, nextState);
+    return result;
   });
 }
 
 async function insertTeams(
   client: PoolClient,
   tournamentId: string,
-  teams: string[]
+  teams: string[],
 ): Promise<void> {
   for (let i = 0; i < teams.length; i++) {
     await client.query(
       `insert into public.teams (tournament_id, name, position) values ($1, $2, $3)`,
-      [tournamentId, teams[i], i]
+      [tournamentId, teams[i], i],
     );
   }
 }
@@ -375,7 +424,7 @@ async function insertTeams(
 async function insertTeamStats(
   client: PoolClient,
   tournamentId: string,
-  teamStats: Record<string, CricketTeamStats>
+  teamStats: Record<string, CricketTeamStats>,
 ): Promise<void> {
   for (const s of Object.values(teamStats)) {
     await client.query(
@@ -411,7 +460,7 @@ async function insertTeamStats(
         s.biggestWin?.opponent ?? null,
         s.biggestWin?.margin ?? null,
         s.biggestWin?.marginType ?? null,
-      ]
+      ],
     );
   }
 }
@@ -419,7 +468,7 @@ async function insertTeamStats(
 async function insertMatches(
   client: PoolClient,
   tournamentId: string,
-  matches: Match[]
+  matches: Match[],
 ): Promise<void> {
   for (let i = 0; i < matches.length; i++) {
     const m = matches[i];
@@ -458,12 +507,14 @@ async function insertMatches(
         m.result?.marginType ?? null,
         m.result?.margin ?? null,
         m.result?.matchType ?? null,
-      ]
+      ],
     );
     const matchDbId = String(rows[0].id);
 
-    const inningsToInsert: Array<{ slot: "team1" | "team2"; innings: InningsScore }> =
-      [];
+    const inningsToInsert: Array<{
+      slot: "team1" | "team2";
+      innings: InningsScore;
+    }> = [];
     if (m.result?.team1Innings)
       inningsToInsert.push({ slot: "team1", innings: m.result.team1Innings });
     if (m.result?.team2Innings)
@@ -485,7 +536,7 @@ async function insertMatches(
           innings.ballsFaced,
           innings.isAllOut,
           innings.runRate,
-        ]
+        ],
       );
     }
   }

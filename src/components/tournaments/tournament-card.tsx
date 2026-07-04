@@ -1,20 +1,19 @@
 "use client";
 
+import type {
+  TournamentStatus,
+  TournamentSummary,
+} from "@/lib/repositories/tournament-repository";
 import {
-  Box,
-  Text,
-  VStack,
-  HStack,
   Badge,
   Card,
+  HStack,
   IconButton,
+  Text,
+  VStack,
 } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 import { LuTrash2 } from "react-icons/lu";
-import type {
-  TournamentSummary,
-  TournamentStatus,
-} from "@/lib/repositories/tournament-repository";
 
 const ALGORITHM_LABELS: Record<string, string> = {
   "round-robin": "Round Robin",
