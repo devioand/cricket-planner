@@ -16,6 +16,7 @@ import {
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LuTrash2 } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 import {
@@ -260,7 +261,7 @@ export function TournamentsList({
                           setDeleteTarget(t);
                         }}
                       >
-                        🗑️
+                        <LuTrash2 />
                       </IconButton>
                     </HStack>
                   </Card.Body>
