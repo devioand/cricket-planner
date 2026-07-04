@@ -51,6 +51,41 @@ export function oversToBalls(overs: number): number {
 }
 
 /**
+ * Format overs input to proper cricket format (max .6)
+ * Converts invalid decimals like 3.7 to 4.1, 3.12 to 5.0, etc.
+ */
+export function formatCricketOvers(input: number): number {
+  const completeOvers = Math.floor(input);
+  const fractionalPart = input - completeOvers;
+
+  // Convert fractional part to balls (multiply by 10 to handle .1, .2, etc.)
+  const balls = Math.round(fractionalPart * 10);
+
+  // If balls > 6, convert to additional overs
+  const extraOvers = Math.floor(balls / 6);
+  const remainingBalls = balls % 6;
+
+  return completeOvers + extraOvers + remainingBalls / 10;
+}
+
+/**
+ * Validate if overs input is in proper cricket format (.0 to .6)
+ */
+export function isValidCricketOvers(overs: number): boolean {
+  const fractionalPart = overs - Math.floor(overs);
+  const balls = Math.round(fractionalPart * 10);
+  return balls >= 0 && balls <= 6;
+}
+
+/**
+ * Format overs for display with exactly 1 decimal place for cricket format
+ */
+export function displayCricketOvers(overs: number): string {
+  const formatted = formatCricketOvers(overs);
+  return formatted.toFixed(1);
+}
+
+/**
  * Calculate run rate from runs and overs
  */
 export function calculateRunRate(runs: number, overs: number): number {

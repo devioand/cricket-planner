@@ -105,16 +105,16 @@ export default function RoundRobinSetup() {
         <Box>
           <VStack align="stretch" gap={1} mb={4}>
             <HStack justify="space-between" align="center">
-              <Heading size="md" color="blue.600">
+              <Heading size="md">
                 Teams ({tournament.state.teams.length})
               </Heading>
               {tournament.state.isGenerated && (
-                <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                <Text fontSize="xs" color="fg.muted" fontStyle="italic">
                   🔒 Locked during tournament
                 </Text>
               )}
             </HStack>
-            <Text fontSize="sm" color="gray.600">
+            <Text fontSize="sm" color="fg.muted">
               Add teams. Each team plays others once.
             </Text>
           </VStack>
@@ -137,9 +137,7 @@ export default function RoundRobinSetup() {
                 onClick={() => setIsAddTeamOpen(true)}
                 variant="outline"
                 colorPalette="blue"
-                size="lg"
                 w="full"
-                minH="48px"
               >
                 <HStack gap={2}>
                   <Text fontSize="lg">+</Text>
@@ -154,23 +152,21 @@ export default function RoundRobinSetup() {
         <VStack gap={4} align="stretch">
           <VStack align="stretch" gap={1} mb={4}>
             <HStack justify="space-between" align="center">
-              <Heading size="md" color="blue.600">
-                Match Settings
-              </Heading>
+              <Heading size="md">Match Settings</Heading>
               {tournament.state.isGenerated && (
-                <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                <Text fontSize="xs" color="fg.muted" fontStyle="italic">
                   🔒 Locked during tournament
                 </Text>
               )}
             </HStack>
-            <Text fontSize="sm" color="gray.600">
+            <Text fontSize="sm" color="fg.muted">
               Set overs and wickets for matches.
             </Text>
           </VStack>
 
           {/* Max Overs */}
           <Box>
-            <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
+            <Text fontSize="sm" fontWeight="medium" mb={2} color="fg.default">
               Max Overs
             </Text>
             <NumberInput.Root
@@ -189,9 +185,18 @@ export default function RoundRobinSetup() {
               disabled={tournament.state.isGenerated}
             >
               <NumberInput.Control />
-              <NumberInput.Input readOnly={tournament.state.isGenerated} />
+              <NumberInput.Input
+                readOnly={tournament.state.isGenerated}
+                bg="input.bg"
+                borderColor="input.border"
+                color="fg.default"
+                _focus={{
+                  borderColor: "input.focusBorder",
+                  boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
+                }}
+              />
             </NumberInput.Root>
-            <Text fontSize="xs" color="gray.500" mt={1}>
+            <Text fontSize="xs" color="fg.muted" mt={1}>
               T20 = 20, ODI = 50
               {tournament.state.isGenerated && " (Locked during tournament)"}
             </Text>
@@ -199,7 +204,7 @@ export default function RoundRobinSetup() {
 
           {/* Max Wickets */}
           <Box>
-            <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
+            <Text fontSize="sm" fontWeight="medium" mb={2} color="fg.default">
               Max Wickets
             </Text>
             <NumberInput.Root
@@ -218,9 +223,18 @@ export default function RoundRobinSetup() {
               disabled={tournament.state.isGenerated}
             >
               <NumberInput.Control />
-              <NumberInput.Input readOnly={tournament.state.isGenerated} />
+              <NumberInput.Input
+                readOnly={tournament.state.isGenerated}
+                bg="input.bg"
+                borderColor="input.border"
+                color="fg.default"
+                _focus={{
+                  borderColor: "input.focusBorder",
+                  boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
+                }}
+              />
             </NumberInput.Root>
-            <Text fontSize="xs" color="gray.500" mt={1}>
+            <Text fontSize="xs" color="fg.muted" mt={1}>
               Standard: 10 wickets
               {tournament.state.isGenerated && " (Locked during tournament)"}
             </Text>
@@ -231,16 +245,14 @@ export default function RoundRobinSetup() {
         <VStack gap={4} align="stretch">
           <VStack align="stretch" gap={1} mb={4}>
             <HStack justify="space-between" align="center">
-              <Heading size="md" color="blue.600">
-                Playoff Format
-              </Heading>
+              <Heading size="md">Playoff Format</Heading>
               {tournament.state.matches.some((m) => m.isPlayoff) && (
-                <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                <Text fontSize="xs" color="fg.muted" fontStyle="italic">
                   🔒 Locked after tournament generated
                 </Text>
               )}
             </HStack>
-            <Text fontSize="sm" color="gray.600">
+            <Text fontSize="sm" color="fg.muted">
               Choose playoff style for top teams.
             </Text>
           </VStack>
@@ -270,7 +282,7 @@ export default function RoundRobinSetup() {
               // size="xl"
               w="full"
             >
-              🏁 Finish Tournament
+              Finish Tournament
             </Button>
           )}
         </VStack>
@@ -281,19 +293,34 @@ export default function RoundRobinSetup() {
           onOpenChange={(e) => !e.open && handleDialogClose()}
         >
           <Portal>
-            <Dialog.Backdrop />
+            <Dialog.Backdrop bg="blackAlpha.400" backdropFilter="blur(4px)" />
             <Dialog.Positioner>
-              <Dialog.Content maxW="md" bg="white" borderRadius="lg" p={6}>
-                <Dialog.Header>
-                  <Text fontSize="xl" fontWeight="bold" textAlign="center">
-                    {editingTeam ? "Edit Team" : "Add New Team"}
-                  </Text>
+              <Dialog.Content
+                maxW="380px"
+                bg="dialog.bg"
+                borderRadius="xl"
+                p={4}
+                boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+              >
+                <Dialog.Header px={2} pb={3}>
+                  <VStack gap={1} w="full" align="center">
+                    <Text fontSize="lg" fontWeight="500">
+                      {editingTeam ? "Edit Team" : "Add New Team"}
+                    </Text>
+                  </VStack>
                   <Dialog.CloseTrigger asChild>
-                    <CloseButton position="absolute" top={4} right={4} />
+                    <CloseButton
+                      position="absolute"
+                      top={4}
+                      right={4}
+                      size="sm"
+                      color="fg.muted"
+                      _hover={{ color: "fg.default", bg: "bg.subtle" }}
+                    />
                   </Dialog.CloseTrigger>
                 </Dialog.Header>
 
-                <Dialog.Body>
+                <Dialog.Body p={2}>
                   <VStack gap={4} w="full">
                     <Box w="full">
                       <Text fontSize="sm" fontWeight="medium" mb={2}>
@@ -315,8 +342,17 @@ export default function RoundRobinSetup() {
                         maxLength={10}
                         size="lg"
                         autoFocus
+                        bg="input.bg"
+                        borderColor="input.border"
+                        color="fg.default"
+                        _placeholder={{ color: "fg.placeholder" }}
+                        _focus={{
+                          borderColor: "input.focusBorder",
+                          boxShadow:
+                            "0 0 0 1px var(--colors-input-focus-border)",
+                        }}
                       />
-                      <Text fontSize="xs" color="gray.500" mt={1}>
+                      <Text fontSize="xs" color="fg.muted" mt={1}>
                         {teamInput.length}/10 characters
                       </Text>
                     </Box>
@@ -325,6 +361,12 @@ export default function RoundRobinSetup() {
                       <Button
                         variant="outline"
                         flex="1"
+                        size="md"
+                        h="44px"
+                        borderRadius="lg"
+                        fontSize="sm"
+                        colorPalette="gray"
+                        fontWeight="500"
                         onClick={handleDialogClose}
                       >
                         Cancel
@@ -332,6 +374,11 @@ export default function RoundRobinSetup() {
                       <Button
                         colorPalette="blue"
                         flex="1"
+                        size="md"
+                        h="44px"
+                        borderRadius="lg"
+                        fontSize="sm"
+                        fontWeight="500"
                         onClick={editingTeam ? handleUpdateTeam : handleAddTeam}
                         disabled={
                           !teamInput.trim() || teamInput.trim().length > 10
@@ -353,26 +400,36 @@ export default function RoundRobinSetup() {
           onOpenChange={(e) => !e.open && setShowFinishConfirm(false)}
         >
           <Portal>
-            <Dialog.Backdrop />
+            <Dialog.Backdrop bg="dialog.backdrop" backdropFilter="blur(4px)" />
             <Dialog.Positioner>
-              <Dialog.Content maxW="md" bg="white" borderRadius="lg" p={6}>
-                <Dialog.Header>
-                  <Text
-                    fontSize="xl"
-                    fontWeight="bold"
-                    textAlign="center"
-                    color="red.600"
-                  >
-                    🏁 Finish Tournament?
-                  </Text>
+              <Dialog.Content
+                maxW="420px"
+                bg="dialog.bg"
+                borderRadius="xl"
+                p={4}
+                boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+              >
+                <Dialog.Header pb={3}>
+                  <VStack gap={1} w="full" align="center">
+                    <Text fontSize="lg" fontWeight="500" color="red.600">
+                      Finish Tournament?
+                    </Text>
+                  </VStack>
                   <Dialog.CloseTrigger asChild>
-                    <CloseButton position="absolute" top={4} right={4} />
+                    <CloseButton
+                      position="absolute"
+                      top={4}
+                      right={4}
+                      size="sm"
+                      color="fg.muted"
+                      _hover={{ color: "fg.default", bg: "bg.subtle" }}
+                    />
                   </Dialog.CloseTrigger>
                 </Dialog.Header>
 
-                <Dialog.Body>
+                <Dialog.Body px={2}>
                   <VStack gap={4} w="full">
-                    <Text textAlign="center" color="gray.700">
+                    <Text textAlign="center" color="fg.default">
                       This will permanently end the tournament and reset all
                       data. You&apos;ll lose all match results and team
                       statistics.
@@ -391,6 +448,12 @@ export default function RoundRobinSetup() {
                       <Button
                         variant="outline"
                         flex="1"
+                        size="md"
+                        h="44px"
+                        borderRadius="lg"
+                        fontSize="sm"
+                        fontWeight="500"
+                        colorPalette="gray"
                         onClick={() => setShowFinishConfirm(false)}
                       >
                         Cancel
@@ -398,9 +461,14 @@ export default function RoundRobinSetup() {
                       <Button
                         colorPalette="red"
                         flex="1"
+                        size="md"
+                        h="44px"
+                        borderRadius="lg"
+                        fontSize="sm"
+                        fontWeight="500"
                         onClick={confirmFinishTournament}
                       >
-                        Yes, Finish Tournament
+                        Finish Tournament
                       </Button>
                     </HStack>
                   </VStack>
@@ -431,24 +499,24 @@ function TeamCard({
   return (
     <Card.Root
       borderWidth={1}
-      borderColor={isLocked ? "gray.100" : "gray.200"}
-      bg={isLocked ? "gray.50" : "white"}
+      borderColor={isLocked ? "border.subtle" : "card.border"}
+      bg={isLocked ? "bg.subtle" : "card.bg"}
       _hover={!isLocked ? { borderColor: "blue.300", shadow: "sm" } : {}}
       transition="all 0.2s"
       opacity={isLocked ? 0.7 : 1}
     >
-      <Card.Body p={4}>
+      <Card.Body pl={4} pr={2} py={2}>
         <HStack justify="space-between" align="center">
           <HStack gap={2}>
             <Text
               fontWeight="medium"
               fontSize="md"
-              color={isLocked ? "gray.500" : "gray.800"}
+              color={isLocked ? "fg.muted" : "fg.default"}
             >
               {teamName}
             </Text>
             {isLocked && (
-              <Text fontSize="xs" color="gray.400">
+              <Text fontSize="xs" color="fg.subtle">
                 🔒
               </Text>
             )}

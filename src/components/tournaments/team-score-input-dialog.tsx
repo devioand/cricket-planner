@@ -13,6 +13,10 @@ import {
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { useTournament, type Match } from "@/contexts/tournament-context";
+import {
+  formatCricketOvers,
+  isValidCricketOvers,
+} from "@/contexts/tournament-context/algorithms/cricket-stats";
 import { toaster } from "@/components/ui/toaster";
 
 interface TeamScoreInputDialogProps {
@@ -92,6 +96,18 @@ export function TeamScoreInputDialog({
       return;
     }
 
+    // Validate cricket over format (max .6 balls per over)
+    if (!isValidCricketOvers(overs)) {
+      toaster.create({
+        title: "Invalid Over Format",
+        description:
+          "Over format should be like 3.5 (max .6 balls). Example: 15.2 means 15 overs and 2 balls.",
+        type: "error",
+        duration: 4000,
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -99,7 +115,7 @@ export function TeamScoreInputDialog({
       tournament.updateSingleInnings(match.id, isTeam1, {
         runs,
         wickets,
-        overs,
+        overs: formatCricketOvers(overs), // Ensure cricket format
       });
 
       // Reset form and close dialog
@@ -129,15 +145,14 @@ export function TeamScoreInputDialog({
   return (
     <Dialog.Root open={isOpen} onOpenChange={(e) => !e.open && handleClose()}>
       <Portal>
+        <Dialog.Backdrop bg="blackAlpha.400" backdropFilter="blur(4px)" />
         <Dialog.Positioner>
           <Dialog.Content
             maxW="md"
             mx={4}
-            bg="white"
+            bg="dialog.bg"
             borderRadius="lg"
             shadow="lg"
-            border="1px solid"
-            borderColor="gray.200"
           >
             <Dialog.Header>
               <HStack justify="space-between" align="center" w="full">
@@ -151,24 +166,24 @@ export function TeamScoreInputDialog({
             <Dialog.Body>
               <VStack align="stretch" gap={6}>
                 {/* Match Info */}
-                <Box
-                  textAlign="center"
-                  p={3}
-                  bg={isTeam1 ? "blue.50" : "red.50"}
-                  rounded="md"
-                >
+                <Box textAlign="center" p={3} bg={"bg.subtle"} rounded="md">
                   <Text
                     fontSize="md"
                     fontWeight="semibold"
-                    color={isTeam1 ? "blue.700" : "red.700"}
+                    color={"fg.default"}
                   >
                     Match {matchNumber}: {match.team1} vs {match.team2}
                   </Text>
-                  <Text fontSize="sm" color="gray.600" mt={1}>
+                  <Text fontSize="sm" color="fg.muted" mt={1}>
                     Entering score for: <strong>{teamName}</strong>
                   </Text>
                   {match.isPlayoff && (
-                    <Text fontSize="sm" color="purple.600" mt={1}>
+                    <Text
+                      fontSize="sm"
+                      color="colorPalette.600"
+                      mt={1}
+                      colorPalette="purple"
+                    >
                       🏆 {match.playoffType?.replace("-", " ").toUpperCase()}
                     </Text>
                   )}
@@ -178,7 +193,12 @@ export function TeamScoreInputDialog({
                 <VStack align="stretch" gap={4}>
                   {/* Runs - First Line */}
                   <Box>
-                    <Text fontSize="sm" fontWeight="medium" mb={2}>
+                    <Text
+                      fontSize="sm"
+                      fontWeight="medium"
+                      mb={2}
+                      color="fg.default"
+                    >
                       Runs
                     </Text>
                     <Input
@@ -200,13 +220,26 @@ export function TeamScoreInputDialog({
                       }}
                       size="md"
                       autoFocus
+                      bg="input.bg"
+                      borderColor="input.border"
+                      color="fg.default"
+                      _placeholder={{ color: "fg.placeholder" }}
+                      _focus={{
+                        borderColor: "input.focusBorder",
+                        boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
+                      }}
                     />
                   </Box>
 
                   {/* Wickets and Overs - Second Line */}
                   <HStack gap={3}>
                     <Box flex={1}>
-                      <Text fontSize="sm" fontWeight="medium" mb={2}>
+                      <Text
+                        fontSize="sm"
+                        fontWeight="medium"
+                        mb={2}
+                        color="fg.default"
+                      >
                         Wickets
                       </Text>
                       <Input
@@ -231,10 +264,24 @@ export function TeamScoreInputDialog({
                           }
                         }}
                         size="md"
+                        bg="input.bg"
+                        borderColor="input.border"
+                        color="fg.default"
+                        _placeholder={{ color: "fg.placeholder" }}
+                        _focus={{
+                          borderColor: "input.focusBorder",
+                          boxShadow:
+                            "0 0 0 1px var(--colors-input-focus-border)",
+                        }}
                       />
                     </Box>
                     <Box flex={1}>
-                      <Text fontSize="sm" fontWeight="medium" mb={2}>
+                      <Text
+                        fontSize="sm"
+                        fontWeight="medium"
+                        mb={2}
+                        color="fg.default"
+                      >
                         Overs
                       </Text>
                       <Input
@@ -256,7 +303,34 @@ export function TeamScoreInputDialog({
                             });
                           }
                         }}
+                        onBlur={(e) => {
+                          const value = parseFloat(e.target.value);
+                          if (!isNaN(value)) {
+                            const formatted =
+                              formatCricketOvers(value).toFixed(1);
+                            if (isTeam1) {
+                              setTeam1Score({
+                                ...team1Score,
+                                overs: formatted,
+                              });
+                            } else {
+                              setTeam2Score({
+                                ...team2Score,
+                                overs: formatted,
+                              });
+                            }
+                          }
+                        }}
                         size="md"
+                        bg="input.bg"
+                        borderColor="input.border"
+                        color="fg.default"
+                        _placeholder={{ color: "fg.placeholder" }}
+                        _focus={{
+                          borderColor: "input.focusBorder",
+                          boxShadow:
+                            "0 0 0 1px var(--colors-input-focus-border)",
+                        }}
                       />
                     </Box>
                   </HStack>
@@ -264,7 +338,7 @@ export function TeamScoreInputDialog({
 
                 {/* Submit Button */}
                 <Button
-                  colorPalette="green"
+                  colorPalette="blue"
                   onClick={handleSubmit}
                   disabled={
                     isSubmitting ||
@@ -279,9 +353,7 @@ export function TeamScoreInputDialog({
                   size="lg"
                   w="full"
                 >
-                  {isSubmitting
-                    ? "Submitting..."
-                    : `🏏 Submit ${teamName} Score`}
+                  {isSubmitting ? "Submitting..." : `Submit ${teamName} Score`}
                 </Button>
               </VStack>
             </Dialog.Body>

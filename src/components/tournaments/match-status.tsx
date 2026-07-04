@@ -22,15 +22,17 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
             : "elected to bowl first";
         return {
           text: `🪙 ${tossDoneTossWinner} won the toss and ${tossDoneDecision}`,
-          color: "blue.700",
-          bg: "blue.50",
+          color: "colorPalette.700",
+          bg: "colorPalette.50",
+          colorPalette: "blue",
         };
 
       case "in-progress-need-toss":
         return {
-          text: "🏏 Match in progress - Toss required",
-          color: "blue.700",
-          bg: "blue.50",
+          text: "Match in progress - Toss required",
+          color: "colorPalette.700",
+          bg: "colorPalette.50",
+          colorPalette: "blue",
         };
 
       case "first-innings-ready":
@@ -41,8 +43,9 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
             : "elected to bowl first";
         return {
           text: `🪙 ${firstInningsTossWinner} won the toss and ${firstInningsDecision}`,
-          color: "blue.700",
-          bg: "blue.50",
+          color: "colorPalette.700",
+          bg: "colorPalette.50",
+          colorPalette: "blue",
         };
 
       case "first-innings-complete":
@@ -66,15 +69,17 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
           const target = firstInnings.runs + 1;
 
           return {
-            text: `✅ ${battingFirst}: ${firstInnings.runs}/${firstInnings.wickets} (${firstInnings.overs}). ${chasingTeam} needs ${target} runs`,
-            color: "green.700",
-            bg: "green.50",
+            text: `${battingFirst}: ${firstInnings.runs}/${firstInnings.wickets} (${firstInnings.overs}). ${chasingTeam} needs ${target} runs`,
+            color: "colorPalette.700",
+            bg: "colorPalette.50",
+            colorPalette: "green",
           };
         }
         return {
-          text: "🏏 First innings complete",
-          color: "green.700",
-          bg: "green.50",
+          text: "First innings complete",
+          color: "colorPalette.700",
+          bg: "colorPalette.50",
+          colorPalette: "green",
         };
 
       case "second-innings-ready":
@@ -94,22 +99,25 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
           const target = firstInningsReady.runs + 1;
 
           return {
-            text: `🎯 ${battingFirst}: ${firstInningsReady.runs}/${firstInningsReady.wickets}. ${chasingTeam} needs ${target} runs`,
-            color: "orange.700",
-            bg: "orange.50",
+            text: `${battingFirst}: ${firstInningsReady.runs}/${firstInningsReady.wickets}. ${chasingTeam} needs ${target} runs`,
+            color: "colorPalette.700",
+            bg: "colorPalette.50",
+            colorPalette: "orange",
           };
         }
         return {
-          text: "🏏 Second innings ready",
-          color: "blue.700",
-          bg: "blue.50",
+          text: "Second innings ready",
+          color: "colorPalette.700",
+          bg: "colorPalette.50",
+          colorPalette: "blue",
         };
 
       case "ready-to-finish":
         return {
-          text: "🏏 Both teams have played. Ready to finish the match!",
-          color: "purple.700",
-          bg: "purple.50",
+          text: "Both teams have played. Ready to finish the match!",
+          color: "colorPalette.700",
+          bg: "colorPalette.50",
+          colorPalette: "purple",
         };
 
       case "completed":
@@ -118,7 +126,8 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
           if (match.result.isDraw) {
             return {
               text: `🤝 Match Tied - Both teams get 1 point`,
-              color: "orange.700",
+              color: "colorPalette.700",
+              colorPalette: "orange",
             };
           }
 
@@ -130,7 +139,8 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
 
           return {
             text: `🏆 ${winner} won by ${marginText}`,
-            color: "green.700",
+            color: "colorPalette.700",
+            colorPalette: "green",
           };
         }
         break;
@@ -138,8 +148,8 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
       default:
         return {
           text: "📋 Ready to play",
-          color: "gray.600",
-          bg: "gray.50",
+          color: "fg.muted",
+          bg: "bg.subtle",
         };
     }
   };
@@ -148,7 +158,7 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
   if (!status) return null;
 
   return (
-    <Box textAlign="center">
+    <Box textAlign="center" colorPalette={status.colorPalette || "gray"}>
       <Text fontSize="sm" color={status.color} fontWeight="medium">
         {status.text}
       </Text>

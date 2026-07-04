@@ -64,6 +64,199 @@ const config = defineConfig({
           900: { value: "#63171B" },
           950: { value: "#4A1215" },
         },
+        // Purple color scale for additional features
+        purple: {
+          50: { value: "#faf5ff" },
+          100: { value: "#f3e8ff" },
+          200: { value: "#e9d5ff" },
+          300: { value: "#d8b4fe" },
+          400: { value: "#c084fc" },
+          500: { value: "#a855f7" },
+          600: { value: "#9333ea" },
+          700: { value: "#7c3aed" },
+          800: { value: "#6b21a8" },
+          900: { value: "#581c87" },
+          950: { value: "#3b0764" },
+        },
+        // Gray color scale - modern neutral colors
+        gray: {
+          50: { value: "#F7FAFC" },
+          100: { value: "#EDF2F7" },
+          200: { value: "#E2E8F0" },
+          300: { value: "#CBD5E0" },
+          400: { value: "#A0AEC0" },
+          500: { value: "#718096" },
+          600: { value: "#4A5568" },
+          700: { value: "#2D3748" },
+          800: { value: "#1A202C" },
+          900: { value: "#171923" },
+          950: { value: "#020617" },
+        },
+      },
+    },
+    semanticTokens: {
+      colors: {
+        // Background tokens
+        bg: {
+          canvas: {
+            value: { base: "{colors.white}", _dark: "{colors.gray.950}" },
+          },
+          surface: {
+            value: { base: "{colors.white}", _dark: "{colors.gray.900}" },
+          },
+          subtle: {
+            value: { base: "{colors.gray.50}", _dark: "{colors.gray.800}" },
+          },
+          muted: {
+            value: { base: "{colors.gray.100}", _dark: "{colors.gray.700}" },
+          },
+        },
+
+        // Foreground/text tokens
+        fg: {
+          default: {
+            value: { base: "{colors.gray.900}", _dark: "{colors.gray.100}" },
+          },
+          muted: {
+            value: { base: "{colors.gray.600}", _dark: "{colors.gray.400}" },
+          },
+          subtle: {
+            value: { base: "{colors.gray.500}", _dark: "{colors.gray.700}" },
+          },
+          disabled: {
+            value: { base: "{colors.gray.400}", _dark: "{colors.gray.600}" },
+          },
+          placeholder: {
+            value: { base: "{colors.gray.400}", _dark: "{colors.gray.600}" },
+          },
+        },
+
+        // Border tokens
+        border: {
+          default: {
+            value: { base: "{colors.gray.200}", _dark: "{colors.gray.700}" },
+          },
+          subtle: {
+            value: { base: "{colors.gray.100}", _dark: "{colors.gray.800}" },
+          },
+          muted: {
+            value: { base: "{colors.gray.300}", _dark: "{colors.gray.600}" },
+          },
+          emphasized: {
+            value: { base: "{colors.gray.400}", _dark: "{colors.gray.500}" },
+          },
+        },
+
+        // Color palette semantic tokens
+        colorPalette: {
+          50: {
+            value: {
+              base: "{colors.colorPalette.50}",
+              _dark: "{colors.colorPalette.950}",
+            },
+          },
+          100: {
+            value: {
+              base: "{colors.colorPalette.100}",
+              _dark: "{colors.colorPalette.900}",
+            },
+          },
+          200: {
+            value: {
+              base: "{colors.colorPalette.200}",
+              _dark: "{colors.colorPalette.800}",
+            },
+          },
+          300: {
+            value: {
+              base: "{colors.colorPalette.300}",
+              _dark: "{colors.colorPalette.700}",
+            },
+          },
+          400: {
+            value: {
+              base: "{colors.colorPalette.400}",
+              _dark: "{colors.colorPalette.600}",
+            },
+          },
+          500: { value: "{colors.colorPalette.500}" },
+          600: {
+            value: {
+              base: "{colors.colorPalette.600}",
+              _dark: "{colors.colorPalette.400}",
+            },
+          },
+          700: {
+            value: {
+              base: "{colors.colorPalette.700}",
+              _dark: "{colors.colorPalette.300}",
+            },
+          },
+          800: {
+            value: {
+              base: "{colors.colorPalette.800}",
+              _dark: "{colors.colorPalette.200}",
+            },
+          },
+          900: {
+            value: {
+              base: "{colors.colorPalette.900}",
+              _dark: "{colors.colorPalette.100}",
+            },
+          },
+          950: {
+            value: {
+              base: "{colors.colorPalette.950}",
+              _dark: "{colors.colorPalette.50}",
+            },
+          },
+        },
+
+        // Component specific semantic tokens
+        card: {
+          bg: {
+            value: { base: "{colors.white}", _dark: "{colors.gray.900}" },
+          },
+          border: {
+            value: { base: "{colors.gray.200}", _dark: "{colors.gray.700}" },
+          },
+          selected: {
+            value: {
+              base: "{colors.colorPalette.500}",
+              _dark: "{colors.colorPalette.600}",
+            },
+          },
+          selectedBorder: {
+            value: {
+              base: "{colors.colorPalette.300}",
+              _dark: "{colors.colorPalette.300}",
+            },
+          },
+        },
+
+        input: {
+          bg: {
+            value: { base: "{colors.white}", _dark: "{colors.gray.800}" },
+          },
+          border: {
+            value: { base: "{colors.gray.300}", _dark: "{colors.gray.600}" },
+          },
+          focusBorder: {
+            value: { base: "{colors.blue.500}", _dark: "{colors.blue.400}" },
+          },
+        },
+
+        dialog: {
+          bg: {
+            value: { base: "{colors.white}", _dark: "{colors.gray.900}" },
+          },
+          backdrop: {
+            value: {
+              base: "{colors.blackAlpha.400}",
+              _dark: "{colors.blackAlpha.600}",
+            },
+          },
+        },
       },
     },
   },

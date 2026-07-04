@@ -3,6 +3,7 @@
 import { Box, Text, VStack, HStack, IconButton } from "@chakra-ui/react";
 import { useState } from "react";
 import { useTournament, type Match } from "@/contexts/tournament-context";
+import { displayCricketOvers } from "@/contexts/tournament-context/algorithms/cricket-stats";
 import { MatchStatus } from "./match-status";
 import { MatchActions } from "./match-actions";
 import { TeamScoreInputDialog } from "./team-score-input-dialog";
@@ -47,7 +48,7 @@ function PlayoffConsequences({ playoffType }: { playoffType?: string }) {
   const consequences = getConsequences(playoffType);
 
   return (
-    <Text fontSize="xs" color="gray.600" fontWeight="bold" textAlign="center">
+    <Text fontSize="xs" color="fg.muted" fontWeight="bold" textAlign="center">
       Note: Winner {consequences.winner.toLowerCase()} and loser{" "}
       {consequences.loser.toLowerCase()}.
     </Text>
@@ -73,6 +74,7 @@ export function MatchCard({
 
   const isCompleted = match.status === "completed";
   const isInProgress = match.status === "in-progress";
+  const isDraw = !!match.result?.isDraw;
   const hasToss = match.toss !== undefined;
 
   // Check if this is a TBD (To Be Determined) match
@@ -120,11 +122,15 @@ export function MatchCard({
 
   const matchState = getMatchState();
   const team1Score = match.result?.team1Innings
-    ? `${match.result.team1Innings.runs}/${match.result.team1Innings.wickets} (${match.result.team1Innings.overs})`
-    : "0/0 (0)";
+    ? `${match.result.team1Innings.runs}/${
+        match.result.team1Innings.wickets
+      } (${displayCricketOvers(match.result.team1Innings.overs)})`
+    : "0/0 (0.0)";
   const team2Score = match.result?.team2Innings
-    ? `${match.result.team2Innings.runs}/${match.result.team2Innings.wickets} (${match.result.team2Innings.overs})`
-    : "0/0 (0)";
+    ? `${match.result.team2Innings.runs}/${
+        match.result.team2Innings.wickets
+      } (${displayCricketOvers(match.result.team2Innings.overs)})`
+    : "0/0 (0.0)";
 
   // Determine which team should show edit icon based on match progression
   const shouldShowTeam1EditIcon = () => {
@@ -175,29 +181,60 @@ export function MatchCard({
     return false;
   };
 
-  // Get playoff-specific styling
+  // Get match card styling based on match state and type
   const getCardStyling = () => {
-    if (isPlayoff) {
-      return {
-        bg: isCompleted ? "green.50" : isInProgress ? "yellow.50" : "orange.50",
-        borderColor: isCompleted
-          ? "green.300"
-          : isInProgress
-          ? "yellow.300"
-          : "orange.300",
+    // Base styling configuration
+    const baseStyles = {
+      playoff: {
         borderWidth: 2,
-        shadow: "lg",
-      };
+        shadow: "sm",
+      },
+      regular: {
+        borderWidth: 2,
+        shadow: "sm",
+      },
+    };
+
+    // Color schemes for different match states
+    const colorSchemes = {
+      draw: {
+        bg: "card.bg",
+        borderColor: "red.300",
+      },
+      completed: {
+        bg: "card.bg",
+        borderColor: isPlayoff ? "green.500" : "green.400",
+      },
+      inProgress: {
+        bg: "card.bg",
+        borderColor: isPlayoff ? "yellow.300" : "blue.300",
+      },
+      scheduled: {
+        bg: "card.bg",
+        borderColor: isPlayoff ? "orange.300" : "border.default",
+      },
+    };
+
+    // Determine match state priority (highest to lowest priority)
+    let matchStateKey: keyof typeof colorSchemes;
+
+    if (isCompleted && isDraw) {
+      matchStateKey = "draw";
+    } else if (isCompleted) {
+      matchStateKey = "completed";
+    } else if (isInProgress) {
+      matchStateKey = "inProgress";
+    } else {
+      matchStateKey = "scheduled";
     }
+
+    // Get appropriate color scheme and base styles
+    const colorScheme = colorSchemes[matchStateKey];
+    const baseStyle = isPlayoff ? baseStyles.playoff : baseStyles.regular;
+
     return {
-      bg: isCompleted ? "green.50" : isInProgress ? "blue.50" : "gray.50",
-      borderColor: isCompleted
-        ? "green.200"
-        : isInProgress
-        ? "blue.200"
-        : "gray.200",
-      borderWidth: 1,
-      shadow: "sm",
+      ...colorScheme,
+      ...baseStyle,
     };
   };
 
@@ -239,6 +276,11 @@ export function MatchCard({
         shadow={cardStyle.shadow}
         position="relative"
         overflow="hidden"
+        _hover={{
+          transform: "scale(1.01)",
+          shadow: "md",
+        }}
+        transition="all 0.2s ease"
       >
         {/* Playoff Background Effect */}
         {isPlayoff && (
@@ -260,9 +302,10 @@ export function MatchCard({
           <HStack justify="center" align="center">
             <Text
               fontSize={isPlayoff ? "lg" : "sm"}
-              color={isPlayoff ? "orange.700" : "gray.600"}
+              color={isPlayoff ? "colorPalette.700" : "fg.muted"}
               fontWeight={isPlayoff ? "bold" : "medium"}
               textAlign="center"
+              colorPalette="orange"
             >
               {isPlayoff
                 ? (match.playoffType === "final" ? "🏆 " : "") +
@@ -275,7 +318,7 @@ export function MatchCard({
           <VStack align="stretch" gap={2}>
             {/* Team 1 */}
             <HStack justify="space-between" align="center">
-              <Text fontSize="md" fontWeight="medium" color="gray.800">
+              <Text fontSize="md" fontWeight="medium" color="fg.default">
                 👤 {match.team1}
               </Text>
               <HStack gap={2} align="center">
@@ -290,7 +333,7 @@ export function MatchCard({
                     ✏️
                   </IconButton>
                 )}
-                <Text fontSize="md" fontFamily="mono" color="gray.700">
+                <Text fontSize="md" fontFamily="mono" color="fg.default">
                   {team1Score}
                 </Text>
               </HStack>
@@ -298,7 +341,7 @@ export function MatchCard({
 
             {/* Team 2 */}
             <HStack justify="space-between" align="center">
-              <Text fontSize="md" fontWeight="medium" color="gray.800">
+              <Text fontSize="md" fontWeight="medium" color="fg.default">
                 👤 {match.team2}
               </Text>
               <HStack gap={2} align="center">
@@ -313,7 +356,7 @@ export function MatchCard({
                     ✏️
                   </IconButton>
                 )}
-                <Text fontSize="md" fontFamily="mono" color="gray.700">
+                <Text fontSize="md" fontFamily="mono" color="fg.default">
                   {team2Score}
                 </Text>
               </HStack>
@@ -326,13 +369,13 @@ export function MatchCard({
           ) : (
             <Box
               p={3}
-              bg="gray.50"
+              bg="bg.subtle"
               rounded="md"
               textAlign="center"
               borderWidth={1}
-              borderColor="gray.200"
+              borderColor="border.subtle"
             >
-              <Text fontSize="sm" color="gray.600" fontWeight="medium">
+              <Text fontSize="sm" color="fg.muted" fontWeight="medium">
                 ⏳ Teams will be determined after previous matches complete
               </Text>
             </Box>

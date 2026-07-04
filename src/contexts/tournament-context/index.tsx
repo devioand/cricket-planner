@@ -324,6 +324,21 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
       return;
     }
 
+    // Determine which innings this is chronologically
+    const team1BatsFirst =
+      match.toss?.decision === "bat"
+        ? match.toss?.tossWinner === match.team1
+        : match.toss?.tossWinner !== match.team1;
+
+    const isFirstInnings =
+      (isTeam1 && team1BatsFirst) || (!isTeam1 && !team1BatsFirst);
+
+    console.log(
+      `Updating ${
+        isFirstInnings ? "first" : "second"
+      } innings for match ${matchId}`
+    );
+
     const ballsFaced = oversToBalls(score.overs);
     const innings = {
       teamName: isTeam1 ? match.team1 : match.team2,

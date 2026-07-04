@@ -12,6 +12,7 @@ import {
 import { ColorModeButton } from "@/components/ui/color-mode";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Logo from "../icons/logo";
 
 export function Header() {
   const pathname = usePathname();
@@ -40,8 +41,9 @@ export function Header() {
                   aria-label="Cricket"
                   transition="transform 0.2s"
                   _hover={{ transform: "scale(1.1)" }}
+                  color="fg.default"
                 >
-                  🏏
+                  <Logo />
                 </Box>
                 <Box>
                   <Heading
@@ -61,8 +63,8 @@ export function Header() {
               </Link>
             ) : (
               <>
-                <Box fontSize="2xl" role="img" aria-label="Cricket">
-                  🏏
+                <Box color="fg.default">
+                  <Logo />
                 </Box>
                 <Box>
                   <Heading size="md" lineHeight="1">
