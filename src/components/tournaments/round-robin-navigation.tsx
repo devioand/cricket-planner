@@ -1,31 +1,34 @@
 "use client";
 
 import { Box, HStack } from "@chakra-ui/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useParams } from "next/navigation";
 import Link from "next/link";
 import { useTournament } from "@/contexts/tournament-context";
 
 export function RoundRobinNavigation() {
   const pathname = usePathname();
+  const params = useParams();
   const tournament = useTournament();
+  const id = params.id as string;
+  const base = `/tournament/round-robin/${id}`;
 
   const navItems = [
     {
-      href: "/tournament/round-robin/setup",
+      href: `${base}/setup`,
       label: "🏏 Setup",
-      isActive: pathname === "/tournament/round-robin/setup",
+      isActive: pathname === `${base}/setup`,
       isEnabled: true,
     },
     {
-      href: "/tournament/round-robin/matches",
+      href: `${base}/matches`,
       label: "⚽ Matches",
-      isActive: pathname === "/tournament/round-robin/matches",
+      isActive: pathname === `${base}/matches`,
       isEnabled: tournament.state.isGenerated,
     },
     {
-      href: "/tournament/round-robin/standings",
+      href: `${base}/standings`,
       label: "🏆 Standings",
-      isActive: pathname === "/tournament/round-robin/standings",
+      isActive: pathname === `${base}/standings`,
       isEnabled: tournament.state.isGenerated,
     },
   ];

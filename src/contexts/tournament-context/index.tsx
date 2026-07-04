@@ -5,6 +5,7 @@ import React, {
   useContext,
   useReducer,
   useEffect,
+  useRef,
   ReactNode,
 } from "react";
 import {
@@ -40,16 +41,14 @@ import {
   updateWorldCupPlayoffTeams,
   updateInitialPlayoffTeamsFromStandings,
 } from "./algorithms/update-playoff-teams";
-import {
-  saveTournamentState,
-  loadTournamentState,
-  clearTournamentState,
-} from "./utils/localStorage";
 
 // Context interface
 interface TournamentContextType {
   state: TournamentState;
   dispatch: React.Dispatch<TournamentAction>;
+  // Persistence binding
+  tournamentId?: string;
+  readOnly: boolean;
   // Action methods
   addTeam: (teamName: string) => boolean;
   removeTeam: (teamName: string) => void;
@@ -121,19 +120,61 @@ const TournamentContext = createContext<TournamentContextType | undefined>(
 // Provider component
 interface TournamentProviderProps {
   children: ReactNode;
+  /** DB id this provider is bound to. When set, state changes autosave to DB. */
+  tournamentId?: string;
+  /** Initial state loaded from the DB (falls back to an empty tournament). */
+  initialState?: TournamentState;
+  /** Read-only view (e.g. a completed tournament) — disables autosave + editing. */
+  readOnly?: boolean;
+  /**
+   * Persistence callback (a Server Action, injected from the server layout).
+   * Kept as a prop so this client context never imports server-only modules.
+   */
+  persist?: (id: string, state: TournamentState) => Promise<unknown>;
 }
 
-export function TournamentProvider({ children }: TournamentProviderProps) {
+export function TournamentProvider({
+  children,
+  tournamentId,
+  initialState,
+  readOnly = false,
+  persist,
+}: TournamentProviderProps) {
   const [state, dispatch] = useReducer(
     tournamentReducer,
-    initialTournamentState,
-    loadTournamentState // Load from localStorage on initialization
+    initialState ?? initialTournamentState
   );
 
-  // Save state to localStorage whenever it changes
+  // Keep a ref to the latest state so we can flush a final save on unmount.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  // Autosave to the database (debounced) whenever state changes.
+  const isFirstRender = useRef(true);
   useEffect(() => {
-    saveTournamentState(state);
-  }, [state]);
+    if (!tournamentId || readOnly || !persist) return;
+    // Don't re-save the state we just hydrated from the DB.
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const timeout = setTimeout(() => {
+      void persist(tournamentId, stateRef.current).catch((error) =>
+        console.error("Failed to save tournament:", error)
+      );
+    }, 600);
+    return () => clearTimeout(timeout);
+  }, [state, tournamentId, readOnly, persist]);
+
+  // Flush the latest state once when leaving the tournament (final save).
+  useEffect(() => {
+    if (!tournamentId || readOnly || !persist) return;
+    return () => {
+      void persist(tournamentId, stateRef.current).catch((error) =>
+        console.error("Failed to flush tournament:", error)
+      );
+    };
+  }, [tournamentId, readOnly, persist]);
 
   // Action methods
   const addTeam = (teamName: string): boolean => {
@@ -239,7 +280,6 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
   };
 
   const clearAllData = (): void => {
-    clearTournamentState();
     dispatch({ type: "RESET_TOURNAMENT" });
   };
 
@@ -613,6 +653,8 @@ export function TournamentProvider({ children }: TournamentProviderProps) {
   const contextValue: TournamentContextType = {
     state,
     dispatch,
+    tournamentId,
+    readOnly,
     addTeam,
     removeTeam,
     setMaxOvers,

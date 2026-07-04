@@ -15,11 +15,8 @@ import {
   IconButton,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  useTournament,
-  logTournamentState,
-} from "@/contexts/tournament-context";
+import { useRouter, useParams } from "next/navigation";
+import { useTournament } from "@/contexts/tournament-context";
 
 import { PlayoffFormatSelector } from "@/components/tournaments/playoff-format-selector";
 import { Button } from "@/components/ui/button";
@@ -27,6 +24,8 @@ import { Button } from "@/components/ui/button";
 export default function RoundRobinSetup() {
   const tournament = useTournament();
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
   const [teamInput, setTeamInput] = useState("");
   const [isAddTeamOpen, setIsAddTeamOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<{
@@ -34,7 +33,7 @@ export default function RoundRobinSetup() {
     name: string;
   } | null>(null);
 
-  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const isLocked = tournament.state.isGenerated || tournament.readOnly;
 
   const handleAddTeam = () => {
     if (teamInput.trim() && teamInput.trim().length <= 10) {
@@ -78,25 +77,12 @@ export default function RoundRobinSetup() {
   const handleStartTournament = () => {
     const result = tournament.generateMatches();
     if (result.success) {
-      logTournamentState();
       // Navigate to matches page immediately after successful generation
-      router.push("/tournament/round-robin/matches");
+      router.push(`/tournament/round-robin/${id}/matches`);
     } else if (result.errors) {
       console.error("❌ Failed to generate matches:", result.errors);
     }
   };
-
-  const handleFinishTournament = () => {
-    setShowFinishConfirm(true);
-  };
-
-  const confirmFinishTournament = () => {
-    tournament.resetTournament();
-    setShowFinishConfirm(false);
-    console.log("🔄 Tournament finished and reset");
-  };
-
-  // Celebration should happen on matches page, not setup page
 
   return (
     <>
@@ -108,7 +94,7 @@ export default function RoundRobinSetup() {
               <Heading size="md">
                 Teams ({tournament.state.teams.length})
               </Heading>
-              {tournament.state.isGenerated && (
+              {isLocked && (
                 <Text fontSize="xs" color="fg.muted" fontStyle="italic">
                   🔒 Locked during tournament
                 </Text>
@@ -127,12 +113,12 @@ export default function RoundRobinSetup() {
                 teamName={team}
                 onEdit={() => handleEditTeam(index, team)}
                 onDelete={() => handleRemoveTeam(team)}
-                isLocked={tournament.state.isGenerated}
+                isLocked={isLocked}
               />
             ))}
 
             {/* Add Team Button */}
-            {!tournament.state.isGenerated && (
+            {!isLocked && (
               <Button
                 onClick={() => setIsAddTeamOpen(true)}
                 variant="outline"
@@ -153,7 +139,7 @@ export default function RoundRobinSetup() {
           <VStack align="stretch" gap={1} mb={4}>
             <HStack justify="space-between" align="center">
               <Heading size="md">Match Settings</Heading>
-              {tournament.state.isGenerated && (
+              {isLocked && (
                 <Text fontSize="xs" color="fg.muted" fontStyle="italic">
                   🔒 Locked during tournament
                 </Text>
@@ -174,7 +160,7 @@ export default function RoundRobinSetup() {
               min={1}
               max={50}
               onValueChange={(details) => {
-                if (!tournament.state.isGenerated) {
+                if (!isLocked) {
                   const value = parseInt(details.value);
                   if (!isNaN(value)) {
                     tournament.setMaxOvers(value);
@@ -182,11 +168,11 @@ export default function RoundRobinSetup() {
                 }
               }}
               size="lg"
-              disabled={tournament.state.isGenerated}
+              disabled={isLocked}
             >
               <NumberInput.Control />
               <NumberInput.Input
-                readOnly={tournament.state.isGenerated}
+                readOnly={isLocked}
                 bg="input.bg"
                 borderColor="input.border"
                 color="fg.default"
@@ -198,7 +184,7 @@ export default function RoundRobinSetup() {
             </NumberInput.Root>
             <Text fontSize="xs" color="fg.muted" mt={1}>
               T20 = 20, ODI = 50
-              {tournament.state.isGenerated && " (Locked during tournament)"}
+              {isLocked && " (Locked during tournament)"}
             </Text>
           </Box>
 
@@ -212,7 +198,7 @@ export default function RoundRobinSetup() {
               min={1}
               max={11}
               onValueChange={(details) => {
-                if (!tournament.state.isGenerated) {
+                if (!isLocked) {
                   const value = parseInt(details.value);
                   if (!isNaN(value)) {
                     tournament.setMaxWickets(value);
@@ -220,11 +206,11 @@ export default function RoundRobinSetup() {
                 }
               }}
               size="lg"
-              disabled={tournament.state.isGenerated}
+              disabled={isLocked}
             >
               <NumberInput.Control />
               <NumberInput.Input
-                readOnly={tournament.state.isGenerated}
+                readOnly={isLocked}
                 bg="input.bg"
                 borderColor="input.border"
                 color="fg.default"
@@ -236,7 +222,7 @@ export default function RoundRobinSetup() {
             </NumberInput.Root>
             <Text fontSize="xs" color="fg.muted" mt={1}>
               Standard: 10 wickets
-              {tournament.state.isGenerated && " (Locked during tournament)"}
+              {isLocked && " (Locked during tournament)"}
             </Text>
           </Box>
         </VStack>
@@ -268,7 +254,6 @@ export default function RoundRobinSetup() {
             <Button
               onClick={handleStartTournament}
               disabled={tournament.state.teams.length < 2}
-              // size="md"
               w="full"
             >
               {tournament.state.teams.length < 2
@@ -277,12 +262,13 @@ export default function RoundRobinSetup() {
             </Button>
           ) : (
             <Button
-              onClick={handleFinishTournament}
-              colorPalette="green"
-              // size="xl"
+              onClick={() =>
+                router.push(`/tournament/round-robin/${id}/matches`)
+              }
+              colorPalette="blue"
               w="full"
             >
-              Finish Tournament
+              Go to Matches →
             </Button>
           )}
         </VStack>
@@ -385,90 +371,6 @@ export default function RoundRobinSetup() {
                         }
                       >
                         {editingTeam ? "Update" : "Add"}
-                      </Button>
-                    </HStack>
-                  </VStack>
-                </Dialog.Body>
-              </Dialog.Content>
-            </Dialog.Positioner>
-          </Portal>
-        </Dialog.Root>
-
-        {/* Finish Tournament Confirmation Dialog */}
-        <Dialog.Root
-          open={showFinishConfirm}
-          onOpenChange={(e) => !e.open && setShowFinishConfirm(false)}
-        >
-          <Portal>
-            <Dialog.Backdrop bg="dialog.backdrop" backdropFilter="blur(4px)" />
-            <Dialog.Positioner>
-              <Dialog.Content
-                maxW="420px"
-                bg="dialog.bg"
-                borderRadius="xl"
-                p={4}
-                boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-              >
-                <Dialog.Header pb={3}>
-                  <VStack gap={1} w="full" align="center">
-                    <Text fontSize="lg" fontWeight="500" color="red.600">
-                      Finish Tournament?
-                    </Text>
-                  </VStack>
-                  <Dialog.CloseTrigger asChild>
-                    <CloseButton
-                      position="absolute"
-                      top={4}
-                      right={4}
-                      size="sm"
-                      color="fg.muted"
-                      _hover={{ color: "fg.default", bg: "bg.subtle" }}
-                    />
-                  </Dialog.CloseTrigger>
-                </Dialog.Header>
-
-                <Dialog.Body px={2}>
-                  <VStack gap={4} w="full">
-                    <Text textAlign="center" color="fg.default">
-                      This will permanently end the tournament and reset all
-                      data. You&apos;ll lose all match results and team
-                      statistics.
-                    </Text>
-
-                    <Text
-                      fontSize="sm"
-                      textAlign="center"
-                      color="red.600"
-                      fontWeight="medium"
-                    >
-                      This action cannot be undone.
-                    </Text>
-
-                    <HStack gap={3} w="full" pt={2}>
-                      <Button
-                        variant="outline"
-                        flex="1"
-                        size="md"
-                        h="44px"
-                        borderRadius="lg"
-                        fontSize="sm"
-                        fontWeight="500"
-                        colorPalette="gray"
-                        onClick={() => setShowFinishConfirm(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        colorPalette="red"
-                        flex="1"
-                        size="md"
-                        h="44px"
-                        borderRadius="lg"
-                        fontSize="sm"
-                        fontWeight="500"
-                        onClick={confirmFinishTournament}
-                      >
-                        Finish Tournament
                       </Button>
                     </HStack>
                   </VStack>

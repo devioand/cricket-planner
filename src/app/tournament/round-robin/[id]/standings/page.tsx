@@ -1,13 +1,15 @@
 "use client";
 
 import { Heading, Text, VStack, Button, Box } from "@chakra-ui/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useTournament } from "@/contexts/tournament-context";
 import { TournamentStandings } from "@/components/tournaments/tournament-standings";
 
 export default function RoundRobinStandings() {
   const tournament = useTournament();
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
 
   return (
     <>
@@ -47,7 +49,7 @@ export default function RoundRobinStandings() {
             Generate tournament matches and play some games to see standings
           </Text>
           <Button
-            onClick={() => router.push("/tournament/round-robin/setup")}
+            onClick={() => router.push(`/tournament/round-robin/${id}/setup`)}
             colorPalette="blue"
             size="lg"
           >

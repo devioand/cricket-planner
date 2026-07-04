@@ -2,7 +2,7 @@
 
 import { Text, VStack, Box } from "@chakra-ui/react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useTournament } from "@/contexts/tournament-context";
 import { MatchCard } from "@/components/tournaments/match-card";
 import { TournamentCelebration } from "@/components/tournaments/tournament-celebration";
@@ -11,6 +11,8 @@ import { useEffect, useState } from "react";
 export default function RoundRobinMatches() {
   const tournament = useTournament();
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationShown, setCelebrationShown] = useState(false);
 
@@ -51,7 +53,9 @@ export default function RoundRobinMatches() {
               matches
             </Text>
             <Button
-              onClick={() => router.push("/tournament/round-robin/setup")}
+              onClick={() =>
+                router.push(`/tournament/round-robin/${id}/setup`)
+              }
               colorPalette="blue"
               size="lg"
             >
@@ -99,6 +103,7 @@ function MatchesFlow() {
     <VStack align="stretch" gap={6}>
       {/* Sample Results Button */}
       {process.env.NODE_ENV === "development" &&
+        !tournament.readOnly &&
         allMatches.length > 0 &&
         pendingMatches > 0 && (
           <Button
