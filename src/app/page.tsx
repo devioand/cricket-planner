@@ -9,16 +9,9 @@ import {
   Card,
   Badge,
   Flex,
-  Input,
-  Dialog,
-  Portal,
-  CloseButton,
 } from "@chakra-ui/react";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { toaster } from "@/components/ui/toaster";
-import { createTournamentAction } from "@/app/tournaments/actions";
 import type { TournamentType } from "@/contexts/tournament-context/types";
 
 interface TournamentAlgorithm {
@@ -106,44 +99,11 @@ const algorithms: TournamentAlgorithm[] = [
 
 export default function Home() {
   const router = useRouter();
-  const [selected, setSelected] = useState<TournamentAlgorithm | null>(null);
-  const [name, setName] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
 
-  const openCreateDialog = (algorithm: TournamentAlgorithm) => {
-    setSelected(algorithm);
-    setName("");
-  };
-
-  const closeCreateDialog = () => {
-    if (isCreating) return;
-    setSelected(null);
-    setName("");
-  };
-
-  const handleCreate = async () => {
-    if (!selected || !name.trim()) return;
-    setIsCreating(true);
-    try {
-      const { id } = await createTournamentAction({
-        name: name.trim(),
-        algorithm: selected.id,
-        playoffFormat: "world-cup",
-        maxOvers: 20,
-        maxWickets: 10,
-      });
-      router.push(`/tournament/round-robin/${id}/setup`);
-    } catch (error) {
-      console.error("Failed to create tournament:", error);
-      setIsCreating(false);
-      toaster.create({
-        title: "Couldn't create tournament",
-        description: "Please try again.",
-        type: "error",
-        duration: 4000,
-        closable: true,
-      });
-    }
+  // Selecting a format takes the user to the tournaments page, where they
+  // name and create the new tournament (create dialog opens automatically).
+  const handleSelect = (algorithm: TournamentAlgorithm) => {
+    router.push(`/tournaments?create=${algorithm.id}`);
   };
 
   return (
@@ -188,7 +148,7 @@ export default function Home() {
               <AlgorithmCard
                 key={algorithm.id}
                 algorithm={algorithm}
-                onSelect={() => openCreateDialog(algorithm)}
+                onSelect={() => handleSelect(algorithm)}
               />
             ))}
           </Flex>
@@ -231,108 +191,6 @@ export default function Home() {
           </VStack>
         </Box>
       </VStack>
-
-      {/* Name + Create Dialog */}
-      <Dialog.Root
-        open={selected !== null}
-        onOpenChange={(e) => !e.open && closeCreateDialog()}
-      >
-        <Portal>
-          <Dialog.Backdrop bg="blackAlpha.400" backdropFilter="blur(4px)" />
-          <Dialog.Positioner>
-            <Dialog.Content
-              maxW="420px"
-              bg="dialog.bg"
-              borderRadius="xl"
-              p={4}
-              boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-            >
-              <Dialog.Header px={2} pb={3}>
-                <VStack gap={1} w="full" align="center">
-                  <Text fontSize="lg" fontWeight="500">
-                    Name Your Tournament
-                  </Text>
-                  <Text fontSize="sm" color="fg.muted">
-                    {selected?.icon} {selected?.name}
-                  </Text>
-                </VStack>
-                <Dialog.CloseTrigger asChild>
-                  <CloseButton
-                    position="absolute"
-                    top={4}
-                    right={4}
-                    size="sm"
-                    color="fg.muted"
-                    _hover={{ color: "fg.default", bg: "bg.subtle" }}
-                  />
-                </Dialog.CloseTrigger>
-              </Dialog.Header>
-
-              <Dialog.Body p={2}>
-                <VStack gap={4} w="full">
-                  <Box w="full">
-                    <Text fontSize="sm" fontWeight="medium" mb={2}>
-                      Tournament Name
-                    </Text>
-                    <Input
-                      placeholder="e.g. Summer Cup 2026"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && name.trim() && !isCreating) {
-                          handleCreate();
-                        }
-                      }}
-                      maxLength={60}
-                      size="lg"
-                      autoFocus
-                      bg="input.bg"
-                      borderColor="input.border"
-                      color="fg.default"
-                      _placeholder={{ color: "fg.placeholder" }}
-                      _focus={{
-                        borderColor: "input.focusBorder",
-                        boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
-                      }}
-                    />
-                  </Box>
-
-                  <HStack gap={3} w="full">
-                    <Button
-                      variant="outline"
-                      flex="1"
-                      size="md"
-                      h="44px"
-                      borderRadius="lg"
-                      fontSize="sm"
-                      colorPalette="gray"
-                      fontWeight="500"
-                      onClick={closeCreateDialog}
-                      disabled={isCreating}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      colorPalette="blue"
-                      flex="1"
-                      size="md"
-                      h="44px"
-                      borderRadius="lg"
-                      fontSize="sm"
-                      fontWeight="500"
-                      onClick={handleCreate}
-                      disabled={!name.trim()}
-                      loading={isCreating}
-                    >
-                      Create
-                    </Button>
-                  </HStack>
-                </VStack>
-              </Dialog.Body>
-            </Dialog.Content>
-          </Dialog.Positioner>
-        </Portal>
-      </Dialog.Root>
     </Box>
   );
 }
@@ -469,7 +327,7 @@ function AlgorithmCard({ algorithm, onSelect }: AlgorithmCardProps) {
                   if (algorithm.isAvailable) onSelect();
                 }}
               >
-                {algorithm.isAvailable ? "Start Tournament" : "Coming Soon"}
+                {algorithm.isAvailable ? "Select" : "Coming Soon"}
               </Button>
             </Box>
           </VStack>

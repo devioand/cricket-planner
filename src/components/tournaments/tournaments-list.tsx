@@ -12,17 +12,21 @@ import {
   Dialog,
   Portal,
   CloseButton,
+  Input,
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
-import { deleteTournamentAction } from "@/app/tournaments/actions";
+import {
+  deleteTournamentAction,
+  createTournamentAction,
+} from "@/app/tournaments/actions";
 import type {
   TournamentSummary,
   TournamentStatus,
 } from "@/lib/repositories/tournament-repository";
+import type { TournamentType } from "@/contexts/tournament-context/types";
 
 const ALGORITHM_LABELS: Record<string, string> = {
   "round-robin": "Round Robin",
@@ -54,14 +58,63 @@ function formatDate(iso: string): string {
 
 export function TournamentsList({
   tournaments,
+  initialCreateFormat = null,
 }: {
   tournaments: TournamentSummary[];
+  initialCreateFormat?: TournamentType | null;
 }) {
   const router = useRouter();
   const [deleteTarget, setDeleteTarget] = useState<TournamentSummary | null>(
     null
   );
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Create dialog (opens automatically when arriving with ?create=<format>).
+  const [createFormat, setCreateFormat] = useState<TournamentType | null>(
+    initialCreateFormat
+  );
+  const [newName, setNewName] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+
+  const openCreate = () => {
+    setCreateFormat("round-robin");
+    setNewName("");
+  };
+
+  const closeCreate = () => {
+    if (isCreating) return;
+    setCreateFormat(null);
+    setNewName("");
+    // Drop the ?create= param so a refresh doesn't re-open the dialog.
+    if (typeof window !== "undefined" && window.location.search) {
+      router.replace("/tournaments");
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!createFormat || !newName.trim()) return;
+    setIsCreating(true);
+    try {
+      const { id } = await createTournamentAction({
+        name: newName.trim(),
+        algorithm: createFormat,
+        playoffFormat: "world-cup",
+        maxOvers: 20,
+        maxWickets: 10,
+      });
+      router.push(`/tournament/round-robin/${id}/setup`);
+    } catch (error) {
+      console.error("Failed to create tournament:", error);
+      setIsCreating(false);
+      toaster.create({
+        title: "Couldn't create tournament",
+        description: "Please try again.",
+        type: "error",
+        duration: 4000,
+        closable: true,
+      });
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -95,14 +148,12 @@ export function TournamentsList({
               Resume an ongoing tournament or revisit a completed one.
             </Text>
           </Box>
-          <Link href="/">
-            <Button colorPalette="blue">
-              <HStack gap={2}>
-                <Text fontSize="lg">+</Text>
-                <Text>New Tournament</Text>
-              </HStack>
-            </Button>
-          </Link>
+          <Button colorPalette="blue" onClick={openCreate}>
+            <HStack gap={2}>
+              <Text fontSize="lg">+</Text>
+              <Text>New Tournament</Text>
+            </HStack>
+          </Button>
         </HStack>
 
         {/* Empty state */}
@@ -122,11 +173,9 @@ export function TournamentsList({
             <Text color="fg.muted" mb={6}>
               Create your first tournament to get started.
             </Text>
-            <Link href="/">
-              <Button colorPalette="blue" size="lg">
-                🚀 Create a Tournament
-              </Button>
-            </Link>
+            <Button colorPalette="blue" size="lg" onClick={openCreate}>
+              🚀 Create a Tournament
+            </Button>
           </Box>
         ) : (
           <VStack gap={3} align="stretch">
@@ -221,6 +270,111 @@ export function TournamentsList({
           </VStack>
         )}
       </VStack>
+
+      {/* Create tournament */}
+      <Dialog.Root
+        open={createFormat !== null}
+        onOpenChange={(e) => !e.open && closeCreate()}
+      >
+        <Portal>
+          <Dialog.Backdrop bg="blackAlpha.400" backdropFilter="blur(4px)" />
+          <Dialog.Positioner>
+            <Dialog.Content
+              maxW="420px"
+              bg="dialog.bg"
+              borderRadius="xl"
+              p={4}
+              boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+            >
+              <Dialog.Header px={2} pb={3}>
+                <VStack gap={1} w="full" align="center">
+                  <Text fontSize="lg" fontWeight="500">
+                    Name Your Tournament
+                  </Text>
+                  {createFormat && (
+                    <Text fontSize="sm" color="fg.muted">
+                      {ALGORITHM_LABELS[createFormat] ?? createFormat}
+                    </Text>
+                  )}
+                </VStack>
+                <Dialog.CloseTrigger asChild>
+                  <CloseButton
+                    position="absolute"
+                    top={4}
+                    right={4}
+                    size="sm"
+                    color="fg.muted"
+                    disabled={isCreating}
+                    _hover={{ color: "fg.default", bg: "bg.subtle" }}
+                  />
+                </Dialog.CloseTrigger>
+              </Dialog.Header>
+
+              <Dialog.Body p={2}>
+                <VStack gap={4} w="full">
+                  <Box w="full">
+                    <Text fontSize="sm" fontWeight="medium" mb={2}>
+                      Tournament Name
+                    </Text>
+                    <Input
+                      placeholder="e.g. Summer Cup 2026"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newName.trim() && !isCreating) {
+                          handleCreate();
+                        }
+                      }}
+                      maxLength={60}
+                      size="lg"
+                      autoFocus
+                      bg="input.bg"
+                      borderColor="input.border"
+                      color="fg.default"
+                      _placeholder={{ color: "fg.placeholder" }}
+                      _focus={{
+                        borderColor: "input.focusBorder",
+                        boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
+                      }}
+                    />
+                  </Box>
+
+                  <HStack gap={3} w="full">
+                    <Button
+                      variant="outline"
+                      flex="1"
+                      size="md"
+                      h="44px"
+                      borderRadius="lg"
+                      fontSize="sm"
+                      colorPalette="gray"
+                      fontWeight="500"
+                      onClick={closeCreate}
+                      disabled={isCreating}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      colorPalette="blue"
+                      flex="1"
+                      size="md"
+                      h="44px"
+                      borderRadius="lg"
+                      fontSize="sm"
+                      fontWeight="500"
+                      onClick={handleCreate}
+                      disabled={!newName.trim()}
+                      loading={isCreating}
+                    >
+                      Create
+                    </Button>
+                  </HStack>
+                </VStack>
+              </Dialog.Body>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
 
       {/* Delete confirmation */}
       <Dialog.Root
