@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, Text } from "@chakra-ui/react";
-import { type Match } from "@/contexts/tournament-context";
+import { type Match } from "@/contexts/tournament-context/types";
 
 interface MatchStatusProps {
   match: Match;

@@ -1,18 +1,18 @@
-"use client";
-
 import { Box, HStack, Text } from "@chakra-ui/react";
 import { LuTrophy } from "react-icons/lu";
-import { useTournament } from "@/contexts/tournament-context";
 
 /**
- * Top bar shown when the user is viewing a finished (completed) tournament,
- * so it's immediately clear the tournament is over and read-only.
+ * Top bar shown when viewing a finished (completed) tournament, so it's
+ * immediately clear the tournament is over and read-only.
  */
-export function CompletedBanner() {
-  const tournament = useTournament();
-  if (!tournament.readOnly) return null;
-
-  const winner = tournament.getTournamentWinner();
+export function CompletedBanner({
+  completed,
+  winner,
+}: {
+  completed: boolean;
+  winner: string | null;
+}) {
+  if (!completed) return null;
 
   return (
     <Box

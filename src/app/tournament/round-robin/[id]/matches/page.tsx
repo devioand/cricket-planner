@@ -1,139 +1,83 @@
-"use client";
-
+import { notFound } from "next/navigation";
+import Link from "next/link";
 import { Text, VStack, Box } from "@chakra-ui/react";
-import { Button } from "@/components/ui/button";
-import { useRouter, useParams } from "next/navigation";
-import { useTournament } from "@/contexts/tournament-context";
+import { requireUser } from "@/lib/session";
+import { getTournament } from "@/lib/repositories/tournament-repository";
 import { MatchCard } from "@/components/tournaments/match-card";
-import { TournamentCelebration } from "@/components/tournaments/tournament-celebration";
-import { useEffect, useState } from "react";
+import { SampleResultsButton } from "@/components/tournaments/sample-results-button";
+import { Button } from "@/components/ui/button";
 
-export default function RoundRobinMatches() {
-  const tournament = useTournament();
-  const router = useRouter();
-  const params = useParams();
-  const id = params.id as string;
-  const [showCelebration, setShowCelebration] = useState(false);
-  const [celebrationShown, setCelebrationShown] = useState(false);
+export default async function RoundRobinMatches({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const user = await requireUser();
+  const record = await getTournament(user.id, id);
+  if (!record) notFound();
 
-  // Note: Playoffs are now generated automatically with TBD placeholders when tournament is created
-  // TBD teams get replaced automatically when round robin matches complete
+  const { state, status } = record;
+  const readOnly = status === "completed";
 
-  // Check for tournament completion and show celebration
-  useEffect(() => {
-    const isComplete = tournament.isTournamentComplete();
-    const winner = tournament.getTournamentWinner();
-
-    if (isComplete && winner && !celebrationShown) {
-      setShowCelebration(true);
-      setCelebrationShown(true);
-    }
-
-    // Reset celebration flag when tournament is reset
-    if (!isComplete && celebrationShown) {
-      setCelebrationShown(false);
-    }
-  }, [tournament.state.matches, tournament, celebrationShown]);
-
-  return (
-    <>
+  if (!state.isGenerated) {
+    return (
       <VStack gap={{ base: 6, md: 8 }} align="stretch">
-        {!tournament.state.isGenerated ? (
-          <Box p={8} bg="bg.subtle" rounded="lg" textAlign="center">
-            <Text
-              fontSize={{ base: "lg", md: "xl" }}
-              fontWeight="semibold"
-              color="fg.default"
-              mb={4}
-            >
-              📋 No Tournament Generated
-            </Text>
-            <Text fontSize="md" color="fg.muted" mb={6}>
-              Please set up your tournament first by adding teams and generating
-              matches
-            </Text>
-            <Button
-              onClick={() =>
-                router.push(`/tournament/round-robin/${id}/setup`)
-              }
-              colorPalette="blue"
-              size="lg"
-            >
+        <Box p={8} bg="bg.subtle" rounded="lg" textAlign="center">
+          <Text
+            fontSize={{ base: "lg", md: "xl" }}
+            fontWeight="semibold"
+            color="fg.default"
+            mb={4}
+          >
+            📋 No Tournament Generated
+          </Text>
+          <Text fontSize="md" color="fg.muted" mb={6}>
+            Please set up your tournament first by adding teams and generating
+            matches
+          </Text>
+          <Link href={`/tournament/round-robin/${id}/setup`}>
+            <Button colorPalette="blue" size="lg">
               ← Go to Setup
             </Button>
-          </Box>
-        ) : (
-          <MatchesFlow />
-        )}
+          </Link>
+        </Box>
       </VStack>
+    );
+  }
 
-      {/* Tournament Celebration */}
-      <TournamentCelebration
-        isOpen={showCelebration}
-        onClose={() => setShowCelebration(false)}
-        winner={tournament.getTournamentWinner() || ""}
-      />
-    </>
-  );
-}
-
-// Main matches component using the new MatchCard
-function MatchesFlow() {
-  const tournament = useTournament();
-
-  // Separate round-robin and playoff matches
-  const roundRobinMatches = tournament.state.matches
-    .filter((match) => !match.isPlayoff)
+  const roundRobinMatches = state.matches
+    .filter((m) => !m.isPlayoff)
     .sort((a, b) => a.round - b.round);
-
-  const playoffMatches = tournament.state.matches
-    .filter((match) => match.isPlayoff)
+  const playoffMatches = state.matches
+    .filter((m) => m.isPlayoff)
     .sort((a, b) => a.round - b.round);
-
-  const allMatches = [...roundRobinMatches, ...playoffMatches];
-  const pendingMatches = allMatches.filter(
-    (match) => match.status !== "completed"
-  ).length;
-
-  const handleGenerateSampleResults = () => {
-    tournament.generateSampleResults();
-  };
+  const pending = state.matches.filter((m) => m.status !== "completed").length;
 
   return (
     <VStack align="stretch" gap={6}>
-      {/* Sample Results Button */}
-      {process.env.NODE_ENV === "development" &&
-        !tournament.readOnly &&
-        allMatches.length > 0 &&
-        pendingMatches > 0 && (
-          <Button
-            size="sm"
-            colorPalette="purple"
-            variant="outline"
-            onClick={handleGenerateSampleResults}
-            alignSelf="flex-start"
-          >
-            🎲 Generate Sample Results ({pendingMatches} pending)
-          </Button>
-        )}
+      {process.env.NODE_ENV === "development" && !readOnly && pending > 0 && (
+        <SampleResultsButton tournamentId={id} pending={pending} />
+      )}
 
-      {/* Group Stage Matches Section */}
+      {/* Group Stage */}
       {roundRobinMatches.length > 0 && (
         <VStack align="stretch" gap={4}>
           {roundRobinMatches.map((match, index) => (
             <MatchCard
               key={match.id}
               match={match}
+              tournamentId={id}
               matchNumber={index + 1}
               totalMatches={roundRobinMatches.length}
+              readOnly={readOnly}
             />
           ))}
         </VStack>
       )}
 
-      {/* Playoff Matches Section */}
+      {/* Playoffs */}
       <VStack align="stretch" gap={4}>
-        {/* Option 1: Simple Clean Header (like Round Robin) */}
         <Box textAlign="center" py={4}>
           <Text
             fontSize="xl"
@@ -160,15 +104,15 @@ function MatchesFlow() {
           </Box>
         )}
 
-        {/* Playoff Matches */}
         {playoffMatches.map((match, index) => (
           <Box key={match.id} position="relative">
             <MatchCard
-              key={match.id}
               match={match}
+              tournamentId={id}
               matchNumber={index + 1}
               totalMatches={playoffMatches.length}
-              isPlayoff={true}
+              isPlayoff
+              readOnly={readOnly}
             />
           </Box>
         ))}

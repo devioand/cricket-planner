@@ -4,11 +4,12 @@ import { Box } from "@chakra-ui/react";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 import { TossManager } from "./toss-manager";
-import { Match } from "@/contexts/tournament-context";
+import type { Match } from "@/contexts/tournament-context/types";
 
 interface MatchActionsProps {
   match: Match;
   matchState: string;
+  tournamentId: string;
   onStartMatch: () => void;
   onStartSecondInnings?: () => void;
   onFinishMatch?: () => void;
@@ -17,6 +18,7 @@ interface MatchActionsProps {
 export function MatchActions({
   match,
   matchState,
+  tournamentId,
   onStartMatch,
   onStartSecondInnings,
   onFinishMatch,
@@ -34,7 +36,7 @@ export function MatchActions({
   }
 
   if (matchState === "in-progress-need-toss") {
-    return <TossManager match={match} />;
+    return <TossManager match={match} tournamentId={tournamentId} />;
   }
 
   if (matchState === "first-innings-ready") {

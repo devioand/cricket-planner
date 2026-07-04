@@ -293,6 +293,10 @@ export function completeMatch(
   const match = state.matches.find((m) => m.id === matchId);
   if (!match || !match.result) return noop;
 
+  // Idempotent: never re-process an already-completed match (would otherwise
+  // double-count team stats if the action is triggered twice).
+  if (match.status === "completed") return noop;
+
   const { team1Innings, team2Innings } = match.result;
   if (!team1Innings || !team2Innings) return noop;
 
@@ -401,6 +405,41 @@ export function completeMatch(
   };
 }
 
+/**
+ * Set both innings of a match at once (keeps status "in-progress"). Used by the
+ * dev sample-results helper and by tests.
+ */
+export function simulateMatchResult(
+  state: TournamentState,
+  matchId: string,
+  team1Score: { runs: number; wickets: number; overs: number },
+  team2Score: { runs: number; wickets: number; overs: number },
+): TournamentState {
+  const match = state.matches.find((m) => m.id === matchId);
+  if (!match) return state;
+
+  const matchResult = createSampleMatchResult(
+    match.team1,
+    match.team2,
+    team1Score.runs,
+    team1Score.wickets,
+    team1Score.overs,
+    team2Score.runs,
+    team2Score.wickets,
+    team2Score.overs,
+    match.overs,
+  );
+
+  return {
+    ...state,
+    matches: state.matches.map((m) =>
+      m.id === matchId
+        ? { ...m, status: "in-progress" as const, result: matchResult }
+        : m,
+    ),
+  };
+}
+
 /** Dev-only: fill scheduled, non-TBD matches with random in-progress scores. */
 export function generateSampleResults(state: TournamentState): TournamentState {
   let next = state;
@@ -408,8 +447,7 @@ export function generateSampleResults(state: TournamentState): TournamentState {
     (m) => m.status === "scheduled" && m.team1 !== "TBD" && m.team2 !== "TBD",
   );
 
-  for (let i = 0; i < scheduled.length; i++) {
-    const match = scheduled[i];
+  for (const match of scheduled) {
     const team1Runs = Math.floor(Math.random() * 100) + 100;
     const team1Wickets = Math.floor(Math.random() * 10) + 1;
     const team1Overs = match.overs - Math.random() * 10;
@@ -418,25 +456,12 @@ export function generateSampleResults(state: TournamentState): TournamentState {
     const team2Wickets = Math.floor(Math.random() * 10) + 1;
     const team2Overs = match.overs - Math.random() * 15;
 
-    const matchResult = createSampleMatchResult(
-      match.team1,
-      match.team2,
-      team1Runs,
-      team1Wickets,
-      team1Overs,
-      team2Runs,
-      team2Wickets,
-      team2Overs,
-      match.overs,
+    next = simulateMatchResult(
+      next,
+      match.id,
+      { runs: team1Runs, wickets: team1Wickets, overs: team1Overs },
+      { runs: team2Runs, wickets: team2Wickets, overs: team2Overs },
     );
-    next = {
-      ...next,
-      matches: next.matches.map((m) =>
-        m.id === match.id
-          ? { ...m, status: "in-progress" as const, result: matchResult }
-          : m,
-      ),
-    };
   }
 
   return next;

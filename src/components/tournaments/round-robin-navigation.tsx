@@ -1,15 +1,17 @@
 "use client";
 
 import { Box, HStack } from "@chakra-ui/react";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { useTournament } from "@/contexts/tournament-context";
 
-export function RoundRobinNavigation() {
+export function RoundRobinNavigation({
+  id,
+  isGenerated,
+}: {
+  id: string;
+  isGenerated: boolean;
+}) {
   const pathname = usePathname();
-  const params = useParams();
-  const tournament = useTournament();
-  const id = params.id as string;
   const base = `/tournament/round-robin/${id}`;
 
   const navItems = [
@@ -23,13 +25,13 @@ export function RoundRobinNavigation() {
       href: `${base}/matches`,
       label: "⚽ Matches",
       isActive: pathname === `${base}/matches`,
-      isEnabled: tournament.state.isGenerated,
+      isEnabled: isGenerated,
     },
     {
       href: `${base}/standings`,
       label: "🏆 Standings",
       isActive: pathname === `${base}/standings`,
-      isEnabled: tournament.state.isGenerated,
+      isEnabled: isGenerated,
     },
   ];
 
@@ -78,17 +80,12 @@ function NavButton({ href, label, isActive, isEnabled }: NavButtonProps) {
       transition="all 0.2s ease"
       bg={isActive ? "colorPalette.500" : "bg.subtle"}
       color={isActive ? "white" : isEnabled ? "fg.default" : "fg.disabled"}
-      // borderWidth={isActive ? 0 : 1}
       borderColor={isEnabled ? "transparent" : "border.subtle"}
       opacity={isEnabled ? 1 : 0.6}
       cursor={isEnabled ? "pointer" : "not-allowed"}
       colorPalette="blue"
       _hover={
-        isEnabled
-          ? {
-              bg: isActive ? "colorPalette.600" : "bg.subtle",
-            }
-          : {}
+        isEnabled ? { bg: isActive ? "colorPalette.600" : "bg.subtle" } : {}
       }
     >
       {label}

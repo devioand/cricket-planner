@@ -1,47 +1,35 @@
 "use client";
 
 import { Box, Text, VStack, HStack, IconButton } from "@chakra-ui/react";
-import { useState } from "react";
-import { useTournament, type Match } from "@/contexts/tournament-context";
+import { useState, useTransition } from "react";
+import type { Match } from "@/contexts/tournament-context/types";
 import { displayCricketOvers } from "@/contexts/tournament-context/algorithms/cricket-stats";
 import { MatchStatus } from "./match-status";
 import { MatchActions } from "./match-actions";
 import { TeamScoreInputDialog } from "./team-score-input-dialog";
+import { TournamentCelebration } from "./tournament-celebration";
+import {
+  startMatchAction,
+  startSecondInningsAction,
+  finishMatchAction,
+} from "@/app/tournament/round-robin/[id]/actions";
 
 // Playoff Consequences Component
 function PlayoffConsequences({ playoffType }: { playoffType?: string }) {
   const getConsequences = (type?: string) => {
     switch (type) {
       case "qualifier-1":
-        return {
-          winner: "goes to Final",
-          loser: "goes to Qualifier 2",
-        };
+        return { winner: "goes to Final", loser: "goes to Qualifier 2" };
       case "qualifier-2":
-        return {
-          winner: "goes to Final",
-          loser: "is out of tournament",
-        };
+        return { winner: "goes to Final", loser: "is out of tournament" };
       case "eliminator":
-        return {
-          winner: "goes to Qualifier 2",
-          loser: "is out of tournament",
-        };
+        return { winner: "goes to Qualifier 2", loser: "is out of tournament" };
       case "semi-final":
-        return {
-          winner: "goes to Final",
-          loser: "is out of tournament",
-        };
+        return { winner: "goes to Final", loser: "is out of tournament" };
       case "final":
-        return {
-          winner: "becomes Champion",
-          loser: "becomes Runner-up",
-        };
+        return { winner: "becomes Champion", loser: "becomes Runner-up" };
       default:
-        return {
-          winner: "goes to next round",
-          loser: "is out of tournament",
-        };
+        return { winner: "goes to next round", loser: "is out of tournament" };
     }
   };
 
@@ -57,42 +45,45 @@ function PlayoffConsequences({ playoffType }: { playoffType?: string }) {
 
 interface MatchCardProps {
   match: Match;
+  tournamentId: string;
   matchNumber: number;
   totalMatches: number;
   isPlayoff?: boolean;
+  readOnly?: boolean;
 }
 
 export function MatchCard({
   match,
+  tournamentId,
   matchNumber,
   totalMatches,
   isPlayoff = false,
+  readOnly = false,
 }: MatchCardProps) {
   const [isTeam1ScoreDialogOpen, setIsTeam1ScoreDialogOpen] = useState(false);
   const [isTeam2ScoreDialogOpen, setIsTeam2ScoreDialogOpen] = useState(false);
-  const tournament = useTournament();
+  const [celebrationWinner, setCelebrationWinner] = useState<string | null>(
+    null
+  );
+  const [, startTransition] = useTransition();
 
   const isCompleted = match.status === "completed";
   const isInProgress = match.status === "in-progress";
   const isDraw = !!match.result?.isDraw;
   const hasToss = match.toss !== undefined;
 
-  // Check if this is a TBD (To Be Determined) match
   const hasTBDTeams =
     match.team1 === "TBD" ||
     match.team2 === "TBD" ||
     match.team1.includes("TBD") ||
     match.team2.includes("TBD");
 
-  // Determine match state for better UX
   const getMatchState = () => {
     if (isCompleted) return "completed";
 
-    // In-progress match states
     if (isInProgress) {
       if (!hasToss) return "in-progress-need-toss";
 
-      // Determine which team bats first based on toss
       const team1BatsFirst =
         match.toss?.decision === "bat"
           ? match.toss.tossWinner === match.team1
@@ -101,7 +92,6 @@ export function MatchCard({
       const firstInningsComplete = team1BatsFirst
         ? match.result?.team1Innings
         : match.result?.team2Innings;
-
       const secondInningsComplete = team1BatsFirst
         ? match.result?.team2Innings
         : match.result?.team1Innings;
@@ -115,7 +105,6 @@ export function MatchCard({
       return "first-innings-ready";
     }
 
-    // Scheduled match states
     if (!hasToss) return "not-started";
     return "scheduled";
   };
@@ -132,75 +121,37 @@ export function MatchCard({
       } (${displayCricketOvers(match.result.team2Innings.overs)})`
     : "0/0 (0.0)";
 
-  // Determine which team should show edit icon based on match progression
   const shouldShowTeam1EditIcon = () => {
-    if (isCompleted) return false;
-    if (!hasToss) return false;
-
-    // Determine which team bats first based on toss
+    if (readOnly || isCompleted || !hasToss) return false;
     const team1BatsFirst =
       match.toss?.decision === "bat"
         ? match.toss.tossWinner === match.team1
         : match.toss?.tossWinner !== match.team1;
 
-    // Show for team 1 if:
-    // 1. First innings ready and team1 bats first
-    // 2. Second innings ready and team1 bats second
-    if (matchState === "first-innings-ready") {
+    if (matchState === "first-innings-ready")
       return team1BatsFirst && !match.result?.team1Innings;
-    }
-
-    if (matchState === "second-innings-ready") {
+    if (matchState === "second-innings-ready")
       return !team1BatsFirst && !match.result?.team1Innings;
-    }
-
     return false;
   };
 
   const shouldShowTeam2EditIcon = () => {
-    if (isCompleted) return false;
-    if (!hasToss) return false;
-
-    // Determine which team bats first based on toss
+    if (readOnly || isCompleted || !hasToss) return false;
     const team1BatsFirst =
       match.toss?.decision === "bat"
         ? match.toss.tossWinner === match.team1
         : match.toss?.tossWinner !== match.team1;
 
-    // Show for team 2 if:
-    // 1. First innings ready and team2 bats first
-    // 2. Second innings ready and team2 bats second
-    if (matchState === "first-innings-ready") {
+    if (matchState === "first-innings-ready")
       return !team1BatsFirst && !match.result?.team2Innings;
-    }
-
-    if (matchState === "second-innings-ready") {
+    if (matchState === "second-innings-ready")
       return team1BatsFirst && !match.result?.team2Innings;
-    }
-
     return false;
   };
 
-  // Get match card styling based on match state and type
   const getCardStyling = () => {
-    // Base styling configuration
-    const baseStyles = {
-      playoff: {
-        borderWidth: 2,
-        shadow: "sm",
-      },
-      regular: {
-        borderWidth: 2,
-        shadow: "sm",
-      },
-    };
-
-    // Color schemes for different match states
     const colorSchemes = {
-      draw: {
-        bg: "card.bg",
-        borderColor: "red.300",
-      },
+      draw: { bg: "card.bg", borderColor: "red.300" },
       completed: {
         bg: "card.bg",
         borderColor: isPlayoff ? "green.500" : "green.400",
@@ -215,35 +166,19 @@ export function MatchCard({
       },
     };
 
-    // Determine match state priority (highest to lowest priority)
-    let matchStateKey: keyof typeof colorSchemes;
+    let key: keyof typeof colorSchemes;
+    if (isCompleted && isDraw) key = "draw";
+    else if (isCompleted) key = "completed";
+    else if (isInProgress) key = "inProgress";
+    else key = "scheduled";
 
-    if (isCompleted && isDraw) {
-      matchStateKey = "draw";
-    } else if (isCompleted) {
-      matchStateKey = "completed";
-    } else if (isInProgress) {
-      matchStateKey = "inProgress";
-    } else {
-      matchStateKey = "scheduled";
-    }
-
-    // Get appropriate color scheme and base styles
-    const colorScheme = colorSchemes[matchStateKey];
-    const baseStyle = isPlayoff ? baseStyles.playoff : baseStyles.regular;
-
-    return {
-      ...colorScheme,
-      ...baseStyle,
-    };
+    return { ...colorSchemes[key], borderWidth: 2, shadow: "sm" };
   };
 
   const cardStyle = getCardStyling();
 
-  // Format playoff type for display
   const getPlayoffDisplayText = (playoffType?: string) => {
     if (!playoffType) return "";
-
     switch (playoffType) {
       case "semi-final-1":
         return "Semi Final - 1";
@@ -264,6 +199,21 @@ export function MatchCard({
     }
   };
 
+  const handleFinishMatch = () => {
+    startTransition(async () => {
+      const r = await finishMatchAction(tournamentId, match.id);
+      if (r.complete && r.winner) {
+        setCelebrationWinner(r.winner);
+      } else if (r.nextMatchId) {
+        setTimeout(() => {
+          document
+            .getElementById(`match-${r.nextMatchId}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 500);
+      }
+    });
+  };
+
   return (
     <>
       <Box
@@ -276,13 +226,9 @@ export function MatchCard({
         shadow={cardStyle.shadow}
         position="relative"
         overflow="hidden"
-        _hover={{
-          transform: "scale(1.01)",
-          shadow: "md",
-        }}
+        _hover={{ transform: "scale(1.01)", shadow: "md" }}
         transition="all 0.2s ease"
       >
-        {/* Playoff Background Effect */}
         {isPlayoff && (
           <Box
             position="absolute"
@@ -316,7 +262,6 @@ export function MatchCard({
 
           {/* Team Rows */}
           <VStack align="stretch" gap={2}>
-            {/* Team 1 */}
             <HStack justify="space-between" align="center">
               <Text fontSize="md" fontWeight="medium" color="fg.default">
                 👤 {match.team1}
@@ -339,7 +284,6 @@ export function MatchCard({
               </HStack>
             </HStack>
 
-            {/* Team 2 */}
             <HStack justify="space-between" align="center">
               <Text fontSize="md" fontWeight="medium" color="fg.default">
                 👤 {match.team2}
@@ -363,7 +307,7 @@ export function MatchCard({
             </HStack>
           </VStack>
 
-          {/* Match Status - Only show if not TBD or show TBD guidance */}
+          {/* Match Status */}
           {!hasTBDTeams ? (
             <MatchStatus match={match} matchState={matchState} />
           ) : (
@@ -381,32 +325,21 @@ export function MatchCard({
             </Box>
           )}
 
-          {/* Match Actions - Only show if not TBD */}
-          {!hasTBDTeams && (
+          {/* Match Actions */}
+          {!hasTBDTeams && !readOnly && (
             <MatchActions
               match={match}
               matchState={matchState}
-              onStartMatch={() => tournament.startMatch(match.id)}
-              onStartSecondInnings={() =>
-                tournament.startSecondInnings(match.id)
+              tournamentId={tournamentId}
+              onStartMatch={() =>
+                startTransition(() => startMatchAction(tournamentId, match.id))
               }
-              onFinishMatch={() => {
-                const result = tournament.completeMatch(match.id);
-                if (result.nextMatchId) {
-                  // Scroll to next match or focus on it
-                  setTimeout(() => {
-                    const nextMatchElement = document.getElementById(
-                      `match-${result.nextMatchId}`
-                    );
-                    if (nextMatchElement) {
-                      nextMatchElement.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
-                    }
-                  }, 500);
-                }
-              }}
+              onStartSecondInnings={() =>
+                startTransition(() =>
+                  startSecondInningsAction(tournamentId, match.id)
+                )
+              }
+              onFinishMatch={handleFinishMatch}
             />
           )}
 
@@ -417,24 +350,31 @@ export function MatchCard({
         </VStack>
       </Box>
 
-      {/* Team 1 Score Input Dialog */}
+      {/* Score Input Dialogs */}
       <TeamScoreInputDialog
         isOpen={isTeam1ScoreDialogOpen}
         onClose={() => setIsTeam1ScoreDialogOpen(false)}
         match={match}
+        tournamentId={tournamentId}
         matchNumber={matchNumber}
         teamName={match.team1}
         isTeam1={true}
       />
-
-      {/* Team 2 Score Input Dialog */}
       <TeamScoreInputDialog
         isOpen={isTeam2ScoreDialogOpen}
         onClose={() => setIsTeam2ScoreDialogOpen(false)}
         match={match}
+        tournamentId={tournamentId}
         matchNumber={matchNumber}
         teamName={match.team2}
         isTeam1={false}
+      />
+
+      {/* Champion celebration (shown when finishing the final) */}
+      <TournamentCelebration
+        isOpen={celebrationWinner !== null}
+        onClose={() => setCelebrationWinner(null)}
+        winner={celebrationWinner || ""}
       />
     </>
   );

@@ -12,17 +12,19 @@ import {
   Button,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import { useTournament, type Match } from "@/contexts/tournament-context";
+import type { Match } from "@/contexts/tournament-context/types";
 import {
   formatCricketOvers,
   isValidCricketOvers,
 } from "@/contexts/tournament-context/algorithms/cricket-stats";
+import { updateInningsAction } from "@/app/tournament/round-robin/[id]/actions";
 import { toaster } from "@/components/ui/toaster";
 
 interface TeamScoreInputDialogProps {
   isOpen: boolean;
   onClose: () => void;
   match: Match;
+  tournamentId: string;
   matchNumber: number;
   teamName: string;
   isTeam1: boolean;
@@ -32,11 +34,11 @@ export function TeamScoreInputDialog({
   isOpen,
   onClose,
   match,
+  tournamentId,
   matchNumber,
   teamName,
   isTeam1,
 }: TeamScoreInputDialogProps) {
-  const tournament = useTournament();
   const [team1Score, setTeam1Score] = useState({
     runs: "",
     wickets: "",
@@ -49,7 +51,7 @@ export function TeamScoreInputDialog({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validate the currently focused team's score
     const currentTeamScore = isTeam1 ? team1Score : team2Score;
     const runs = parseInt(currentTeamScore.runs);
@@ -111,8 +113,8 @@ export function TeamScoreInputDialog({
     setIsSubmitting(true);
 
     try {
-      // Use updateSingleInnings for step-by-step scoring
-      tournament.updateSingleInnings(match.id, isTeam1, {
+      // Persist this innings via a server action (step-by-step scoring).
+      await updateInningsAction(tournamentId, match.id, isTeam1, {
         runs,
         wickets,
         overs: formatCricketOvers(overs), // Ensure cricket format
