@@ -425,6 +425,51 @@ describe("Tournament Context", () => {
     });
   });
 
+  describe("Two-Team Tournament", () => {
+    it("plays a single final that produces a champion", () => {
+      const { result } = renderHook(() => useTournament(), { wrapper });
+
+      act(() => {
+        result.current.addTeam("Team A");
+        result.current.addTeam("Team B");
+      });
+
+      act(() => {
+        const gen = result.current.generateMatches();
+        expect(gen.success).toBe(true);
+      });
+
+      // A 2-team tournament is a single final between the two known teams.
+      const matches = result.current.state.matches;
+      expect(matches).toHaveLength(1);
+      const final = matches[0];
+      expect(final.isPlayoff).toBe(true);
+      expect(final.playoffType).toBe("final");
+      expect([final.team1, final.team2].sort()).toEqual(["Team A", "Team B"]);
+      expect(final.team1).not.toBe("TBD");
+      expect(final.team2).not.toBe("TBD");
+
+      // Not complete until the final is played.
+      expect(result.current.isTournamentComplete()).toBe(false);
+
+      act(() => {
+        result.current.simulateMatchResult(
+          final.id,
+          { runs: 160, wickets: 4, overs: 20 },
+          { runs: 150, wickets: 8, overs: 20 }
+        );
+      });
+
+      act(() => {
+        result.current.completeMatch(final.id);
+      });
+
+      // Finishing the final crowns a champion and completes the tournament.
+      expect(result.current.isTournamentComplete()).toBe(true);
+      expect(result.current.getTournamentWinner()).toBe(final.team1);
+    });
+  });
+
   describe("Utility Functions", () => {
     it("should validate teams correctly", () => {
       const { result } = renderHook(() => useTournament(), { wrapper });

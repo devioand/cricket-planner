@@ -6,6 +6,7 @@ import React, {
   useReducer,
   useEffect,
   useRef,
+  useCallback,
   ReactNode,
 } from "react";
 import {
@@ -149,6 +150,35 @@ export function TournamentProvider({
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  // Serialized ("single-flight") save. Only one save runs at a time; if state
+  // changes while a save is in progress, we re-save the LATEST state right
+  // after it finishes. This guarantees saves are applied in order and the DB
+  // always ends up at the newest state — preventing an older, slower save from
+  // overwriting a newer one (which is a full-replace, so out-of-order writes
+  // would otherwise corrupt the tournament, e.g. revert a completed final).
+  const saveInFlight = useRef(false);
+  const pendingSave = useRef(false);
+
+  const flushSave = useCallback(async () => {
+    if (!tournamentId || readOnly || !persist) return;
+    if (saveInFlight.current) {
+      pendingSave.current = true;
+      return;
+    }
+    saveInFlight.current = true;
+    try {
+      await persist(tournamentId, stateRef.current);
+    } catch (error) {
+      console.error("Failed to save tournament:", error);
+    } finally {
+      saveInFlight.current = false;
+      if (pendingSave.current) {
+        pendingSave.current = false;
+        void flushSave();
+      }
+    }
+  }, [tournamentId, readOnly, persist]);
+
   // Autosave to the database (debounced) whenever state changes.
   const isFirstRender = useRef(true);
   useEffect(() => {
@@ -159,22 +189,18 @@ export function TournamentProvider({
       return;
     }
     const timeout = setTimeout(() => {
-      void persist(tournamentId, stateRef.current).catch((error) =>
-        console.error("Failed to save tournament:", error)
-      );
-    }, 600);
+      void flushSave();
+    }, 500);
     return () => clearTimeout(timeout);
-  }, [state, tournamentId, readOnly, persist]);
+  }, [state, tournamentId, readOnly, persist, flushSave]);
 
   // Flush the latest state once when leaving the tournament (final save).
   useEffect(() => {
     if (!tournamentId || readOnly || !persist) return;
     return () => {
-      void persist(tournamentId, stateRef.current).catch((error) =>
-        console.error("Failed to flush tournament:", error)
-      );
+      void flushSave();
     };
-  }, [tournamentId, readOnly, persist]);
+  }, [tournamentId, readOnly, persist, flushSave]);
 
   // Action methods
   const addTeam = (teamName: string): boolean => {
@@ -228,6 +254,25 @@ export function TournamentProvider({
       // Generate matches based on selected algorithm
       switch (state.algorithm) {
         case "round-robin": {
+          // Special case: with exactly 2 teams there is no group stage — a
+          // single final between the two teams decides the champion.
+          if (state.teams.length === 2) {
+            const finalMatch: Match = {
+              id: "F-001",
+              team1: state.teams[0],
+              team2: state.teams[1],
+              round: 1,
+              status: "scheduled",
+              overs: state.maxOvers,
+              maxWickets: state.maxWickets,
+              isPlayoff: true,
+              playoffType: "final",
+              phase: "playoffs",
+            };
+            dispatch({ type: "SET_MATCHES", payload: [finalMatch] });
+            break;
+          }
+
           // Generate round robin matches
           const roundRobinResult = generateRoundRobinMatches({
             teams: state.teams,
