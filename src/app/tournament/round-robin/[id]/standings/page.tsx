@@ -1,15 +1,24 @@
-"use client";
-
-import { Heading, Text, VStack, Button, Box } from "@chakra-ui/react";
-import { useRouter, useParams } from "next/navigation";
-import { useTournament } from "@/contexts/tournament-context";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { Heading, Text, VStack, Box } from "@chakra-ui/react";
+import { requireUser } from "@/lib/session";
+import { getTournament } from "@/lib/repositories/tournament-repository";
+import { getStandings } from "@/contexts/tournament-context/engine";
 import { TournamentStandings } from "@/components/tournaments/tournament-standings";
+import { Button } from "@/components/ui/button";
 
-export default function RoundRobinStandings() {
-  const tournament = useTournament();
-  const router = useRouter();
-  const params = useParams();
-  const id = params.id as string;
+export default async function RoundRobinStandings({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const user = await requireUser();
+  const record = await getTournament(user.id, id);
+  if (!record) notFound();
+
+  const { state } = record;
+  const standings = getStandings(state);
 
   return (
     <>
@@ -35,7 +44,7 @@ export default function RoundRobinStandings() {
         </Box>
       </VStack>
 
-      {!tournament.state.isGenerated ? (
+      {!state.isGenerated ? (
         <Box p={8} bg="bg.subtle" rounded="lg" textAlign="center">
           <Text
             fontSize={{ base: "lg", md: "xl" }}
@@ -48,16 +57,14 @@ export default function RoundRobinStandings() {
           <Text fontSize="md" color="fg.muted" mb={6}>
             Generate tournament matches and play some games to see standings
           </Text>
-          <Button
-            onClick={() => router.push(`/tournament/round-robin/${id}/setup`)}
-            colorPalette="blue"
-            size="lg"
-          >
-            ← Go to Setup
-          </Button>
+          <Link href={`/tournament/round-robin/${id}/setup`}>
+            <Button colorPalette="blue" size="lg">
+              ← Go to Setup
+            </Button>
+          </Link>
         </Box>
       ) : (
-        <TournamentStandings />
+        <TournamentStandings standings={standings} />
       )}
     </>
   );

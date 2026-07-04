@@ -1,17 +1,13 @@
-"use client";
-
 import { Box, Badge, Text, VStack, HStack } from "@chakra-ui/react";
 import { Table } from "@chakra-ui/react";
-import {
-  useTournament,
-  formatNRR,
-  type CricketTeamStats,
-} from "@/contexts/tournament-context";
+import { formatNRR } from "@/contexts/tournament-context/algorithms/cricket-stats";
+import type { CricketTeamStats } from "@/contexts/tournament-context/types";
 
-export function TournamentStandings() {
-  const tournament = useTournament();
-  const standings = tournament.getTeamStandings();
-
+export function TournamentStandings({
+  standings,
+}: {
+  standings: CricketTeamStats[];
+}) {
   if (standings.length === 0) {
     return (
       <Box p={4} bg="bg.subtle" borderRadius="md">
