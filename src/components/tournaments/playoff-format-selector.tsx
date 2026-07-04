@@ -1,26 +1,21 @@
 "use client";
 
 import { Box, Text, VStack, HStack, Badge, Card } from "@chakra-ui/react";
-import {
-  useTournament,
-  type PlayoffFormat,
-} from "@/contexts/tournament-context";
+import type { PlayoffFormat } from "@/contexts/tournament-context/types";
 import WorldCupTrophyIcon from "../icons/world-cup-trophy-icon";
 import LeagueTrophyIcon from "../icons/league-trophy-icon";
 
 interface PlayoffFormatSelectorProps {
+  value: PlayoffFormat;
+  onChange: (format: PlayoffFormat) => void;
   disabled?: boolean;
 }
 
 export function PlayoffFormatSelector({
+  value,
+  onChange,
   disabled = false,
 }: PlayoffFormatSelectorProps) {
-  const tournament = useTournament();
-
-  const handleFormatChange = (format: PlayoffFormat) => {
-    tournament.setPlayoffFormat(format);
-  };
-
   const formatDetails = {
     "world-cup": {
       name: "World Cup Style",
@@ -52,7 +47,7 @@ export function PlayoffFormatSelector({
       <VStack gap={3} align="stretch">
         {(Object.keys(formatDetails) as PlayoffFormat[]).map((format) => {
           const details = formatDetails[format];
-          const isSelected = tournament.state.playoffFormat === format;
+          const isSelected = value === format;
 
           return (
             <Card.Root
@@ -63,7 +58,7 @@ export function PlayoffFormatSelector({
               bg={isSelected ? "card.selected" : "card.bg"}
               cursor={disabled ? "not-allowed" : "pointer"}
               opacity={disabled ? 0.6 : 1}
-              onClick={() => !disabled && handleFormatChange(format)}
+              onClick={() => !disabled && onChange(format)}
               _hover={
                 !disabled
                   ? {
@@ -130,9 +125,8 @@ export function PlayoffFormatSelector({
       {/* Current Selection Info */}
       <Box p={3} bg="blue.50" borderRadius="md">
         <Text fontSize="sm" color="blue.700">
-          <strong>Selected:</strong>{" "}
-          {formatDetails[tournament.state.playoffFormat].name} -{" "}
-          {formatDetails[tournament.state.playoffFormat].description}
+          <strong>Selected:</strong> {formatDetails[value].name} -{" "}
+          {formatDetails[value].description}
         </Text>
       </Box>
     </VStack>

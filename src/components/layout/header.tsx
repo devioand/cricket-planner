@@ -1,23 +1,28 @@
 "use client";
 
-import {
-  Box,
-  Container,
-  Flex,
-  Heading,
-  HStack,
-  Text,
-  Button,
-} from "@chakra-ui/react";
+import { Box, Container, Flex, Heading, HStack, Text } from "@chakra-ui/react";
+import { Button } from "@/components/ui/button";
 import { ColorModeButton } from "@/components/ui/color-mode";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "../icons/logo";
+import { authClient, useSession } from "@/lib/auth-client";
 
 export function Header() {
   const pathname = usePathname();
-  const isHomePage = pathname === "/";
-  const isTournamentPage = pathname.startsWith("/tournament/");
+  const router = useRouter();
+  const { data: session, isPending } = useSession();
+
+  const isAuthPage = pathname === "/login" || pathname === "/signup";
+  const isAuthed = !!session;
+
+  const handleSignOut = async () => {
+    await authClient.signOut();
+    router.push("/login");
+    router.refresh();
+  };
+
+  const homeHref = isAuthed ? "/" : "/login";
 
   return (
     <Box
@@ -29,62 +34,63 @@ export function Header() {
     >
       <Container maxW="7xl">
         <Flex justify="space-between" align="center">
-          <HStack gap={3}>
-            {!isHomePage ? (
-              <Link
-                href="/"
-                style={{ display: "flex", alignItems: "center", gap: "12px" }}
+          <Link
+            href={homeHref}
+            style={{ display: "flex", alignItems: "center", gap: "12px" }}
+          >
+            <Box
+              fontSize="2xl"
+              role="img"
+              aria-label="Cricket"
+              transition="transform 0.2s"
+              _hover={{ transform: "scale(1.1)" }}
+              color="fg.default"
+            >
+              <Logo />
+            </Box>
+            <Box>
+              <Heading
+                size="md"
+                lineHeight="1"
+                _hover={{ color: "blue.500" }}
+                transition="color 0.2s"
               >
-                <Box
-                  fontSize="2xl"
-                  role="img"
-                  aria-label="Cricket"
-                  transition="transform 0.2s"
-                  _hover={{ transform: "scale(1.1)" }}
-                  color="fg.default"
-                >
-                  <Logo />
-                </Box>
-                <Box>
-                  <Heading
-                    size="md"
-                    lineHeight="1"
-                    _hover={{ color: "blue.500" }}
-                    transition="color 0.2s"
-                  >
-                    Cricket Planner
-                  </Heading>
-                  <Text fontSize="sm" color="fg.muted">
-                    {isTournamentPage
-                      ? getPageTitle(pathname)
-                      : "Tournament Management System"}
-                  </Text>
-                </Box>
-              </Link>
-            ) : (
-              <>
-                <Box color="fg.default">
-                  <Logo />
-                </Box>
-                <Box>
-                  <Heading size="md" lineHeight="1">
-                    Cricket Planner
-                  </Heading>
-                  <Text fontSize="sm" color="fg.muted">
-                    Tournament Management System
-                  </Text>
-                </Box>
-              </>
-            )}
-          </HStack>
+                Cricket Planner
+              </Heading>
+              <Text fontSize="sm" color="fg.muted">
+                Tournament Management System
+              </Text>
+            </Box>
+          </Link>
 
           <HStack gap={3}>
-            {isTournamentPage && (
-              <Link href="/">
-                <Button variant="outline" size="sm" colorPalette="blue">
-                  ← Back to Algorithms
+            {!isPending && isAuthed && !isAuthPage && (
+              <>
+                <Link href="/tournaments">
+                  <Button variant="ghost" size="sm" colorPalette="blue">
+                    🏆 Tournaments
+                  </Button>
+                </Link>
+                {session?.user?.email && (
+                  <Text
+                    fontSize="sm"
+                    color="fg.muted"
+                    display={{ base: "none", md: "block" }}
+                    maxW="180px"
+                    truncate
+                  >
+                    {session.user.email}
+                  </Text>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  colorPalette="gray"
+                  onClick={handleSignOut}
+                >
+                  Sign out
                 </Button>
-              </Link>
+              </>
             )}
             <ColorModeButton />
           </HStack>
@@ -92,12 +98,4 @@ export function Header() {
       </Container>
     </Box>
   );
-}
-
-function getPageTitle(pathname: string): string {
-  if (pathname.includes("/setup")) return "Tournament Setup";
-  if (pathname.includes("/matches")) return "Tournament Matches";
-  if (pathname.includes("/standings")) return "Tournament Standings";
-  if (pathname.includes("/round-robin")) return "Round Robin Tournament";
-  return "Tournament Management System";
 }

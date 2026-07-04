@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Rubik } from "next/font/google";
 import { Provider } from "@/components/ui/provider";
 import { Header } from "@/components/layout/header";
-import { TournamentProvider } from "@/contexts/tournament-context";
 import { Toaster } from "@/components/ui/toaster";
 
 const rubik = Rubik({
@@ -24,11 +23,9 @@ export default function RootLayout({
     <html className={`${rubik.variable}`} lang="en" suppressHydrationWarning>
       <body>
         <Provider>
-          <TournamentProvider>
-            <Toaster />
-            <Header />
-            {children}
-          </TournamentProvider>
+          <Toaster />
+          <Header />
+          {children}
         </Provider>
       </body>
     </html>

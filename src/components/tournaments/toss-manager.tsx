@@ -11,19 +11,20 @@ import {
   CloseButton,
   RadioCard,
 } from "@chakra-ui/react";
-import { useState } from "react";
-import {
-  useTournament,
-  type Match,
-  type TossDecision,
-} from "@/contexts/tournament-context";
+import { useState, useTransition } from "react";
+import type {
+  Match,
+  TossDecision,
+} from "@/contexts/tournament-context/types";
+import { setTossAction } from "@/app/tournament/round-robin/[id]/actions";
 import { CoinFlipping } from "./coin-flipping";
 
 interface TossManagerProps {
   match: Match;
+  tournamentId: string;
 }
 
-export function TossManager({ match }: TossManagerProps) {
+export function TossManager({ match, tournamentId }: TossManagerProps) {
   if (match.toss) {
     return (
       <Box
@@ -51,17 +52,18 @@ export function TossManager({ match }: TossManagerProps) {
       <Text fontSize="md" color="fg.default" fontWeight="600">
         Toss Required
       </Text>
-      <CoinFlipDialog match={match} />
+      <CoinFlipDialog match={match} tournamentId={tournamentId} />
     </VStack>
   );
 }
 
 interface CoinFlipDialogProps {
   match: Match;
+  tournamentId: string;
 }
 
-function CoinFlipDialog({ match }: CoinFlipDialogProps) {
-  const { setMatchToss } = useTournament();
+function CoinFlipDialog({ match, tournamentId }: CoinFlipDialogProps) {
+  const [, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
   const [flipResult, setFlipResult] = useState<"heads" | "tails" | null>(null);
@@ -85,7 +87,9 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
   };
 
   const handleConfirmToss = () => {
-    setMatchToss(match.id, tossWinner, tossDecision);
+    startTransition(() =>
+      setTossAction(tournamentId, match.id, tossWinner, tossDecision)
+    );
     setIsOpen(false);
     // Reset state
     setFlipComplete(false);
