@@ -383,35 +383,6 @@ export async function saveTournamentState(
   return withTransaction((client) => writeState(client, userId, id, state));
 }
 
-/**
- * Atomically apply a state transition. Locks the tournament row
- * (`SELECT … FOR UPDATE`), loads the current state, runs `transition`, and
- * persists the result — all in one transaction. This serializes concurrent
- * mutations so an older write can never clobber a newer one.
- */
-export async function mutateTournament<T>(
-  userId: string,
-  id: string,
-  transition: (state: TournamentState) => {
-    state: TournamentState;
-    result?: T;
-  },
-): Promise<T | undefined> {
-  return withTransaction(async (client) => {
-    const { rows } = await client.query(
-      `select * from public.tournaments where id = $1 and user_id = $2 for update`,
-      [id, userId],
-    );
-    if (!rows[0]) {
-      throw new Error("Tournament not found or not owned by user");
-    }
-    const record = await loadRecord(client, rows[0]);
-    const { state: nextState, result } = transition(record.state);
-    await writeState(client, userId, id, nextState);
-    return result;
-  });
-}
-
 async function insertTeams(
   client: PoolClient,
   tournamentId: string,
