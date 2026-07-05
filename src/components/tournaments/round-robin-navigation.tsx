@@ -3,16 +3,13 @@
 import { Box, HStack } from "@chakra-ui/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
 
-export function RoundRobinNavigation({
-  id,
-  isGenerated,
-}: {
-  id: string;
-  isGenerated: boolean;
-}) {
+export function RoundRobinNavigation() {
   const pathname = usePathname();
-  const base = `/tournament/round-robin/${id}`;
+  const { state, store } = useLiveTournament();
+  const base = `/tournament/round-robin/${store.id}`;
+  const isGenerated = state.isGenerated;
 
   const navItems = [
     {

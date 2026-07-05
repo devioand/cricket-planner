@@ -19,20 +19,12 @@ import { useRouter } from "next/navigation";
 import { PlayoffFormatSelector } from "@/components/tournaments/playoff-format-selector";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
-import { generateMatchesAction } from "@/app/tournament/round-robin/[id]/actions";
-import type {
-  TournamentState,
-  PlayoffFormat,
-} from "@/contexts/tournament-context/types";
+import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
+import type { PlayoffFormat } from "@/contexts/tournament-context/types";
 
-export function SetupForm({
-  state,
-  tournamentId,
-}: {
-  state: TournamentState;
-  tournamentId: string;
-}) {
+export function SetupForm() {
   const router = useRouter();
+  const { state, store } = useLiveTournament();
   const isLocked = state.isGenerated;
 
   // Local editable setup (persisted atomically when the tournament starts).
@@ -49,7 +41,6 @@ export function SetupForm({
     index: number;
     name: string;
   } | null>(null);
-  const [isStarting, setIsStarting] = useState(false);
 
   // When generated, the persisted teams are the source of truth.
   const displayTeams = isLocked ? state.teams : teams;
@@ -88,18 +79,17 @@ export function SetupForm({
     setTeamInput("");
   };
 
-  const handleStartTournament = async () => {
-    setIsStarting(true);
-    const result = await generateMatchesAction(tournamentId, {
+  const handleStartTournament = () => {
+    // Generate locally (instant). The schedule lives in localStorage until Sync.
+    const result = store.generate({
       teams,
       maxOvers,
       maxWickets,
       playoffFormat,
     });
     if (result.success) {
-      router.push(`/tournament/round-robin/${tournamentId}/matches`);
+      router.push(`/tournament/round-robin/${store.id}/matches`);
     } else {
-      setIsStarting(false);
       toaster.create({
         title: "Couldn't start tournament",
         description: result.errors?.[0] ?? "Please try again.",
@@ -267,7 +257,6 @@ export function SetupForm({
           <Button
             onClick={handleStartTournament}
             disabled={teams.length < 2}
-            loading={isStarting}
             w="full"
           >
             {teams.length < 2 ? "Add at least 2 teams" : "🚀 Start Tournament"}
@@ -275,7 +264,7 @@ export function SetupForm({
         ) : (
           <Button
             onClick={() =>
-              router.push(`/tournament/round-robin/${tournamentId}/matches`)
+              router.push(`/tournament/round-robin/${store.id}/matches`)
             }
             colorPalette="blue"
             w="full"

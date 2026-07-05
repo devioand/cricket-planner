@@ -1,18 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { generateSampleResultsAction } from "@/app/tournament/round-robin/[id]/actions";
+import { useTournamentStore } from "@/contexts/tournament-context/live-provider";
 
-/** Dev-only helper to fill scheduled matches with random scores. */
-export function SampleResultsButton({
-  tournamentId,
-  pending,
-}: {
-  tournamentId: string;
-  pending: number;
-}) {
-  const [isPending, startTransition] = useTransition();
+/** Dev-only helper to fill scheduled matches with random scores (instant, local). */
+export function SampleResultsButton({ pending }: { pending: number }) {
+  const store = useTournamentStore();
 
   return (
     <Button
@@ -20,10 +13,7 @@ export function SampleResultsButton({
       colorPalette="purple"
       variant="outline"
       alignSelf="flex-start"
-      loading={isPending}
-      onClick={() =>
-        startTransition(() => generateSampleResultsAction(tournamentId))
-      }
+      onClick={() => store.sampleResults()}
     >
       🎲 Generate Sample Results ({pending} pending)
     </Button>

@@ -1,18 +1,14 @@
 "use client";
 
 import { Box, Text, VStack, HStack, IconButton } from "@chakra-ui/react";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import type { Match } from "@/contexts/tournament-context/types";
 import { displayCricketOvers } from "@/contexts/tournament-context/algorithms/cricket-stats";
 import { MatchStatus } from "./match-status";
 import { MatchActions } from "./match-actions";
 import { TeamScoreInputDialog } from "./team-score-input-dialog";
 import { TournamentCelebration } from "./tournament-celebration";
-import {
-  startMatchAction,
-  startSecondInningsAction,
-  finishMatchAction,
-} from "@/app/tournament/round-robin/[id]/actions";
+import { useTournamentStore } from "@/contexts/tournament-context/live-provider";
 
 // Playoff Consequences Component
 function PlayoffConsequences({ playoffType }: { playoffType?: string }) {
@@ -45,7 +41,6 @@ function PlayoffConsequences({ playoffType }: { playoffType?: string }) {
 
 interface MatchCardProps {
   match: Match;
-  tournamentId: string;
   matchNumber: number;
   totalMatches: number;
   isPlayoff?: boolean;
@@ -54,7 +49,6 @@ interface MatchCardProps {
 
 export function MatchCard({
   match,
-  tournamentId,
   matchNumber,
   totalMatches,
   isPlayoff = false,
@@ -65,7 +59,7 @@ export function MatchCard({
   const [celebrationWinner, setCelebrationWinner] = useState<string | null>(
     null
   );
-  const [, startTransition] = useTransition();
+  const store = useTournamentStore();
 
   const isCompleted = match.status === "completed";
   const isInProgress = match.status === "in-progress";
@@ -200,18 +194,17 @@ export function MatchCard({
   };
 
   const handleFinishMatch = () => {
-    startTransition(async () => {
-      const r = await finishMatchAction(tournamentId, match.id);
-      if (r.complete && r.winner) {
-        setCelebrationWinner(r.winner);
-      } else if (r.nextMatchId) {
-        setTimeout(() => {
-          document
-            .getElementById(`match-${r.nextMatchId}`)
-            ?.scrollIntoView({ behavior: "smooth", block: "center" });
-        }, 500);
-      }
-    });
+    // Instant, local — the engine runs client-side; the DB is written on Sync/Finish.
+    const r = store.finishMatch(match.id);
+    if (r.complete && r.winner) {
+      setCelebrationWinner(r.winner);
+    } else if (r.nextMatchId) {
+      setTimeout(() => {
+        document
+          .getElementById(`match-${r.nextMatchId}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 500);
+    }
   };
 
   return (
@@ -330,15 +323,8 @@ export function MatchCard({
             <MatchActions
               match={match}
               matchState={matchState}
-              tournamentId={tournamentId}
-              onStartMatch={() =>
-                startTransition(() => startMatchAction(tournamentId, match.id))
-              }
-              onStartSecondInnings={() =>
-                startTransition(() =>
-                  startSecondInningsAction(tournamentId, match.id)
-                )
-              }
+              onStartMatch={() => store.startMatch(match.id)}
+              onStartSecondInnings={() => store.startSecondInnings(match.id)}
               onFinishMatch={handleFinishMatch}
             />
           )}
@@ -355,7 +341,6 @@ export function MatchCard({
         isOpen={isTeam1ScoreDialogOpen}
         onClose={() => setIsTeam1ScoreDialogOpen(false)}
         match={match}
-        tournamentId={tournamentId}
         matchNumber={matchNumber}
         teamName={match.team1}
         isTeam1={true}
@@ -364,7 +349,6 @@ export function MatchCard({
         isOpen={isTeam2ScoreDialogOpen}
         onClose={() => setIsTeam2ScoreDialogOpen(false)}
         match={match}
-        tournamentId={tournamentId}
         matchNumber={matchNumber}
         teamName={match.team2}
         isTeam1={false}

@@ -2,120 +2,39 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/session";
-import { mutateTournament } from "@/lib/repositories/tournament-repository";
-import * as engine from "@/contexts/tournament-context/engine";
-import type {
-  TossDecision,
-  PlayoffFormat,
-  TournamentState,
-} from "@/contexts/tournament-context/types";
+import { saveTournamentState } from "@/lib/repositories/tournament-repository";
+import type { TournamentState } from "@/contexts/tournament-context/types";
 
-/** Revalidate the whole tournament subtree (setup + matches + standings). */
-function revalidateTournament(id: string) {
-  revalidatePath(`/tournament/round-robin/${id}`, "layout");
-}
+/**
+ * Local-first play persists to localStorage on every action; these are the only
+ * two writes that reach Postgres, both driven explicitly by the user.
+ */
 
-export async function startMatchAction(id: string, matchId: string) {
+/**
+ * Sync: persist the full local state to the DB. The caller KEEPS its
+ * localStorage — the tournament is still in progress. Returns the new
+ * `updated_at` so the client can record when it last synced.
+ */
+export async function syncTournamentAction(id: string, state: TournamentState) {
   const user = await requireUser();
-  await mutateTournament(user.id, id, (state) => ({
-    state: engine.startMatch(state, matchId),
-  }));
-  revalidateTournament(id);
-}
-
-export async function setTossAction(
-  id: string,
-  matchId: string,
-  tossWinner: string,
-  decision: TossDecision
-) {
-  const user = await requireUser();
-  await mutateTournament(user.id, id, (state) => ({
-    state: engine.setMatchToss(state, matchId, tossWinner, decision),
-  }));
-  revalidateTournament(id);
-}
-
-export async function updateInningsAction(
-  id: string,
-  matchId: string,
-  isTeam1: boolean,
-  score: { runs: number; wickets: number; overs: number }
-) {
-  const user = await requireUser();
-  await mutateTournament(user.id, id, (state) => ({
-    state: engine.updateSingleInnings(state, matchId, isTeam1, score),
-  }));
-  revalidateTournament(id);
-}
-
-export async function startSecondInningsAction(id: string, matchId: string) {
-  const user = await requireUser();
-  await mutateTournament(user.id, id, (state) => ({
-    state: engine.startSecondInnings(state, matchId),
-  }));
-  revalidateTournament(id);
-}
-
-export async function finishMatchAction(id: string, matchId: string) {
-  const user = await requireUser();
-  const result = await mutateTournament(user.id, id, (state) => {
-    const r = engine.completeMatch(state, matchId);
-    return {
-      state: r.state,
-      result: {
-        complete: r.complete,
-        winner: r.winner,
-        nextMatchId: r.nextMatchId ?? null,
-      },
-    };
-  });
-  revalidateTournament(id);
-  return result ?? { complete: false, winner: null, nextMatchId: null };
+  const updatedAt = await saveTournamentState(user.id, id, state);
+  // The tournaments list summarizes status/winner — keep it fresh.
+  revalidatePath("/tournaments");
+  return { updatedAt };
 }
 
 /**
- * Set up + generate a tournament atomically: replaces teams, applies settings,
- * and generates the match schedule in one transaction. Returns the outcome so
- * the client can route to the matches page on success.
+ * Finish & save: persist the final state (the repository derives status
+ * `completed` from the played final), after which the client clears its
+ * localStorage and refreshes into the read-only DB view.
  */
-export async function generateMatchesAction(
+export async function finishTournamentAction(
   id: string,
-  setup: {
-    teams: string[];
-    maxOvers: number;
-    maxWickets: number;
-    playoffFormat: PlayoffFormat;
-  }
+  state: TournamentState,
 ) {
   const user = await requireUser();
-  const result = await mutateTournament(user.id, id, (state) => {
-    let next: TournamentState = {
-      ...state,
-      teams: [],
-      teamStats: {},
-      matches: [],
-      isGenerated: false,
-    };
-    for (const team of setup.teams) next = engine.addTeam(next, team);
-    next = engine.setMaxOvers(next, setup.maxOvers);
-    next = engine.setMaxWickets(next, setup.maxWickets);
-    next = engine.setPlayoffFormat(next, setup.playoffFormat);
-    const gen = engine.generateMatches(next);
-    return {
-      state: gen.state,
-      result: { success: gen.success, errors: gen.errors },
-    };
-  });
-  revalidateTournament(id);
-  return result ?? { success: false, errors: ["Unknown error"] };
-}
-
-/** Dev-only: fill scheduled non-TBD matches with random in-progress scores. */
-export async function generateSampleResultsAction(id: string) {
-  const user = await requireUser();
-  await mutateTournament(user.id, id, (state) => ({
-    state: engine.generateSampleResults(state),
-  }));
-  revalidateTournament(id);
+  const updatedAt = await saveTournamentState(user.id, id, state);
+  revalidatePath("/tournaments");
+  revalidatePath(`/tournament/round-robin/${id}`, "layout");
+  return { updatedAt };
 }

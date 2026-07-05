@@ -17,14 +17,13 @@ import {
   formatCricketOvers,
   isValidCricketOvers,
 } from "@/contexts/tournament-context/algorithms/cricket-stats";
-import { updateInningsAction } from "@/app/tournament/round-robin/[id]/actions";
+import { useTournamentStore } from "@/contexts/tournament-context/live-provider";
 import { toaster } from "@/components/ui/toaster";
 
 interface TeamScoreInputDialogProps {
   isOpen: boolean;
   onClose: () => void;
   match: Match;
-  tournamentId: string;
   matchNumber: number;
   teamName: string;
   isTeam1: boolean;
@@ -34,7 +33,6 @@ export function TeamScoreInputDialog({
   isOpen,
   onClose,
   match,
-  tournamentId,
   matchNumber,
   teamName,
   isTeam1,
@@ -49,9 +47,9 @@ export function TeamScoreInputDialog({
     wickets: "",
     overs: "",
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const store = useTournamentStore();
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     // Validate the currently focused team's score
     const currentTeamScore = isTeam1 ? team1Score : team2Score;
     const runs = parseInt(currentTeamScore.runs);
@@ -110,31 +108,17 @@ export function TeamScoreInputDialog({
       return;
     }
 
-    setIsSubmitting(true);
+    // Persist this innings locally (instant); the DB is written later on Sync/Finish.
+    store.updateInnings(match.id, isTeam1, {
+      runs,
+      wickets,
+      overs: formatCricketOvers(overs), // Ensure cricket format
+    });
 
-    try {
-      // Persist this innings via a server action (step-by-step scoring).
-      await updateInningsAction(tournamentId, match.id, isTeam1, {
-        runs,
-        wickets,
-        overs: formatCricketOvers(overs), // Ensure cricket format
-      });
-
-      // Reset form and close dialog
-      setTeam1Score({ runs: "", wickets: "", overs: "" });
-      setTeam2Score({ runs: "", wickets: "", overs: "" });
-      onClose();
-    } catch (error) {
-      console.error("Error submitting innings result:", error);
-      toaster.create({
-        title: "Submission Error",
-        description: "Error submitting innings result. Please try again.",
-        type: "error",
-        duration: 4000,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Reset form and close dialog
+    setTeam1Score({ runs: "", wickets: "", overs: "" });
+    setTeam2Score({ runs: "", wickets: "", overs: "" });
+    onClose();
   };
 
   const handleClose = () => {
@@ -343,7 +327,6 @@ export function TeamScoreInputDialog({
                   colorPalette="blue"
                   onClick={handleSubmit}
                   disabled={
-                    isSubmitting ||
                     !(isTeam1
                       ? team1Score.runs &&
                         team1Score.wickets &&
@@ -355,7 +338,7 @@ export function TeamScoreInputDialog({
                   size="lg"
                   w="full"
                 >
-                  {isSubmitting ? "Submitting..." : `Submit ${teamName} Score`}
+                  {`Submit ${teamName} Score`}
                 </Button>
               </VStack>
             </Dialog.Body>
