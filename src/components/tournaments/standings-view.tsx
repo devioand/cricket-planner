@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Heading, Text, VStack, Box } from "@chakra-ui/react";
+import { Heading, Text, VStack, Box, Skeleton } from "@chakra-ui/react";
 import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
 import { getStandings } from "@/contexts/tournament-context/engine";
 import { TournamentStandings } from "@/components/tournaments/tournament-standings";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 
 /** Standings tab — derived live from the local store's tournament state. */
 export function StandingsView() {
-  const { state, store } = useLiveTournament();
+  const { state, hydrating, store } = useLiveTournament();
   const standings = getStandings(state);
 
   return (
@@ -36,7 +36,9 @@ export function StandingsView() {
         </Box>
       </VStack>
 
-      {!state.isGenerated ? (
+      {hydrating ? (
+        <StandingsSkeleton />
+      ) : !state.isGenerated ? (
         <Box p={8} bg="bg.subtle" rounded="lg" textAlign="center">
           <Text
             fontSize={{ base: "lg", md: "xl" }}
@@ -59,5 +61,17 @@ export function StandingsView() {
         <TournamentStandings standings={standings} />
       )}
     </>
+  );
+}
+
+/** Placeholder shown while the client reads the tournament from localStorage. */
+function StandingsSkeleton() {
+  return (
+    <VStack align="stretch" gap={3} aria-busy="true">
+      <Skeleton height="44px" borderRadius="md" />
+      {[0, 1, 2, 3].map((i) => (
+        <Skeleton key={i} height="52px" borderRadius="md" />
+      ))}
+    </VStack>
   );
 }

@@ -17,11 +17,12 @@ import {
  * Renders nothing for a finished (read-only) or not-yet-generated tournament.
  */
 export function SyncBar() {
-  const { state, isDirty, lastSyncedAt, readOnly } = useLiveTournament();
+  const { state, isDirty, lastSyncedAt, readOnly, hydrating } =
+    useLiveTournament();
   const sync = useSyncTournament();
   const finish = useFinishTournament();
 
-  if (readOnly || !state.isGenerated) return null;
+  if (hydrating || readOnly || !state.isGenerated) return null;
 
   const winner = getTournamentWinner(state);
   const busy = sync.isPending || finish.isPending;
@@ -44,7 +45,7 @@ export function SyncBar() {
       borderColor="border.default"
       borderRadius="xl"
       p={3}
-      mb={6}
+      mt={6}
       shadow="sm"
     >
       <VStack align="stretch" gap={3}>

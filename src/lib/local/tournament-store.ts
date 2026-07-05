@@ -41,6 +41,14 @@ export interface LocalSnapshot {
   isDirty: boolean;
   /** ISO timestamp of the last successful sync, or null. */
   lastSyncedAt: string | null;
+  /**
+   * True only for the server/hydration snapshot of an IN-PROGRESS tournament.
+   * The server can't read localStorage, so it renders a skeleton rather than
+   * flashing stale DB state; the client snapshot is always `false`, so the real
+   * localStorage state is revealed right after hydration. Completed tournaments
+   * render straight from the DB (never `true`).
+   */
+  hydrating: boolean;
 }
 
 const STORAGE_VERSION = 1;
@@ -75,24 +83,34 @@ export class TournamentStore {
     this.id = init.id;
     const readOnly = init.status === "completed";
 
-    // Server + hydration snapshot: always the DB state, so SSR never mismatches.
+    // Server + hydration snapshot: the DB state. For an in-progress tournament
+    // it is marked `hydrating` so the server renders a skeleton instead of stale
+    // DB data; completed tournaments render straight from it.
     this.serverSnapshot = {
       state: init.state,
       readOnly,
       isDirty: false,
       lastSyncedAt: null,
+      hydrating: !readOnly,
     };
 
     // INVARIANT 2: completed tournaments never touch localStorage.
     if (readOnly) {
-      this.snapshot = this.serverSnapshot;
+      this.snapshot = this.serverSnapshot; // hydrating: false — renders immediately
       return;
     }
 
     // In-progress: our own localStorage copy wins (it may be ahead of the DB);
-    // otherwise start from the DB state. No write happens during construction —
-    // persistence occurs only on a real change, sync, or clear.
-    this.snapshot = this.readLocal() ?? this.serverSnapshot;
+    // otherwise start from the DB state. Either way the client snapshot is not
+    // hydrating, so real content replaces the skeleton right after hydration. No
+    // write happens during construction — persistence is only on change/sync/clear.
+    this.snapshot = this.readLocal() ?? {
+      state: init.state,
+      readOnly: false,
+      isDirty: false,
+      lastSyncedAt: null,
+      hydrating: false,
+    };
   }
 
   // ── useSyncExternalStore wiring ────────────────────────────────────────────
@@ -224,6 +242,7 @@ export class TournamentStore {
         readOnly: false,
         isDirty: parsed.isDirty ?? false,
         lastSyncedAt: parsed.lastSyncedAt ?? null,
+        hydrating: false,
       };
     } catch {
       return null; // corrupt payload → fall back to the DB state

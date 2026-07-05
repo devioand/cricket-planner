@@ -97,6 +97,22 @@ describe("TournamentStore — hydration", () => {
       "scheduled",
     );
   });
+
+  it("marks the in-progress server snapshot as hydrating, but never the client snapshot", () => {
+    const store = inProgress("HY");
+    expect(store.getServerSnapshot().hydrating).toBe(true); // server → skeleton
+    expect(store.getSnapshot().hydrating).toBe(false); // client → real content
+  });
+
+  it("never hydrates a completed tournament (renders straight from the DB)", () => {
+    const store = new TournamentStore({
+      id: "HY2",
+      status: "completed",
+      state: scheduledMatchState(),
+    });
+    expect(store.getServerSnapshot().hydrating).toBe(false);
+    expect(store.getSnapshot().hydrating).toBe(false);
+  });
 });
 
 describe("TournamentStore — mutations persist locally", () => {

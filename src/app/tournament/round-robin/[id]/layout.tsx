@@ -37,8 +37,10 @@ export default async function RoundRobinTournamentLayout({
           winner={getTournamentWinner(record.state)}
         />
         <RoundRobinNavigation />
-        <SyncBar />
         {children}
+        {/* Sync / Finish live at the END of the content, not the top, so they
+            are deliberate actions and can't be tapped by accident. */}
+        <SyncBar />
       </LiveTournamentProvider>
     </Box>
   );

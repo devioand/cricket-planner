@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Text, VStack, Box } from "@chakra-ui/react";
+import { Text, VStack, Box, HStack, Skeleton } from "@chakra-ui/react";
 import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
 import { MatchCard } from "@/components/tournaments/match-card";
 import { SampleResultsButton } from "@/components/tournaments/sample-results-button";
@@ -12,7 +12,11 @@ import { Button } from "@/components/ui/button";
  * scoring action reflects instantly without a server round-trip.
  */
 export function MatchesView() {
-  const { state, readOnly, store } = useLiveTournament();
+  const { state, readOnly, hydrating, store } = useLiveTournament();
+
+  // On a hard reload the server can't read localStorage; show a skeleton until
+  // the client reveals the real state (instead of flashing stale DB data).
+  if (hydrating) return <MatchesSkeleton />;
 
   if (!state.isGenerated) {
     return (
@@ -109,6 +113,37 @@ export function MatchesView() {
           </Box>
         ))}
       </VStack>
+    </VStack>
+  );
+}
+
+/** Placeholder shown while the client reads the tournament from localStorage. */
+function MatchesSkeleton() {
+  return (
+    <VStack align="stretch" gap={4} aria-busy="true">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Box
+          key={i}
+          p={4}
+          bg="card.bg"
+          borderRadius="lg"
+          borderWidth={2}
+          borderColor="border.default"
+        >
+          <VStack align="stretch" gap={3}>
+            <Skeleton height="14px" width="110px" alignSelf="center" />
+            <HStack justify="space-between">
+              <Skeleton height="16px" width="90px" />
+              <Skeleton height="16px" width="70px" />
+            </HStack>
+            <HStack justify="space-between">
+              <Skeleton height="16px" width="90px" />
+              <Skeleton height="16px" width="70px" />
+            </HStack>
+            <Skeleton height="12px" width="55%" alignSelf="center" />
+          </VStack>
+        </Box>
+      ))}
     </VStack>
   );
 }
