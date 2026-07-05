@@ -5,6 +5,7 @@ import { getTournament } from "@/lib/repositories/tournament-repository";
 import { getTournamentWinner } from "@/contexts/tournament-context/engine";
 import { CompletedBanner } from "@/components/tournaments/completed-banner";
 import { RoundRobinNavigation } from "@/components/tournaments/round-robin-navigation";
+import { SyncBar } from "@/components/tournaments/sync-bar";
 import { LiveTournamentProvider } from "@/contexts/tournament-context/live-provider";
 
 /**
@@ -28,6 +29,7 @@ export default async function RoundRobinTournamentLayout({
   return (
     <Box p={{ base: 4, md: 8 }} maxW="600px" mx="auto" w="full">
       <LiveTournamentProvider
+        key={record.status}
         init={{ id: record.id, status: record.status, state: record.state }}
       >
         <CompletedBanner
@@ -35,6 +37,7 @@ export default async function RoundRobinTournamentLayout({
           winner={getTournamentWinner(record.state)}
         />
         <RoundRobinNavigation />
+        <SyncBar />
         {children}
       </LiveTournamentProvider>
     </Box>

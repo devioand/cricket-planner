@@ -329,13 +329,14 @@ async function writeState(
   userId: string,
   id: string,
   state: TournamentState,
-): Promise<void> {
+): Promise<string> {
   const upd = await client.query(
     `update public.tournaments
         set algorithm = $1, playoff_format = $2, max_overs = $3,
             max_wickets = $4, is_generated = $5, phase = $6, status = $7,
             winner = $8
-      where id = $9 and user_id = $10`,
+      where id = $9 and user_id = $10
+      returning updated_at`,
     [
       state.algorithm,
       state.playoffFormat,
@@ -365,18 +366,21 @@ async function writeState(
   await insertTeams(client, id, state.teams);
   await insertTeamStats(client, id, state.teamStats);
   await insertMatches(client, id, state.matches);
+
+  return new Date(upd.rows[0].updated_at as string).toISOString();
 }
 
 /**
  * Persist the whole tournament state (verifies ownership + full child replace,
- * all inside one transaction).
+ * all inside one transaction). Returns the new `updated_at` so the caller can
+ * record when the tournament was last synced.
  */
 export async function saveTournamentState(
   userId: string,
   id: string,
   state: TournamentState,
-): Promise<void> {
-  await withTransaction((client) => writeState(client, userId, id, state));
+): Promise<string> {
+  return withTransaction((client) => writeState(client, userId, id, state));
 }
 
 /**
