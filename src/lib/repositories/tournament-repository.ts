@@ -1,6 +1,7 @@
 import type { Pool, PoolClient } from "pg";
 import { cache } from "react";
 import { pool, withTransaction } from "@/lib/db";
+import { buildValues } from "./sql";
 import type {
   TournamentState,
   Match,
@@ -388,12 +389,14 @@ async function insertTeams(
   tournamentId: string,
   teams: string[],
 ): Promise<void> {
-  for (let i = 0; i < teams.length; i++) {
-    await client.query(
-      `insert into public.teams (tournament_id, name, position) values ($1, $2, $3)`,
-      [tournamentId, teams[i], i],
-    );
-  }
+  if (teams.length === 0) return;
+  const { placeholders, params } = buildValues(
+    teams.map((name, i) => [tournamentId, name, i]),
+  );
+  await client.query(
+    `insert into public.teams (tournament_id, name, position) values ${placeholders}`,
+    params,
+  );
 }
 
 async function insertTeamStats(
@@ -401,43 +404,45 @@ async function insertTeamStats(
   tournamentId: string,
   teamStats: Record<string, CricketTeamStats>,
 ): Promise<void> {
-  for (const s of Object.values(teamStats)) {
-    await client.query(
-      `insert into public.team_stats
-         (tournament_id, team_name, matches_played, wins, losses, draws,
-          no_results, points, total_runs_scored, total_balls_faced,
-          total_overs_played, total_runs_conceded, total_balls_bowled,
-          total_overs_bowled, batting_run_rate, bowling_run_rate, net_run_rate,
-          highest_score, lowest_score, biggest_win_opponent, biggest_win_margin,
-          biggest_win_margin_type)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
-               $19,$20,$21,$22)`,
-      [
-        tournamentId,
-        s.teamName,
-        s.matchesPlayed,
-        s.wins,
-        s.losses,
-        s.draws,
-        s.noResults,
-        s.points,
-        s.totalRunsScored,
-        s.totalBallsFaced,
-        s.totalOversPlayed,
-        s.totalRunsConceded,
-        s.totalBallsBowled,
-        s.totalOversBowled,
-        s.battingRunRate,
-        s.bowlingRunRate,
-        s.netRunRate,
-        s.highestScore ?? null,
-        s.lowestScore ?? null,
-        s.biggestWin?.opponent ?? null,
-        s.biggestWin?.margin ?? null,
-        s.biggestWin?.marginType ?? null,
-      ],
-    );
-  }
+  const stats = Object.values(teamStats);
+  if (stats.length === 0) return;
+  const { placeholders, params } = buildValues(
+    stats.map((s) => [
+      tournamentId,
+      s.teamName,
+      s.matchesPlayed,
+      s.wins,
+      s.losses,
+      s.draws,
+      s.noResults,
+      s.points,
+      s.totalRunsScored,
+      s.totalBallsFaced,
+      s.totalOversPlayed,
+      s.totalRunsConceded,
+      s.totalBallsBowled,
+      s.totalOversBowled,
+      s.battingRunRate,
+      s.bowlingRunRate,
+      s.netRunRate,
+      s.highestScore ?? null,
+      s.lowestScore ?? null,
+      s.biggestWin?.opponent ?? null,
+      s.biggestWin?.margin ?? null,
+      s.biggestWin?.marginType ?? null,
+    ]),
+  );
+  await client.query(
+    `insert into public.team_stats
+       (tournament_id, team_name, matches_played, wins, losses, draws,
+        no_results, points, total_runs_scored, total_balls_faced,
+        total_overs_played, total_runs_conceded, total_balls_bowled,
+        total_overs_bowled, batting_run_rate, bowling_run_rate, net_run_rate,
+        highest_score, lowest_score, biggest_win_opponent, biggest_win_margin,
+        biggest_win_margin_type)
+     values ${placeholders}`,
+    params,
+  );
 }
 
 async function insertMatches(
@@ -445,74 +450,89 @@ async function insertMatches(
   tournamentId: string,
   matches: Match[],
 ): Promise<void> {
-  for (let i = 0; i < matches.length; i++) {
-    const m = matches[i];
-    const { rows } = await client.query(
-      `insert into public.matches
-         (tournament_id, match_key, match_order, team1, team2, round, status,
-          venue, overs, max_wickets, is_playoff, playoff_type, phase,
-          second_innings_started, toss_winner, toss_decision, toss_loser,
-          result_winner, result_loser, result_is_draw, result_is_no_result,
-          result_margin_type, result_margin, result_match_type)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
-               $19,$20,$21,$22,$23,$24)
-       returning id`,
-      [
-        tournamentId,
-        m.id,
-        i,
-        m.team1,
-        m.team2,
-        m.round,
-        m.status,
-        m.venue ?? null,
-        m.overs,
-        m.maxWickets,
-        m.isPlayoff ?? false,
-        m.playoffType ?? null,
-        m.phase ?? null,
-        m.secondInningsStarted ?? false,
-        m.toss?.tossWinner ?? null,
-        m.toss?.decision ?? null,
-        m.toss?.tossLoser ?? null,
-        m.result?.winner ?? null,
-        m.result?.loser ?? null,
-        m.result?.isDraw ?? null,
-        m.result?.isNoResult ?? null,
-        m.result?.marginType ?? null,
-        m.result?.margin ?? null,
-        m.result?.matchType ?? null,
-      ],
-    );
-    const matchDbId = String(rows[0].id);
+  if (matches.length === 0) return;
 
-    const inningsToInsert: Array<{
-      slot: "team1" | "team2";
-      innings: InningsScore;
-    }> = [];
+  // 1. Insert all matches in one statement; `match_order` preserves ordering.
+  const matchInsert = buildValues(
+    matches.map((m, i) => [
+      tournamentId,
+      m.id,
+      i,
+      m.team1,
+      m.team2,
+      m.round,
+      m.status,
+      m.venue ?? null,
+      m.overs,
+      m.maxWickets,
+      m.isPlayoff ?? false,
+      m.playoffType ?? null,
+      m.phase ?? null,
+      m.secondInningsStarted ?? false,
+      m.toss?.tossWinner ?? null,
+      m.toss?.decision ?? null,
+      m.toss?.tossLoser ?? null,
+      m.result?.winner ?? null,
+      m.result?.loser ?? null,
+      m.result?.isDraw ?? null,
+      m.result?.isNoResult ?? null,
+      m.result?.marginType ?? null,
+      m.result?.margin ?? null,
+      m.result?.matchType ?? null,
+    ]),
+  );
+  const inserted = await client.query(
+    `insert into public.matches
+       (tournament_id, match_key, match_order, team1, team2, round, status,
+        venue, overs, max_wickets, is_playoff, playoff_type, phase,
+        second_innings_started, toss_winner, toss_decision, toss_loser,
+        result_winner, result_loser, result_is_draw, result_is_no_result,
+        result_margin_type, result_margin, result_match_type)
+     values ${matchInsert.placeholders}
+     returning id, match_key`,
+    matchInsert.params,
+  );
+
+  // Map the app's stable match id (match_key) → generated DB uuid. Row order
+  // from a multi-row insert isn't guaranteed, so we key off match_key.
+  const dbIdByMatchKey = new Map<string, string>();
+  for (const row of inserted.rows) {
+    dbIdByMatchKey.set(String(row.match_key), String(row.id));
+  }
+
+  // 2. Collect every innings across all matches and insert them in one go.
+  const inningsRows: unknown[][] = [];
+  for (const m of matches) {
+    const matchDbId = dbIdByMatchKey.get(m.id);
+    if (!matchDbId) continue;
+    const pairs: Array<{ slot: "team1" | "team2"; innings: InningsScore }> = [];
     if (m.result?.team1Innings)
-      inningsToInsert.push({ slot: "team1", innings: m.result.team1Innings });
+      pairs.push({ slot: "team1", innings: m.result.team1Innings });
     if (m.result?.team2Innings)
-      inningsToInsert.push({ slot: "team2", innings: m.result.team2Innings });
-
-    for (const { slot, innings } of inningsToInsert) {
-      await client.query(
-        `insert into public.innings
-           (match_id, team_slot, team_name, runs, wickets, overs, balls_faced,
-            is_all_out, run_rate)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-        [
-          matchDbId,
-          slot,
-          innings.teamName,
-          innings.runs,
-          innings.wickets,
-          innings.overs,
-          innings.ballsFaced,
-          innings.isAllOut,
-          innings.runRate,
-        ],
-      );
+      pairs.push({ slot: "team2", innings: m.result.team2Innings });
+    for (const { slot, innings } of pairs) {
+      inningsRows.push([
+        matchDbId,
+        slot,
+        innings.teamName,
+        innings.runs,
+        innings.wickets,
+        innings.overs,
+        innings.ballsFaced,
+        innings.isAllOut,
+        innings.runRate,
+      ]);
     }
+  }
+
+  if (inningsRows.length > 0) {
+    const inningsInsert = buildValues(inningsRows);
+    await client.query(
+      `insert into public.innings
+         (match_id, team_slot, team_name, runs, wickets, overs, balls_faced,
+          is_all_out, run_rate)
+       values ${inningsInsert.placeholders}`,
+      inningsInsert.params,
+    );
   }
 }

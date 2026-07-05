@@ -17,7 +17,7 @@ import {
  * Renders nothing for a finished (read-only) or not-yet-generated tournament.
  */
 export function SyncBar() {
-  const { state, isDirty, readOnly } = useLiveTournament();
+  const { state, isDirty, lastSyncedAt, readOnly } = useLiveTournament();
   const sync = useSyncTournament();
   const finish = useFinishTournament();
 
@@ -25,6 +25,17 @@ export function SyncBar() {
 
   const winner = getTournamentWinner(state);
   const busy = sync.isPending || finish.isPending;
+
+  // `lastSyncedAt` is null on the server snapshot, so this only formats a time
+  // client-side after a sync — no hydration mismatch.
+  const statusLabel = isDirty
+    ? "Unsaved changes on this device"
+    : lastSyncedAt
+      ? `Saved · ${new Date(lastSyncedAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}`
+      : "Saved to database";
 
   return (
     <Box
@@ -47,7 +58,7 @@ export function SyncBar() {
               flexShrink={0}
             />
             <Text fontSize="sm" color="fg.muted" truncate>
-              {isDirty ? "Unsaved changes on this device" : "Saved to database"}
+              {statusLabel}
             </Text>
           </HStack>
 
