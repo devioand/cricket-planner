@@ -153,10 +153,6 @@ export class TournamentStore {
     );
   }
 
-  startSecondInnings(matchId: string): void {
-    this.commit(engine.startSecondInnings(this.snapshot.state, matchId));
-  }
-
   /** Complete a match and return the engine result (winner / next match). */
   finishMatch(matchId: string): CompleteMatchResult {
     if (this.snapshot.readOnly) {
@@ -167,6 +163,20 @@ export class TournamentStore {
       };
     }
     const result = engine.completeMatch(this.snapshot.state, matchId);
+    this.commit(result.state);
+    return result;
+  }
+
+  /** Finish an unplayed group match as a no result (both teams get 1 point). */
+  completeAsNoResult(matchId: string): CompleteMatchResult {
+    if (this.snapshot.readOnly) {
+      return {
+        state: this.snapshot.state,
+        complete: false,
+        winner: engine.getTournamentWinner(this.snapshot.state),
+      };
+    }
+    const result = engine.completeMatchAsNoResult(this.snapshot.state, matchId);
     this.commit(result.state);
     return result;
   }

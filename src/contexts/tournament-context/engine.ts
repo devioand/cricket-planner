@@ -206,18 +206,6 @@ export function startMatch(
   };
 }
 
-export function startSecondInnings(
-  state: TournamentState,
-  matchId: string,
-): TournamentState {
-  return {
-    ...state,
-    matches: state.matches.map((m) =>
-      m.id === matchId ? { ...m, secondInningsStarted: true } : m,
-    ),
-  };
-}
-
 export function setMatchToss(
   state: TournamentState,
   matchId: string,

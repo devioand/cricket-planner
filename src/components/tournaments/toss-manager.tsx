@@ -46,14 +46,9 @@ export function TossManager({ match }: TossManagerProps) {
     );
   }
 
-  return (
-    <VStack gap={3}>
-      <Text fontSize="md" color="fg.default" fontWeight="600">
-        Toss Required
-      </Text>
-      <CoinFlipDialog match={match} />
-    </VStack>
-  );
+  // The "Toss required" wording already appears in the match status line above,
+  // so the coin-flip button stands alone here.
+  return <CoinFlipDialog match={match} />;
 }
 
 interface CoinFlipDialogProps {
