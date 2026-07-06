@@ -84,10 +84,12 @@ export function TeamScoreInputDialog({
       });
       return;
     }
-    if (runs < 0 || wickets < 0 || overs < 0) {
+    // Runs may be negative (e.g. double-wicket formats deduct runs on each
+    // dismissal); wickets and overs still can't be.
+    if (wickets < 0 || overs < 0) {
       toaster.create({
         title: "Invalid Scores",
-        description: "Scores cannot be negative.",
+        description: "Wickets and overs cannot be negative.",
         type: "error",
         duration: 3000,
       });
@@ -187,6 +189,9 @@ export function TeamScoreInputDialog({
                       _placeholder={{ color: "fg.placeholder" }}
                       _focus={focusStyles}
                     />
+                    <Text fontSize="xs" color="fg.muted" mt={1}>
+                      Negative allowed (e.g. double-wicket deductions)
+                    </Text>
                   </Box>
 
                   <HStack gap={3}>

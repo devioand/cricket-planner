@@ -278,6 +278,24 @@ describe("Tournament Engine", () => {
       expect(m.result?.isDraw).toBe(true);
       expect(m.result?.winner).toBe("");
     });
+
+    it("supports negative runs (double-wicket formats)", () => {
+      const { state: base, first } = rrMatch();
+      let state = startMatch(base, first.id);
+      state = setMatchToss(state, first.id, first.team1, "bat"); // team1 bats first
+      state = simulateMatchResult(
+        state,
+        first.id,
+        { runs: -4, wickets: 2, overs: 20 }, // team1 batting first (negative)
+        { runs: 6, wickets: 1, overs: 20 } // team2 chasing, higher
+      );
+      const m = completeMatch(state, first.id).state.matches.find(
+        (x) => x.id === first.id
+      )!;
+      expect(m.result?.winner).toBe(first.team2);
+      expect(m.result?.marginType).toBe("wickets");
+      expect(m.result?.margin).toBe(9); // 10 - 1 wickets
+    });
   });
 
   describe("No-result matches", () => {
