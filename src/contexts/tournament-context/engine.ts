@@ -9,6 +9,7 @@ import type {
   Match,
   InningsScore,
   CricketTeamStats,
+  CricketMatchResult,
   PlayoffFormat,
   TossDecision,
 } from "./types";
@@ -205,18 +206,6 @@ export function startMatch(
   };
 }
 
-export function startSecondInnings(
-  state: TournamentState,
-  matchId: string,
-): TournamentState {
-  return {
-    ...state,
-    matches: state.matches.map((m) =>
-      m.id === matchId ? { ...m, secondInningsStarted: true } : m,
-    ),
-  };
-}
-
 export function setMatchToss(
   state: TournamentState,
   matchId: string,
@@ -300,28 +289,42 @@ export function completeMatch(
   const { team1Innings, team2Innings } = match.result;
   if (!team1Innings || !team2Innings) return noop;
 
+  // Who batted first — decided by the toss, falling back to team1 when unset
+  // (e.g. dev sample results). The team batting first wins by runs; the chasing
+  // team wins by wickets in hand.
+  const team1BatsFirst = match.toss
+    ? match.toss.decision === "bat"
+      ? match.toss.tossWinner === match.team1
+      : match.toss.tossWinner !== match.team1
+    : true;
+  const firstTeam = team1BatsFirst ? match.team1 : match.team2;
+  const secondTeam = team1BatsFirst ? match.team2 : match.team1;
+  const firstInnings = team1BatsFirst ? team1Innings : team2Innings;
+  const secondInnings = team1BatsFirst ? team2Innings : team1Innings;
+  const maxWickets = match.maxWickets || 10;
+
   let winner: string;
   let loser: string;
   let marginType: "runs" | "wickets";
   let margin: number;
   let isDraw = false;
 
-  if (team1Innings.runs === team2Innings.runs) {
+  if (firstInnings.runs === secondInnings.runs) {
     isDraw = true;
     winner = "";
     loser = "";
     marginType = "runs";
     margin = 0;
-  } else if (team1Innings.runs > team2Innings.runs) {
-    winner = match.team1;
-    loser = match.team2;
+  } else if (firstInnings.runs > secondInnings.runs) {
+    winner = firstTeam;
+    loser = secondTeam;
     marginType = "runs";
-    margin = team1Innings.runs - team2Innings.runs;
+    margin = firstInnings.runs - secondInnings.runs;
   } else {
-    winner = match.team2;
-    loser = match.team1;
+    winner = secondTeam;
+    loser = firstTeam;
     marginType = "wickets";
-    margin = 10 - team2Innings.wickets;
+    margin = maxWickets - secondInnings.wickets;
   }
 
   const completedResult = {
@@ -400,6 +403,87 @@ export function completeMatch(
   return {
     state: newState,
     nextMatchId,
+    complete: finalWinner !== null,
+    winner: finalWinner,
+  };
+}
+
+/**
+ * Finish a match that wasn't played as a **no result** (abandoned / both teams
+ * skipped). Both teams get 1 point, no runs/NRR impact. Group-stage only — a
+ * playoff needs a winner to advance, so this is a no-op for playoff matches.
+ */
+export function completeMatchAsNoResult(
+  state: TournamentState,
+  matchId: string,
+): CompleteMatchResult {
+  const noop: CompleteMatchResult = {
+    state,
+    complete: false,
+    winner: getTournamentWinner(state),
+  };
+
+  const match = state.matches.find((m) => m.id === matchId);
+  if (!match || match.status === "completed" || match.isPlayoff) return noop;
+
+  const result: CricketMatchResult = {
+    winner: "",
+    loser: "",
+    isNoResult: true,
+    isDraw: false,
+    team1Innings: match.result?.team1Innings ?? null,
+    team2Innings: match.result?.team2Innings ?? null,
+    marginType: "runs",
+    margin: 0,
+    matchType: "no-result",
+  };
+
+  const updatedMatches = state.matches.map((m) =>
+    m.id === matchId ? { ...m, status: "completed" as const, result } : m,
+  );
+
+  const updatedTeamStats: Record<string, CricketTeamStats> = {
+    ...state.teamStats,
+  };
+  updatedTeamStats[match.team1] = updateTeamStatsAfterMatch(
+    updatedTeamStats[match.team1],
+    match,
+    result,
+  );
+  updatedTeamStats[match.team2] = updateTeamStatsAfterMatch(
+    updatedTeamStats[match.team2],
+    match,
+    result,
+  );
+
+  // Seed playoffs if this was the last group-stage match.
+  let matchesToSet = updatedMatches;
+  const stateForCheck = {
+    ...state,
+    matches: updatedMatches,
+    teamStats: updatedTeamStats,
+  };
+  if (isRoundRobinComplete(stateForCheck)) {
+    const standings = getTournamentStandings(updatedTeamStats);
+    const standingsUpdate = updateInitialPlayoffTeamsFromStandings(
+      stateForCheck,
+      standings,
+    );
+    if (standingsUpdate.success) {
+      matchesToSet = standingsUpdate.updatedMatches;
+    }
+  }
+
+  const newState: TournamentState = {
+    ...state,
+    matches: matchesToSet,
+    teamStats: updatedTeamStats,
+  };
+
+  const finalWinner = getTournamentWinner(newState);
+  return {
+    state: newState,
+    nextMatchId: matchesToSet.find((m) => m.status === "scheduled")?.id,
     complete: finalWinner !== null,
     winner: finalWinner,
   };

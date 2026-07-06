@@ -123,7 +123,7 @@ export function calculateNetRunRate(stats: CricketTeamStats): number {
 export function updateTeamStatsAfterMatch(
   teamStats: CricketTeamStats,
   match: Match,
-  matchResult: CricketMatchResult
+  matchResult: CricketMatchResult,
 ): CricketTeamStats {
   // Skip playoff matches - standings should only include round-robin stats
   if (match.isPlayoff) {
@@ -131,6 +131,16 @@ export function updateTeamStatsAfterMatch(
   }
 
   const updatedStats = { ...teamStats };
+
+  // No result / abandoned: counts as a played match, 1 point each, no runs or
+  // NRR impact. Handled first because an unplayed match has no innings data.
+  if (matchResult.matchType === "no-result" || matchResult.isNoResult) {
+    updatedStats.matchesPlayed += 1;
+    updatedStats.noResults += 1;
+    updatedStats.points += 1;
+    return updatedStats;
+  }
+
   const isTeam1 = match.team1 === teamStats.teamName;
   const teamInnings = isTeam1
     ? matchResult.team1Innings
@@ -139,20 +149,13 @@ export function updateTeamStatsAfterMatch(
     ? matchResult.team2Innings
     : matchResult.team1Innings;
 
-  // Early return if innings data is missing - can't update stats without complete data
+  // Can't update batting/bowling stats without both innings.
   if (!teamInnings || !opponentInnings) {
     return updatedStats;
   }
 
   // Update match counts
   updatedStats.matchesPlayed += 1;
-
-  // Handle different match outcomes
-  if (matchResult.matchType === "no-result" || matchResult.isNoResult) {
-    updatedStats.noResults += 1;
-    // No points awarded for no results
-    return updatedStats;
-  }
 
   if (matchResult.isDraw) {
     updatedStats.draws += 1;
@@ -224,12 +227,12 @@ export function updateTeamStatsAfterMatch(
   // Recalculate run rates
   updatedStats.battingRunRate = calculateRunRate(
     updatedStats.totalRunsScored,
-    updatedStats.totalOversPlayed
+    updatedStats.totalOversPlayed,
   );
 
   updatedStats.bowlingRunRate = calculateRunRate(
     updatedStats.totalRunsConceded,
-    updatedStats.totalOversBowled
+    updatedStats.totalOversBowled,
   );
 
   // Recalculate Net Run Rate
@@ -243,7 +246,7 @@ export function updateTeamStatsAfterMatch(
  * NOTE: Only includes round-robin match statistics, playoff matches are excluded
  */
 export function getTournamentStandings(
-  teamStats: Record<string, CricketTeamStats>
+  teamStats: Record<string, CricketTeamStats>,
 ): CricketTeamStats[] {
   const teams = Object.values(teamStats);
 
@@ -292,7 +295,7 @@ export function createSampleMatchResult(
   team2Runs: number,
   team2Wickets: number,
   team2Overs: number,
-  _maxOvers: number // eslint-disable-line @typescript-eslint/no-unused-vars
+  _maxOvers: number, // eslint-disable-line @typescript-eslint/no-unused-vars
 ): CricketMatchResult {
   const team1Balls = oversToBalls(team1Overs);
   const team2Balls = oversToBalls(team2Overs);

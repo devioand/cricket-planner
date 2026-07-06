@@ -7,6 +7,7 @@ import {
   setPlayoffFormat,
   generateMatches,
   completeMatch,
+  completeMatchAsNoResult,
   simulateMatchResult,
   startMatch,
   setMatchToss,
@@ -212,6 +213,119 @@ describe("Tournament Engine", () => {
       const done = completeMatch(played, final.id);
       expect(isTournamentComplete(done.state)).toBe(true);
       expect(getTournamentWinner(done.state)).toBe(final.team1);
+    });
+  });
+
+  describe("Toss-aware results", () => {
+    const rrMatch = () => {
+      const state = generateMatches(
+        withTeams("Team A", "Team B", "Team C")
+      ).state;
+      const first = state.matches.find((m) => !m.isPlayoff)!;
+      return { state, first };
+    };
+
+    it("chasing team wins by wickets when the other team batted first", () => {
+      const { state: base, first } = rrMatch();
+      let state = startMatch(base, first.id);
+      // team2 wins the toss and bats first; team1 chases and overtakes.
+      state = setMatchToss(state, first.id, first.team2, "bat");
+      state = simulateMatchResult(
+        state,
+        first.id,
+        { runs: 160, wickets: 5, overs: 20 }, // team1 (chasing)
+        { runs: 150, wickets: 8, overs: 20 } // team2 (batting first)
+      );
+      const m = completeMatch(state, first.id).state.matches.find(
+        (x) => x.id === first.id
+      )!;
+      expect(m.result?.winner).toBe(first.team1);
+      expect(m.result?.marginType).toBe("wickets");
+      expect(m.result?.margin).toBe(5); // 10 - 5 wickets lost
+    });
+
+    it("batting-first team wins by runs", () => {
+      const { state: base, first } = rrMatch();
+      let state = startMatch(base, first.id);
+      state = setMatchToss(state, first.id, first.team1, "bat"); // team1 bats first
+      state = simulateMatchResult(
+        state,
+        first.id,
+        { runs: 180, wickets: 6, overs: 20 }, // team1 (batting first)
+        { runs: 150, wickets: 10, overs: 20 } // team2 (chasing, all out)
+      );
+      const m = completeMatch(state, first.id).state.matches.find(
+        (x) => x.id === first.id
+      )!;
+      expect(m.result?.winner).toBe(first.team1);
+      expect(m.result?.marginType).toBe("runs");
+      expect(m.result?.margin).toBe(30);
+    });
+
+    it("equal scores are a tie regardless of toss", () => {
+      const { state: base, first } = rrMatch();
+      let state = startMatch(base, first.id);
+      state = setMatchToss(state, first.id, first.team1, "bowl");
+      state = simulateMatchResult(
+        state,
+        first.id,
+        { runs: 150, wickets: 6, overs: 20 },
+        { runs: 150, wickets: 8, overs: 20 }
+      );
+      const m = completeMatch(state, first.id).state.matches.find(
+        (x) => x.id === first.id
+      )!;
+      expect(m.result?.isDraw).toBe(true);
+      expect(m.result?.winner).toBe("");
+    });
+
+    it("supports negative runs (double-wicket formats)", () => {
+      const { state: base, first } = rrMatch();
+      let state = startMatch(base, first.id);
+      state = setMatchToss(state, first.id, first.team1, "bat"); // team1 bats first
+      state = simulateMatchResult(
+        state,
+        first.id,
+        { runs: -4, wickets: 2, overs: 20 }, // team1 batting first (negative)
+        { runs: 6, wickets: 1, overs: 20 } // team2 chasing, higher
+      );
+      const m = completeMatch(state, first.id).state.matches.find(
+        (x) => x.id === first.id
+      )!;
+      expect(m.result?.winner).toBe(first.team2);
+      expect(m.result?.marginType).toBe("wickets");
+      expect(m.result?.margin).toBe(9); // 10 - 1 wickets
+    });
+  });
+
+  describe("No-result matches", () => {
+    it("finishes a group match as no result: 1 point each, no win", () => {
+      let state = generateMatches(withTeams("Team A", "Team B", "Team C")).state;
+      const first = state.matches.find((m) => !m.isPlayoff)!;
+      state = startMatch(state, first.id);
+
+      const r = completeMatchAsNoResult(state, first.id);
+      const m = r.state.matches.find((x) => x.id === first.id)!;
+
+      expect(m.status).toBe("completed");
+      expect(m.result?.matchType).toBe("no-result");
+      expect(m.result?.isNoResult).toBe(true);
+      expect(r.state.teamStats[first.team1].points).toBe(1);
+      expect(r.state.teamStats[first.team2].points).toBe(1);
+      expect(r.state.teamStats[first.team1].noResults).toBe(1);
+      expect(r.state.teamStats[first.team1].wins).toBe(0);
+      expect(r.state.teamStats[first.team1].totalRunsScored).toBe(0);
+    });
+
+    it("is a no-op for playoff matches (they need a winner)", () => {
+      const state = generateMatches(
+        withTeams("Team A", "Team B", "Team C")
+      ).state;
+      const playoff = state.matches.find((m) => m.isPlayoff)!;
+      const r = completeMatchAsNoResult(state, playoff.id);
+      expect(r.state.matches.find((x) => x.id === playoff.id)?.status).toBe(
+        "scheduled"
+      );
     });
   });
 

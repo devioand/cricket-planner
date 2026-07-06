@@ -282,6 +282,31 @@ describe("Cricket Stats Module", () => {
       expect(updatedStats.netRunRate).toBe(0); // Same runs scored and conceded
     });
 
+    it("should record a no-result as 1 point each with no runs, even without innings", () => {
+      const match = createMockMatch();
+      const noResult: CricketMatchResult = {
+        winner: "",
+        loser: "",
+        isNoResult: true,
+        team1Innings: null,
+        team2Innings: null,
+        matchType: "no-result",
+      };
+
+      const updatedStats = updateTeamStatsAfterMatch(
+        initializeTeamStats("Team A"),
+        match,
+        noResult
+      );
+
+      expect(updatedStats.matchesPlayed).toBe(1);
+      expect(updatedStats.noResults).toBe(1);
+      expect(updatedStats.points).toBe(1);
+      expect(updatedStats.wins).toBe(0);
+      expect(updatedStats.losses).toBe(0);
+      expect(updatedStats.totalRunsScored).toBe(0);
+    });
+
     it("should accumulate stats over multiple matches", () => {
       let stats = initializeTeamStats("Team A");
       const match = createMockMatch();

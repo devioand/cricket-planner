@@ -24,43 +24,21 @@ interface TossManagerProps {
 }
 
 export function TossManager({ match }: TossManagerProps) {
-  if (match.toss) {
-    return (
-      <Box
-        p={4}
-        bg="colorPalette.50"
-        borderRadius="xl"
-        border="2px solid"
-        borderColor="colorPalette.200"
-        colorPalette="green"
-      >
-        <VStack gap={2} align="center">
-          <Text fontSize="md" fontWeight="700" color="colorPalette.700">
-            Toss Complete
-          </Text>
-          <Text fontSize="sm" color="colorPalette.600" fontWeight="500">
-            {match.toss.tossWinner} won and chose to {match.toss.decision} first
-          </Text>
-        </VStack>
-      </Box>
-    );
-  }
-
-  return (
-    <VStack gap={3}>
-      <Text fontSize="md" color="fg.default" fontWeight="600">
-        Toss Required
-      </Text>
-      <CoinFlipDialog match={match} />
-    </VStack>
-  );
+  // Starting a match and doing the toss is one step: this button opens the coin
+  // flip directly, and confirming the toss also starts the match. A scheduled
+  // match reads "Start Match"; an already-started match still needing a toss
+  // (edge case) reads "Flip Coin".
+  const triggerLabel =
+    match.status === "in-progress" ? "🪙 Flip Coin" : "🚀 Start Match";
+  return <CoinFlipDialog match={match} triggerLabel={triggerLabel} />;
 }
 
 interface CoinFlipDialogProps {
   match: Match;
+  triggerLabel: string;
 }
 
-function CoinFlipDialog({ match }: CoinFlipDialogProps) {
+function CoinFlipDialog({ match, triggerLabel }: CoinFlipDialogProps) {
   const store = useTournamentStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
@@ -85,6 +63,8 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
   };
 
   const handleConfirmToss = () => {
+    // Single step: start the match (if not already) and record the toss.
+    store.startMatch(match.id);
     store.setToss(match.id, tossWinner, tossDecision);
     setIsOpen(false);
     // Reset state
@@ -96,8 +76,8 @@ function CoinFlipDialog({ match }: CoinFlipDialogProps) {
   return (
     <Dialog.Root open={isOpen} onOpenChange={(e) => setIsOpen(e.open)}>
       <Dialog.Trigger asChild>
-        <Button size="sm" width="full" colorPalette="blue">
-          🪙 Flip Coin
+        <Button width="full" colorPalette="blue">
+          {triggerLabel}
         </Button>
       </Dialog.Trigger>
 

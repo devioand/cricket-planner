@@ -8,7 +8,9 @@ import { MatchStatus } from "./match-status";
 import { MatchActions } from "./match-actions";
 import { TeamScoreInputDialog } from "./team-score-input-dialog";
 import { TournamentCelebration } from "./tournament-celebration";
+import { FinishMatchDialog } from "./finish-match-dialog";
 import { useTournamentStore } from "@/contexts/tournament-context/live-provider";
+import { toaster } from "@/components/ui/toaster";
 
 // Playoff Consequences Component
 function PlayoffConsequences({ playoffType }: { playoffType?: string }) {
@@ -59,6 +61,7 @@ export function MatchCard({
   const [celebrationWinner, setCelebrationWinner] = useState<string | null>(
     null
   );
+  const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false);
   const store = useTournamentStore();
 
   const isCompleted = match.status === "completed";
@@ -74,33 +77,12 @@ export function MatchCard({
 
   const getMatchState = () => {
     if (isCompleted) return "completed";
-
     if (isInProgress) {
-      if (!hasToss) return "in-progress-need-toss";
-
-      const team1BatsFirst =
-        match.toss?.decision === "bat"
-          ? match.toss.tossWinner === match.team1
-          : match.toss?.tossWinner !== match.team1;
-
-      const firstInningsComplete = team1BatsFirst
-        ? match.result?.team1Innings
-        : match.result?.team2Innings;
-      const secondInningsComplete = team1BatsFirst
-        ? match.result?.team2Innings
-        : match.result?.team1Innings;
-
-      if (firstInningsComplete && secondInningsComplete)
-        return "ready-to-finish";
-      if (firstInningsComplete && match.secondInningsStarted)
-        return "second-innings-ready";
-      if (firstInningsComplete && !match.secondInningsStarted)
-        return "first-innings-complete";
-      return "first-innings-ready";
+      // After the toss the match is simply "in progress": both scores are
+      // editable and there is a single Finish Match button.
+      return hasToss ? "in-progress" : "in-progress-need-toss";
     }
-
-    if (!hasToss) return "not-started";
-    return "scheduled";
+    return "not-started";
   };
 
   const matchState = getMatchState();
@@ -115,33 +97,9 @@ export function MatchCard({
       } (${displayCricketOvers(match.result.team2Innings.overs)})`
     : "0/0 (0.0)";
 
-  const shouldShowTeam1EditIcon = () => {
-    if (readOnly || isCompleted || !hasToss) return false;
-    const team1BatsFirst =
-      match.toss?.decision === "bat"
-        ? match.toss.tossWinner === match.team1
-        : match.toss?.tossWinner !== match.team1;
-
-    if (matchState === "first-innings-ready")
-      return team1BatsFirst && !match.result?.team1Innings;
-    if (matchState === "second-innings-ready")
-      return !team1BatsFirst && !match.result?.team1Innings;
-    return false;
-  };
-
-  const shouldShowTeam2EditIcon = () => {
-    if (readOnly || isCompleted || !hasToss) return false;
-    const team1BatsFirst =
-      match.toss?.decision === "bat"
-        ? match.toss.tossWinner === match.team1
-        : match.toss?.tossWinner !== match.team1;
-
-    if (matchState === "first-innings-ready")
-      return !team1BatsFirst && !match.result?.team2Innings;
-    if (matchState === "second-innings-ready")
-      return team1BatsFirst && !match.result?.team2Innings;
-    return false;
-  };
+  // After the toss, both teams' scores are editable at any time until the match
+  // is finished (no more first/second-innings sequencing).
+  const canEditScores = hasToss && !isCompleted && !readOnly && !hasTBDTeams;
 
   const getCardStyling = () => {
     const colorSchemes = {
@@ -193,18 +151,46 @@ export function MatchCard({
     }
   };
 
+  const scrollToNext = (nextMatchId?: string | null) => {
+    if (!nextMatchId) return;
+    setTimeout(() => {
+      document
+        .getElementById(`match-${nextMatchId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 500);
+  };
+
   const handleFinishMatch = () => {
-    // Instant, local — the engine runs client-side; the DB is written on Sync/Finish.
-    const r = store.finishMatch(match.id);
-    if (r.complete && r.winner) {
-      setCelebrationWinner(r.winner);
-    } else if (r.nextMatchId) {
-      setTimeout(() => {
-        document
-          .getElementById(`match-${r.nextMatchId}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 500);
+    const bothScores =
+      !!match.result?.team1Innings && !!match.result?.team2Innings;
+
+    // Common path: both scores in → finish with a result (instant, local).
+    if (bothScores) {
+      const r = store.finishMatch(match.id);
+      if (r.complete && r.winner) setCelebrationWinner(r.winner);
+      else scrollToNext(r.nextMatchId);
+      return;
     }
+
+    // Scores incomplete. A playoff needs a winner; a group match can be a
+    // No Result (both teams get 1 point).
+    if (match.isPlayoff) {
+      toaster.create({
+        title: "Scores required",
+        description: "Enter both teams' scores to finish a playoff match.",
+        type: "warning",
+        duration: 4000,
+        closable: true,
+      });
+      return;
+    }
+    setIsFinishDialogOpen(true);
+  };
+
+  const handleConfirmNoResult = () => {
+    setIsFinishDialogOpen(false);
+    const r = store.completeAsNoResult(match.id);
+    scrollToNext(r.nextMatchId);
   };
 
   return (
@@ -260,7 +246,7 @@ export function MatchCard({
                 👤 {match.team1}
               </Text>
               <HStack gap={2} align="center">
-                {shouldShowTeam1EditIcon() && (
+                {canEditScores && (
                   <IconButton
                     aria-label="Edit team 1 score"
                     size="xs"
@@ -282,7 +268,7 @@ export function MatchCard({
                 👤 {match.team2}
               </Text>
               <HStack gap={2} align="center">
-                {shouldShowTeam2EditIcon() && (
+                {canEditScores && (
                   <IconButton
                     aria-label="Edit team 2 score"
                     size="xs"
@@ -323,8 +309,6 @@ export function MatchCard({
             <MatchActions
               match={match}
               matchState={matchState}
-              onStartMatch={() => store.startMatch(match.id)}
-              onStartSecondInnings={() => store.startSecondInnings(match.id)}
               onFinishMatch={handleFinishMatch}
             />
           )}
@@ -337,28 +321,38 @@ export function MatchCard({
       </Box>
 
       {/* Score Input Dialogs */}
-      <TeamScoreInputDialog
-        isOpen={isTeam1ScoreDialogOpen}
-        onClose={() => setIsTeam1ScoreDialogOpen(false)}
-        match={match}
-        matchNumber={matchNumber}
-        teamName={match.team1}
-        isTeam1={true}
-      />
-      <TeamScoreInputDialog
-        isOpen={isTeam2ScoreDialogOpen}
-        onClose={() => setIsTeam2ScoreDialogOpen(false)}
-        match={match}
-        matchNumber={matchNumber}
-        teamName={match.team2}
-        isTeam1={false}
-      />
+      {isTeam1ScoreDialogOpen && (
+        <TeamScoreInputDialog
+          onClose={() => setIsTeam1ScoreDialogOpen(false)}
+          match={match}
+          matchNumber={matchNumber}
+          teamName={match.team1}
+          isTeam1={true}
+        />
+      )}
+      {isTeam2ScoreDialogOpen && (
+        <TeamScoreInputDialog
+          onClose={() => setIsTeam2ScoreDialogOpen(false)}
+          match={match}
+          matchNumber={matchNumber}
+          teamName={match.team2}
+          isTeam1={false}
+        />
+      )}
 
       {/* Champion celebration (shown when finishing the final) */}
       <TournamentCelebration
         isOpen={celebrationWinner !== null}
         onClose={() => setCelebrationWinner(null)}
         winner={celebrationWinner || ""}
+      />
+
+      {/* Finish a group match that wasn't played (No Result) */}
+      <FinishMatchDialog
+        isOpen={isFinishDialogOpen}
+        onClose={() => setIsFinishDialogOpen(false)}
+        match={match}
+        onNoResult={handleConfirmNoResult}
       />
     </>
   );
