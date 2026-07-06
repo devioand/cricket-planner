@@ -309,7 +309,6 @@ export function MatchCard({
             <MatchActions
               match={match}
               matchState={matchState}
-              onStartMatch={() => store.startMatch(match.id)}
               onFinishMatch={handleFinishMatch}
             />
           )}

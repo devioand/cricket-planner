@@ -8,29 +8,19 @@ import type { Match } from "@/contexts/tournament-context/types";
 interface MatchActionsProps {
   match: Match;
   matchState: string;
-  onStartMatch: () => void;
   onFinishMatch?: () => void;
 }
 
 export function MatchActions({
   match,
   matchState,
-  onStartMatch,
   onFinishMatch,
 }: MatchActionsProps) {
   if (matchState === "completed") return null;
 
-  if (matchState === "not-started") {
-    return (
-      <Box textAlign="center">
-        <Button onClick={onStartMatch} colorPalette="blue" w="full">
-          🚀 Start Match
-        </Button>
-      </Box>
-    );
-  }
-
-  if (matchState === "in-progress-need-toss") {
+  // Start Match and the toss are a single step: the toss dialog's button starts
+  // the match on confirm. This also covers a started match still needing a toss.
+  if (matchState === "not-started" || matchState === "in-progress-need-toss") {
     return <TossManager match={match} />;
   }
 
