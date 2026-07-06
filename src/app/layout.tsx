@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Rubik } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 import { Provider } from "@/components/ui/provider";
 import { Header } from "@/components/layout/header";
 import { Toaster } from "@/components/ui/toaster";
@@ -22,6 +23,13 @@ export default function RootLayout({
   return (
     <html className={`${rubik.variable}`} lang="en" suppressHydrationWarning>
       <body>
+        {/* Thin progress bar shown during route/page navigations. */}
+        <NextTopLoader
+          color="#3b82f6"
+          height={3}
+          showSpinner={false}
+          shadow="0 0 10px #3b82f6, 0 0 5px #3b82f6"
+        />
         <Provider>
           <Toaster />
           <Header />
