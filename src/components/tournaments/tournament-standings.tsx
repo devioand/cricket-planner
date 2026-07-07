@@ -70,7 +70,7 @@ export function TournamentStandings({
                 fontWeight="bold"
                 color="fg.default"
               >
-                D
+                T
               </Table.ColumnHeader>
               <Table.ColumnHeader
                 textAlign="center"
@@ -126,7 +126,7 @@ export function TournamentStandings({
           <Text>P - Played</Text>
           <Text>W - Won</Text>
           <Text>L - Lost</Text>
-          <Text>D - Draw</Text>
+          <Text>T - Tied</Text>
           <Text>NR - No Result</Text>
           <Text>Pts - Points</Text>
           <Text>NRR - Net Run Rate</Text>
@@ -214,7 +214,7 @@ function StandingsRow({ team, position, totalTeams }: StandingsRowProps) {
         </Badge>
       </Table.Cell>
 
-      {/* Draw */}
+      {/* Tied (a limited-overs "tie" — internal field is `draws`) */}
       <Table.Cell textAlign="center">
         <Badge
           colorPalette="gray"
