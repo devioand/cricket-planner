@@ -78,6 +78,14 @@ export function TournamentStandings({
                 fontWeight="bold"
                 color="fg.default"
               >
+                NR
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                textAlign="center"
+                fontSize={{ base: "xs", md: "sm" }}
+                fontWeight="bold"
+                color="fg.default"
+              >
                 Pts
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -119,6 +127,7 @@ export function TournamentStandings({
           <Text>W - Won</Text>
           <Text>L - Lost</Text>
           <Text>D - Draw</Text>
+          <Text>NR - No Result</Text>
           <Text>Pts - Points</Text>
           <Text>NRR - Net Run Rate</Text>
         </HStack>
@@ -214,6 +223,18 @@ function StandingsRow({ team, position, totalTeams }: StandingsRowProps) {
           px={{ base: 1, md: 2 }}
         >
           {team.draws}
+        </Badge>
+      </Table.Cell>
+
+      {/* No Result */}
+      <Table.Cell textAlign="center">
+        <Badge
+          colorPalette="orange"
+          variant="subtle"
+          fontSize={{ base: "xs", md: "sm" }}
+          px={{ base: 1, md: 2 }}
+        >
+          {team.noResults}
         </Badge>
       </Table.Cell>
 
