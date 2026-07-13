@@ -170,13 +170,13 @@ export function TournamentHeader({ name }: { name: string }) {
   );
 }
 
-/** A labeled light/dark toggle — the label makes its purpose obvious. */
+/** Icon-only light/dark toggle (outline, matching the back button). */
 function ThemeToggle() {
   const { colorMode, toggleColorMode } = useColorMode();
   const goingDark = colorMode !== "dark";
   return (
-    <ClientOnly fallback={<Skeleton h="32px" w="40px" borderRadius="md" flexShrink={0} />}>
-      <Button
+    <ClientOnly fallback={<Skeleton boxSize="32px" borderRadius="md" flexShrink={0} />}>
+      <IconButton
         variant="outline"
         colorPalette="gray"
         size="sm"
@@ -184,11 +184,8 @@ function ThemeToggle() {
         flexShrink={0}
         aria-label={goingDark ? "Switch to dark mode" : "Switch to light mode"}
       >
-        <HStack gap={1.5}>
-          {goingDark ? <LuMoon size={15} /> : <LuSun size={15} />}
-          <Text>{goingDark ? "Dark" : "Light"}</Text>
-        </HStack>
-      </Button>
+        {goingDark ? <LuMoon size={16} /> : <LuSun size={16} />}
+      </IconButton>
     </ClientOnly>
   );
 }
