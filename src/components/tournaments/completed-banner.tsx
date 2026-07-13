@@ -17,16 +17,15 @@ export function CompletedBanner({
   return (
     <Box
       mb={4}
-      colorPalette="green"
-      bg="colorPalette.100"
+      bg={{ base: "green.50", _dark: "green.950" }}
       borderWidth={1}
-      borderColor="colorPalette.300"
+      borderColor="green.400"
       borderRadius="lg"
       px={4}
       py={3}
     >
       <HStack gap={2} justify="center" align="center">
-        <Box color="colorPalette.600" display="flex">
+        <Box color={{ base: "green.600", _dark: "green.300" }} display="flex">
           <LuTrophy />
         </Box>
         <Text fontSize="sm" fontWeight="medium" color="fg.default">
