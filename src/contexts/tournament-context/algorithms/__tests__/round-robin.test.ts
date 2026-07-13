@@ -24,8 +24,9 @@ describe("Round Robin Algorithm", () => {
 
       const expectedMatches = (3 * 2) / 2; // 3 matches
       expect(result.matches).toHaveLength(expectedMatches);
-      expect(result.totalRounds).toBe(3); // Current scheduler creates 3 rounds for 3 teams
-      expect(result.matchesPerRound).toBe(1); // One match per round with a bye
+      // Matches are played sequentially (one pitch), so each occupies its own slot
+      expect(result.totalRounds).toBe(expectedMatches);
+      expect(result.matchesPerRound).toBe(1);
     });
 
     it("should generate correct number of matches for 4 teams", () => {
@@ -37,8 +38,8 @@ describe("Round Robin Algorithm", () => {
 
       const expectedMatches = (4 * 3) / 2; // 6 matches
       expect(result.matches).toHaveLength(expectedMatches);
-      expect(result.totalRounds).toBe(3); // 4 teams need 3 rounds
-      expect(result.matchesPerRound).toBe(2); // Max 2 matches per round with 4 teams
+      expect(result.totalRounds).toBe(expectedMatches); // sequential play, one slot each
+      expect(result.matchesPerRound).toBe(1);
     });
 
     it("should generate correct number of matches for 6 teams", () => {
@@ -50,8 +51,8 @@ describe("Round Robin Algorithm", () => {
 
       const expectedMatches = (6 * 5) / 2; // 15 matches
       expect(result.matches).toHaveLength(expectedMatches);
-      expect(result.totalRounds).toBeGreaterThanOrEqual(5); // Minimal rounds is 5; scheduler may use more
-      expect(result.matchesPerRound).toBeLessThanOrEqual(3); // At most 3 parallel matches
+      expect(result.totalRounds).toBe(expectedMatches); // sequential play, one slot each
+      expect(result.matchesPerRound).toBe(1);
     });
 
     it("should ensure each team plays every other team exactly once", () => {
@@ -118,35 +119,60 @@ describe("Round Robin Algorithm", () => {
       });
     });
 
-    it("should distribute matches across rounds optimally", () => {
+    it("should order matches by play sequence via the round field", () => {
       const result = generateRoundRobinMatches({
-        teams: mockTeams4,
+        teams: mockTeams6,
         maxOvers: 20,
         maxWickets: 10,
       });
 
-      // Group matches by round
-      const matchesByRound: Record<number, typeof result.matches> = {};
-      result.matches.forEach((match) => {
-        if (!matchesByRound[match.round]) {
-          matchesByRound[match.round] = [];
-        }
-        matchesByRound[match.round].push(match);
+      // The matches view sorts by `round`, so it must be a strictly increasing
+      // 1..N sequence that defines the actual play order.
+      const rounds = result.matches.map((m) => m.round);
+      expect(rounds).toEqual(
+        Array.from({ length: result.matches.length }, (_, i) => i + 1)
+      );
+    });
+
+    it("should not schedule the same teams in back-to-back matches when enough teams are available", () => {
+      // With 6 teams there is always another pair free, so no team should ever
+      // play two matches in a row.
+      const result = generateRoundRobinMatches({
+        teams: mockTeams6,
+        maxOvers: 20,
+        maxWickets: 10,
       });
 
-      // Each round should have at most 2 matches (4 teams can play 2 simultaneous matches)
-      Object.values(matchesByRound).forEach((roundMatches) => {
-        expect(roundMatches.length).toBeLessThanOrEqual(2);
+      const inPlayOrder = [...result.matches].sort((a, b) => a.round - b.round);
+      for (let i = 1; i < inPlayOrder.length; i++) {
+        const prev = inPlayOrder[i - 1];
+        const curr = inPlayOrder[i];
+        const shared =
+          curr.team1 === prev.team1 ||
+          curr.team1 === prev.team2 ||
+          curr.team2 === prev.team1 ||
+          curr.team2 === prev.team2;
+        expect(shared).toBe(false);
+      }
+    });
+
+    it("should give every team a rest gap of at least 2 slots with 6 teams", () => {
+      // 6 teams means at most one team rests per slot, so consecutive games for
+      // any single team should be spaced by at least 2 matches.
+      const result = generateRoundRobinMatches({
+        teams: mockTeams6,
+        maxOvers: 20,
+        maxWickets: 10,
       });
 
-      // No team should play more than once per round
-      Object.values(matchesByRound).forEach((roundMatches) => {
-        const teamsInRound = new Set<string>();
-        roundMatches.forEach((match) => {
-          expect(teamsInRound.has(match.team1)).toBe(false);
-          expect(teamsInRound.has(match.team2)).toBe(false);
-          teamsInRound.add(match.team1);
-          teamsInRound.add(match.team2);
+      const inPlayOrder = [...result.matches].sort((a, b) => a.round - b.round);
+      const lastSeen: Record<string, number> = {};
+      inPlayOrder.forEach((match, index) => {
+        [match.team1, match.team2].forEach((team) => {
+          if (lastSeen[team] !== undefined) {
+            expect(index - lastSeen[team]).toBeGreaterThanOrEqual(2);
+          }
+          lastSeen[team] = index;
         });
       });
     });
