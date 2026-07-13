@@ -23,11 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useColorMode } from "@/components/ui/color-mode";
 import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
-import { getTournamentWinner } from "@/contexts/tournament-context/engine";
-import {
-  useSyncTournament,
-  useFinishTournament,
-} from "@/lib/query/use-tournament-sync";
+import { useSyncTournament } from "@/lib/query/use-tournament-sync";
 import { TournamentDetailsDialog } from "@/components/tournaments/tournament-details-dialog";
 
 /**
@@ -41,21 +37,19 @@ export function TournamentHeader({ name }: { name: string }) {
   const { state, isDirty, lastSyncedAt, readOnly, hydrating, store } =
     useLiveTournament();
   const sync = useSyncTournament();
-  const finish = useFinishTournament();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const base = `/tournament/round-robin/${store.id}`;
   const tabs = [
     { href: `${base}/matches`, label: "Matches" },
     { href: `${base}/standings`, label: "Standings" },
+    { href: `${base}/stats`, label: "Stats" },
   ];
 
   const total = state.matches.length;
   const completed = state.matches.filter((m) => m.status === "completed").length;
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
   const done = pct === 100;
-  const winner = getTournamentWinner(state);
-  const busy = sync.isPending || finish.isPending;
 
   return (
     <Box
@@ -120,7 +114,7 @@ export function TournamentHeader({ name }: { name: string }) {
                 isDirty={isDirty}
                 lastSyncedAt={lastSyncedAt}
                 syncing={sync.isPending}
-                busy={busy}
+                busy={sync.isPending}
                 onSync={() => sync.mutate()}
               />
             )}
@@ -164,20 +158,6 @@ export function TournamentHeader({ name }: { name: string }) {
               );
             })}
           </HStack>
-
-          {/* Finish is the natural next step once the champion is decided. */}
-          {winner && !readOnly && (
-            <Button
-              colorPalette="green"
-              w="full"
-              size="sm"
-              onClick={() => finish.mutate()}
-              loading={finish.isPending}
-              disabled={busy}
-            >
-              🏁 Finish &amp; Save Tournament
-            </Button>
-          )}
         </VStack>
       </Box>
 
