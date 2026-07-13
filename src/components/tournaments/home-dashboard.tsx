@@ -1,12 +1,10 @@
 "use client";
 
 import { Box, Heading, Text, VStack, HStack } from "@chakra-ui/react";
-import { useState } from "react";
 import Link from "next/link";
 import { LuPlus } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
-import { CreateTournamentDialog } from "@/components/tournaments/create-tournament-dialog";
 import type { TournamentSummary } from "@/lib/repositories/tournament-repository";
 
 export function HomeDashboard({
@@ -14,8 +12,6 @@ export function HomeDashboard({
 }: {
   tournaments: TournamentSummary[];
 }) {
-  const [createOpen, setCreateOpen] = useState(false);
-
   // "Ongoing" = anything not finished (still being set up or in progress).
   const ongoing = tournaments.filter((t) => t.status !== "completed");
   const completedCount = tournaments.length - ongoing.length;
@@ -38,12 +34,14 @@ export function HomeDashboard({
                 Pick up one of your ongoing tournaments.
               </Text>
             </Box>
-            <Button colorPalette="blue" onClick={() => setCreateOpen(true)}>
-              <HStack gap={2}>
-                <LuPlus />
-                <Text>New Tournament</Text>
-              </HStack>
-            </Button>
+            <Link href="/tournaments/new">
+              <Button colorPalette="blue">
+                <HStack gap={2}>
+                  <LuPlus />
+                  <Text>New Tournament</Text>
+                </HStack>
+              </Button>
+            </Link>
           </HStack>
 
           <VStack gap={3} align="stretch">
@@ -62,27 +60,13 @@ export function HomeDashboard({
           </Box>
         </VStack>
       ) : (
-        <EmptyHero
-          hasCompleted={completedCount > 0}
-          onCreate={() => setCreateOpen(true)}
-        />
+        <EmptyHero hasCompleted={completedCount > 0} />
       )}
-
-      <CreateTournamentDialog
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-      />
     </Box>
   );
 }
 
-function EmptyHero({
-  hasCompleted,
-  onCreate,
-}: {
-  hasCompleted: boolean;
-  onCreate: () => void;
-}) {
+function EmptyHero({ hasCompleted }: { hasCompleted: boolean }) {
   return (
     <Box
       minH="calc(100vh - 200px)"
@@ -108,12 +92,14 @@ function EmptyHero({
           </Text>
         </VStack>
 
-        <Button size="lg" colorPalette="blue" onClick={onCreate}>
-          <HStack gap={2}>
-            <LuPlus />
-            <Text>New Tournament</Text>
-          </HStack>
-        </Button>
+        <Link href="/tournaments/new">
+          <Button size="lg" colorPalette="blue">
+            <HStack gap={2}>
+              <LuPlus />
+              <Text>New Tournament</Text>
+            </HStack>
+          </Button>
+        </Link>
 
         {hasCompleted && (
           <Link href="/tournaments">

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
  * scoring action reflects instantly without a server round-trip.
  */
 export function MatchesView() {
-  const { state, readOnly, hydrating, store } = useLiveTournament();
+  const { state, readOnly, hydrating } = useLiveTournament();
 
   // On a hard reload the server can't read localStorage; show a skeleton until
   // the client reveals the real state (instead of flashing stale DB data).
@@ -28,15 +28,15 @@ export function MatchesView() {
             color="fg.default"
             mb={4}
           >
-            📋 No Tournament Generated
+            📋 Nothing to show yet
           </Text>
           <Text fontSize="md" color="fg.muted" mb={6}>
-            Please set up your tournament first by adding teams and generating
-            matches
+            This tournament isn&apos;t available on this device. It may not have
+            been synced yet — open it on the device where you created it.
           </Text>
-          <Link href={`/tournament/round-robin/${store.id}/setup`}>
+          <Link href="/tournaments">
             <Button colorPalette="blue" size="lg">
-              ← Go to Setup
+              ← Back to tournaments
             </Button>
           </Link>
         </Box>
@@ -58,9 +58,10 @@ export function MatchesView() {
         <SampleResultsButton pending={pending} />
       )}
 
-      {/* Group Stage */}
+      {/* Group stage */}
       {roundRobinMatches.length > 0 && (
         <VStack align="stretch" gap={4}>
+          {playoffMatches.length > 0 && <SectionDivider label="Group Stage" />}
           {roundRobinMatches.map((match, index) => (
             <MatchCard
               key={match.id}
@@ -73,47 +74,43 @@ export function MatchesView() {
         </VStack>
       )}
 
-      {/* Playoffs */}
-      <VStack align="stretch" gap={4}>
-        <Box textAlign="center" py={4}>
-          <Text
-            fontSize="xl"
-            fontWeight="bold"
-            color="colorPalette.700"
-            mb={1}
-            colorPalette="yellow"
-          >
-            🏆 Playoff Stage
-          </Text>
-          <Text fontSize="sm" color="fg.muted">
-            Top teams compete for the championship
-          </Text>
-        </Box>
-
-        {playoffMatches.length === 0 && (
-          <Box p={6} bg="bg.subtle" rounded="lg" textAlign="center">
-            <Text fontSize="xl" fontWeight="bold" color="fg.default" mb={2}>
-              🚨 No Playoff Matches
-            </Text>
-            <Text fontSize="md" color="fg.muted">
-              Playoff matches will appear here once the tournament is generated.
-            </Text>
-          </Box>
-        )}
-
-        {playoffMatches.map((match, index) => (
-          <Box key={match.id} position="relative">
+      {/* Playoffs — a slim divider instead of a heading block. */}
+      {playoffMatches.length > 0 && (
+        <VStack align="stretch" gap={4}>
+          <SectionDivider label="Playoffs" />
+          {playoffMatches.map((match, index) => (
             <MatchCard
+              key={match.id}
               match={match}
               matchNumber={index + 1}
               totalMatches={playoffMatches.length}
               isPlayoff
               readOnly={readOnly}
             />
-          </Box>
-        ))}
-      </VStack>
+          ))}
+        </VStack>
+      )}
     </VStack>
+  );
+}
+
+/** A slim labeled separator between match sections. */
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <HStack gap={3} align="center" pt={1}>
+      <Box flex="1" h="1px" bg="border.default" />
+      <Text
+        fontSize="2xs"
+        fontWeight="semibold"
+        color="fg.muted"
+        textTransform="uppercase"
+        letterSpacing="wider"
+        flexShrink={0}
+      >
+        {label}
+      </Text>
+      <Box flex="1" h="1px" bg="border.default" />
+    </HStack>
   );
 }
 

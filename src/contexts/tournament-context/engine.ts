@@ -10,6 +10,7 @@ import type {
   InningsScore,
   CricketTeamStats,
   CricketMatchResult,
+  PlayoffConfig,
   PlayoffFormat,
   TossDecision,
 } from "./types";
@@ -26,15 +27,12 @@ import {
   validateRoundRobinTeams,
 } from "./algorithms/round-robin";
 import {
-  generateWorldCupPlayoffMatchesWithTBD,
+  buildPlayoffConfig,
+  generatePlayoffMatches,
   isRoundRobinComplete,
-} from "./algorithms/playoffs";
-import { generateLeaguePlayoffMatchesWithTBD } from "./algorithms/playoffs-league";
-import {
-  updateLeaguePlayoffTeams,
-  updateWorldCupPlayoffTeams,
-  updateInitialPlayoffTeamsFromStandings,
-} from "./algorithms/update-playoff-teams";
+  resolvePlayoffDependencies,
+  resolveSeedSlots,
+} from "./algorithms/playoff-engine";
 
 export const initialState: TournamentState = {
   algorithm: "round-robin",
@@ -46,6 +44,7 @@ export const initialState: TournamentState = {
   teamStats: {},
   phase: "setup",
   playoffFormat: "world-cup",
+  playoffConfig: null,
 };
 
 // ── Internal helpers (mirror the old reducer) ────────────────────────────────
@@ -117,6 +116,13 @@ export function setPlayoffFormat(
   return { ...state, playoffFormat: format };
 }
 
+export function setPlayoffConfig(
+  state: TournamentState,
+  config: PlayoffConfig | null,
+): TournamentState {
+  return { ...state, playoffConfig: config };
+}
+
 // ── Match generation ─────────────────────────────────────────────────────────
 
 export function generateMatches(state: TournamentState): {
@@ -132,22 +138,23 @@ export function generateMatches(state: TournamentState): {
   try {
     switch (state.algorithm) {
       case "round-robin": {
-        // Special case: with exactly 2 teams there is no group stage — a
-        // single final between the two teams decides the champion.
+        const opts = { maxOvers: state.maxOvers, maxWickets: state.maxWickets };
+
+        // Special case: with exactly 2 teams there is no group stage — a single
+        // final between the two teams decides the champion. Model it as a
+        // final-only config so the winner logic and persistence stay uniform.
         if (state.teams.length === 2) {
+          const config = buildPlayoffConfig("final-only", 2, null)!;
+          const [final] = generatePlayoffMatches(config, opts);
           const finalMatch: Match = {
-            id: "F-001",
+            ...final,
             team1: state.teams[0],
             team2: state.teams[1],
-            round: 1,
-            status: "scheduled",
-            overs: state.maxOvers,
-            maxWickets: state.maxWickets,
-            isPlayoff: true,
-            playoffType: "final",
-            phase: "playoffs",
           };
-          return { state: setMatches(state, [finalMatch]), success: true };
+          return {
+            state: setMatches({ ...state, playoffConfig: config }, [finalMatch]),
+            success: true,
+          };
         }
 
         const roundRobinResult = generateRoundRobinMatches({
@@ -155,18 +162,26 @@ export function generateMatches(state: TournamentState): {
           maxOvers: state.maxOvers,
           maxWickets: state.maxWickets,
         });
-        let allMatches: Match[] = [...roundRobinResult.matches];
 
-        const playoffResult =
-          state.playoffFormat === "world-cup"
-            ? generateWorldCupPlayoffMatchesWithTBD(state)
-            : generateLeaguePlayoffMatchesWithTBD(state);
+        // Resolve the chosen format into a concrete playoff config, then create
+        // all its matches up-front as TBD (populated as prerequisites complete).
+        const config = buildPlayoffConfig(
+          state.playoffFormat,
+          state.teams.length,
+          state.playoffConfig,
+        );
+        const playoffMatches = config
+          ? generatePlayoffMatches(config, opts)
+          : [];
+        const allMatches: Match[] = [
+          ...roundRobinResult.matches,
+          ...playoffMatches,
+        ];
 
-        if (playoffResult.success) {
-          allMatches = [...allMatches, ...playoffResult.playoffMatches];
-        }
-
-        return { state: setMatches(state, allMatches), success: true };
+        return {
+          state: setMatches({ ...state, playoffConfig: config }, allMatches),
+          success: true,
+        };
       }
       case "single-elimination":
       case "double-elimination":
@@ -357,37 +372,22 @@ export function completeMatch(
     completedResult,
   );
 
-  const playoffUpdate =
-    state.playoffFormat === "league"
-      ? updateLeaguePlayoffTeams({
-          ...state,
-          matches: finalUpdatedMatches,
-          teamStats: finalUpdatedTeamStats,
-        })
-      : updateWorldCupPlayoffTeams({
-          ...state,
-          matches: finalUpdatedMatches,
-          teamStats: finalUpdatedTeamStats,
-        });
+  let matchesToSet = finalUpdatedMatches;
+  const config = state.playoffConfig;
+  if (config) {
+    // A playoff match may have just completed → resolve any winner/loser slots
+    // that now have a concrete team.
+    matchesToSet = resolvePlayoffDependencies(matchesToSet, config).matches;
 
-  let matchesToSet = playoffUpdate.success
-    ? playoffUpdate.updatedMatches
-    : finalUpdatedMatches;
-
-  const updatedStateForStandingCheck = {
-    ...state,
-    matches: matchesToSet,
-    teamStats: finalUpdatedTeamStats,
-  };
-
-  if (isRoundRobinComplete(updatedStateForStandingCheck)) {
-    const standings = getTournamentStandings(finalUpdatedTeamStats);
-    const standingsUpdate = updateInitialPlayoffTeamsFromStandings(
-      updatedStateForStandingCheck,
-      standings,
-    );
-    if (standingsUpdate.success) {
-      matchesToSet = standingsUpdate.updatedMatches;
+    // If this was the final group-stage match, seed the bracket from standings.
+    const stateForCheck = {
+      ...state,
+      matches: matchesToSet,
+      teamStats: finalUpdatedTeamStats,
+    };
+    if (isRoundRobinComplete(stateForCheck)) {
+      const standings = getTournamentStandings(finalUpdatedTeamStats);
+      matchesToSet = resolveSeedSlots(matchesToSet, config, standings).matches;
     }
   }
 
@@ -458,20 +458,15 @@ export function completeMatchAsNoResult(
 
   // Seed playoffs if this was the last group-stage match.
   let matchesToSet = updatedMatches;
+  const config = state.playoffConfig;
   const stateForCheck = {
     ...state,
     matches: updatedMatches,
     teamStats: updatedTeamStats,
   };
-  if (isRoundRobinComplete(stateForCheck)) {
+  if (config && isRoundRobinComplete(stateForCheck)) {
     const standings = getTournamentStandings(updatedTeamStats);
-    const standingsUpdate = updateInitialPlayoffTeamsFromStandings(
-      stateForCheck,
-      standings,
-    );
-    if (standingsUpdate.success) {
-      matchesToSet = standingsUpdate.updatedMatches;
-    }
+    matchesToSet = resolveSeedSlots(updatedMatches, config, standings).matches;
   }
 
   const newState: TournamentState = {
@@ -554,8 +549,22 @@ export function generateSampleResults(state: TournamentState): TournamentState {
 // ── Derived ──────────────────────────────────────────────────────────────────
 
 export function getTournamentWinner(state: TournamentState): string | null {
+  // "none" format has no playoff matches — the champion is the table topper,
+  // decided the moment the round-robin completes.
+  if (state.playoffFormat === "none") {
+    return isRoundRobinComplete(state)
+      ? getTournamentStandings(state.teamStats)[0]?.teamName ?? null
+      : null;
+  }
+
+  // Otherwise the champion is the winner of the completed final. Prefer the
+  // canonical `isFinal` flag; fall back to the legacy `playoffType === "final"`
+  // so tournaments created before `isFinal` existed still resolve.
   const finalMatch = state.matches.find(
-    (m) => m.isPlayoff && m.playoffType === "final" && m.status === "completed",
+    (m) =>
+      m.isPlayoff &&
+      (m.isFinal || m.playoffType === "final") &&
+      m.status === "completed",
   );
   return finalMatch?.result?.winner || null;
 }

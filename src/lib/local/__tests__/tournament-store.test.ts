@@ -66,6 +66,27 @@ describe("TournamentStore — hydration", () => {
     expect(window.localStorage.getItem(keyFor("T1"))).toBeNull();
   });
 
+  it("migrates a v1 local payload (no playoffConfig) on read", () => {
+    // Simulate a payload written before flexible playoffs shipped: __v 1 and a
+    // state with no `playoffConfig`.
+    const legacyState = scheduledMatchState() as Partial<TournamentState>;
+    delete legacyState.playoffConfig;
+    window.localStorage.setItem(
+      keyFor("LEG"),
+      JSON.stringify({
+        __v: 1,
+        state: legacyState,
+        isDirty: true,
+        lastSyncedAt: null,
+      }),
+    );
+
+    const store = inProgress("LEG");
+    // Read succeeds (not discarded) and the config is rebuilt from the format.
+    expect(store.getSnapshot().isDirty).toBe(true);
+    expect(store.getSnapshot().state.playoffConfig).not.toBeUndefined();
+  });
+
   it("resumes from the local copy on reconstruction (survives reload)", () => {
     const first = inProgress("T2");
     first.startMatch("M1");
@@ -126,7 +147,7 @@ describe("TournamentStore — mutations persist locally", () => {
     const raw = window.localStorage.getItem(keyFor("M"));
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw!);
-    expect(parsed.__v).toBe(1);
+    expect(parsed.__v).toBe(2);
     expect(parsed.isDirty).toBe(true);
     expect(parsed.state.matches[0].status).toBe("in-progress");
   });

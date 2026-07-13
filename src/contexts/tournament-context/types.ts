@@ -13,9 +13,17 @@ export type TournamentPhase =
   | "completed";
 
 export type PlayoffFormat =
+  | "none" // Champion = round-robin table topper, no playoff matches
+  | "final-only" // Top 2 play a single final
   | "world-cup" // Simple knockout: SF1, SF2, Final
-  | "league"; // IPL style: Q1, Eliminator, Q2, Final
+  | "league" // IPL style: Q1, Eliminator, Q2, Final
+  | "custom"; // User-authored PlayoffConfig
 
+/**
+ * @deprecated Legacy union of preset playoff round labels. `Match.playoffType`
+ * is now a free string label; new code should rely on `Match.isFinal` and
+ * `Match.label` instead. Kept for reference/back-compat during migration.
+ */
 export type PlayoffType =
   | "semi-final-1"
   | "semi-final-2"
@@ -24,6 +32,33 @@ export type PlayoffType =
   | "qualifier-1"
   | "eliminator"
   | "qualifier-2";
+
+/**
+ * A single slot (one side) of a playoff match. It resolves to a concrete team
+ * either from the round-robin standings (`seed`) or from the outcome of an
+ * earlier playoff match in the same config (`winnerOf` / `loserOf`).
+ */
+export type PlayoffSlot =
+  | { kind: "seed"; seed: number } // 1-based rank in final standings
+  | { kind: "winnerOf"; matchId: string } // ref to a spec id in the same config
+  | { kind: "loserOf"; matchId: string };
+
+/** Declarative definition of one playoff match, resolved lazily as prerequisites complete. */
+export interface PlayoffMatchSpec {
+  id: string; // preset: legacy ids (SF-001…); custom: PO-001…
+  label: string; // "Semi-Final 1", "Eliminator", "Final"…
+  round: number; // play-order / display round
+  slot1: PlayoffSlot;
+  slot2: PlayoffSlot;
+  isFinal?: boolean; // exactly one true → its winner is the champion
+  playoffType?: string; // legacy alias so existing UI labels keep working
+}
+
+/** The full playoff structure for a tournament. */
+export interface PlayoffConfig {
+  qualifiers: number; // teams that reach playoffs (0 for "none")
+  matches: PlayoffMatchSpec[];
+}
 
 // Toss decision types
 export type TossDecision = "bat" | "bowl";
@@ -51,7 +86,9 @@ export interface Match {
   secondInningsStarted?: boolean; // Track when user starts second innings
   // Playoff specific fields
   isPlayoff?: boolean;
-  playoffType?: PlayoffType;
+  playoffType?: string; // free label (legacy preset values or custom names)
+  label?: string; // human-readable display label for this playoff match
+  isFinal?: boolean; // canonical champion-decider flag (winner = champion)
   phase?: TournamentPhase;
 }
 
@@ -91,6 +128,9 @@ export interface TournamentState {
   // Playoff specific state
   phase: TournamentPhase;
   playoffFormat: PlayoffFormat;
+  // The resolved playoff structure used to generate playoff matches.
+  // null before generation and for the "none" format.
+  playoffConfig: PlayoffConfig | null;
 }
 
 // Extended types for future features

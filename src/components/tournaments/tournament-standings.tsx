@@ -5,8 +5,11 @@ import type { CricketTeamStats } from "@/contexts/tournament-context/types";
 
 export function TournamentStandings({
   standings,
+  qualifiers = 0,
 }: {
   standings: CricketTeamStats[];
+  /** How many top teams reach the playoffs (0 = no playoffs). Highlighted green. */
+  qualifiers?: number;
 }) {
   if (standings.length === 0) {
     return (
@@ -104,7 +107,7 @@ export function TournamentStandings({
                 key={team.teamName}
                 team={team}
                 position={index + 1}
-                totalTeams={standings.length}
+                qualifiers={qualifiers}
               />
             ))}
           </Table.Body>
@@ -142,13 +145,12 @@ export function TournamentStandings({
 interface StandingsRowProps {
   team: CricketTeamStats;
   position: number;
-  totalTeams: number;
+  qualifiers: number;
 }
 
-function StandingsRow({ team, position, totalTeams }: StandingsRowProps) {
-  // Determine how many teams qualify for playoffs
-  const qualifyingTeams = totalTeams === 3 ? 2 : 4;
-  const isQualified = position <= qualifyingTeams;
+function StandingsRow({ team, position, qualifiers }: StandingsRowProps) {
+  // Highlight exactly the teams that will reach the playoffs for this format.
+  const isQualified = position <= qualifiers;
 
   return (
     <Table.Row

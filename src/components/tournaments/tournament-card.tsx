@@ -29,9 +29,8 @@ const STATUS_META: Record<TournamentStatus, { label: string; color: string }> =
     completed: { label: "Completed", color: "green" },
   };
 
-function subPathForStatus(status: TournamentStatus): string {
-  return status === "setup" ? "setup" : "matches";
-}
+// Setup is a standalone flow now, so every tournament opens to its matches.
+const TOURNAMENT_SUBPATH = "matches";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -50,7 +49,7 @@ export function TournamentCard({
 }) {
   const router = useRouter();
   const status = STATUS_META[t.status];
-  const href = `/tournament/round-robin/${t.id}/${subPathForStatus(t.status)}`;
+  const href = `/tournament/round-robin/${t.id}/${TOURNAMENT_SUBPATH}`;
 
   return (
     <Card.Root

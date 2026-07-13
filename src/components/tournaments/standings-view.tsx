@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 
 /** Standings tab — derived live from the local store's tournament state. */
 export function StandingsView() {
-  const { state, hydrating, store } = useLiveTournament();
+  const { state, hydrating } = useLiveTournament();
   const standings = getStandings(state);
 
   return (
@@ -49,16 +49,20 @@ export function StandingsView() {
             📊 No Tournament Data
           </Text>
           <Text fontSize="md" color="fg.muted" mb={6}>
-            Generate tournament matches and play some games to see standings
+            This tournament isn&apos;t available on this device yet. Play some
+            matches to see the standings.
           </Text>
-          <Link href={`/tournament/round-robin/${store.id}/setup`}>
+          <Link href="/tournaments">
             <Button colorPalette="blue" size="lg">
-              ← Go to Setup
+              ← Back to tournaments
             </Button>
           </Link>
         </Box>
       ) : (
-        <TournamentStandings standings={standings} />
+        <TournamentStandings
+          standings={standings}
+          qualifiers={state.playoffConfig?.qualifiers ?? 0}
+        />
       )}
     </>
   );

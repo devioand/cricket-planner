@@ -13,8 +13,17 @@ import { useTournamentStore } from "@/contexts/tournament-context/live-provider"
 import { toaster } from "@/components/ui/toaster";
 
 // Playoff Consequences Component
-function PlayoffConsequences({ playoffType }: { playoffType?: string }) {
+function PlayoffConsequences({
+  playoffType,
+  isFinal,
+}: {
+  playoffType?: string;
+  isFinal?: boolean;
+}) {
   const getConsequences = (type?: string) => {
+    if (isFinal) {
+      return { winner: "becomes Champion", loser: "becomes Runner-up" };
+    }
     switch (type) {
       case "qualifier-1":
         return { winner: "goes to Final", loser: "goes to Qualifier 2" };
@@ -233,8 +242,8 @@ export function MatchCard({
               colorPalette="orange"
             >
               {isPlayoff
-                ? (match.playoffType === "final" ? "🏆 " : "") +
-                  getPlayoffDisplayText(match.playoffType)
+                ? (match.isFinal ? "🏆 " : "") +
+                  (match.label ?? getPlayoffDisplayText(match.playoffType))
                 : `Match ${matchNumber} of ${totalMatches}`}
             </Text>
           </HStack>
@@ -315,7 +324,10 @@ export function MatchCard({
 
           {/* Playoff Consequences */}
           {match.isPlayoff && !hasTBDTeams && (
-            <PlayoffConsequences playoffType={match.playoffType} />
+            <PlayoffConsequences
+              playoffType={match.playoffType}
+              isFinal={match.isFinal}
+            />
           )}
         </VStack>
       </Box>
