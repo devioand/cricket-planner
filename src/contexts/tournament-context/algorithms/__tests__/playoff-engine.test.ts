@@ -1,6 +1,7 @@
 import {
   buildPlayoffConfig,
   buildFinalOnlyConfig,
+  buildEliminatorFinalConfig,
   buildWorldCupConfig,
   buildLeagueConfig,
   generatePlayoffMatches,
@@ -178,6 +179,27 @@ describe("custom bracket (user's 5-team example)", () => {
     const final = matches.find((m) => m.id === "F-001")!;
     expect(final.team1).toBe("A");
     expect(final.team2).toBe("C");
+  });
+});
+
+describe("buildEliminatorFinalConfig (top 3)", () => {
+  it("is a 2v3 eliminator whose winner meets seed 1 in the final", () => {
+    const config = buildEliminatorFinalConfig();
+    expect(config.qualifiers).toBe(3);
+    expect(config.matches.map((m) => m.id)).toEqual(["E-001", "F-001"]);
+
+    let matches = generatePlayoffMatches(config, OPTS);
+    matches = resolveSeedSlots(matches, config, standings(["A", "B", "C"]))
+      .matches;
+    const elim = matches.find((m) => m.id === "E-001")!;
+    expect([elim.team1, elim.team2]).toEqual(["B", "C"]); // seeds 2, 3
+    const final0 = matches.find((m) => m.isFinal)!;
+    expect(final0.team1).toBe("A"); // seed 1 bye
+    expect(final0.team2).toBe("TBD");
+
+    matches = complete(matches, "E-001", "C");
+    matches = resolvePlayoffDependencies(matches, config).matches;
+    expect(matches.find((m) => m.isFinal)!.team2).toBe("C");
   });
 });
 

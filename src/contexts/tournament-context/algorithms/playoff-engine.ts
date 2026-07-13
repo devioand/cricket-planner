@@ -100,6 +100,32 @@ export function buildFinalOnlyConfig(): PlayoffConfig {
   };
 }
 
+/** Top 3: a 2-v-3 eliminator whose winner faces the top seed in the final. */
+export function buildEliminatorFinalConfig(): PlayoffConfig {
+  return {
+    qualifiers: 3,
+    matches: [
+      {
+        id: "E-001",
+        label: "Eliminator",
+        round: 1,
+        slot1: { kind: "seed", seed: 2 },
+        slot2: { kind: "seed", seed: 3 },
+        playoffType: "eliminator",
+      },
+      {
+        id: "F-001",
+        label: "Final",
+        round: 2,
+        slot1: { kind: "seed", seed: 1 },
+        slot2: { kind: "winnerOf", matchId: "E-001" },
+        isFinal: true,
+        playoffType: "final",
+      },
+    ],
+  };
+}
+
 /** World Cup style: SF1 (1v4), SF2 (2v3), Final. Degrades to a direct final at 3 teams. */
 export function buildWorldCupConfig(teamCount: number): PlayoffConfig {
   if (teamCount < 4) return buildFinalOnlyConfig();

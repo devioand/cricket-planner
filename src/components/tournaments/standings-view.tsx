@@ -58,7 +58,10 @@ export function StandingsView() {
           </Link>
         </Box>
       ) : (
-        <TournamentStandings standings={standings} />
+        <TournamentStandings
+          standings={standings}
+          qualifiers={state.playoffConfig?.qualifiers ?? 0}
+        />
       )}
     </>
   );

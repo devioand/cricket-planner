@@ -22,6 +22,8 @@ interface CustomPlayoffBuilderProps {
   teamCount: number;
   value: PlayoffConfig;
   onChange: (config: PlayoffConfig) => void;
+  /** Show the qualifiers picker. Hidden when the count is chosen elsewhere. */
+  showQualifiers?: boolean;
 }
 
 /** Next unused PO-00N id given the current matches. */
@@ -44,6 +46,7 @@ export function CustomPlayoffBuilder({
   teamCount,
   value,
   onChange,
+  showQualifiers = true,
 }: CustomPlayoffBuilderProps) {
   const { qualifiers, matches } = value;
   const validation = validatePlayoffConfig(value, teamCount);
@@ -107,13 +110,16 @@ export function CustomPlayoffBuilder({
   return (
     <VStack align="stretch" gap={4}>
       {/* Qualifiers */}
-      <Box>
-        <Text fontSize="sm" fontWeight="medium" mb={2} color="fg.default">
-          How many teams qualify?
-        </Text>
-        <HStack gap={2} flexWrap="wrap">
-          {Array.from({ length: Math.max(0, teamCount - 1) }, (_, i) => i + 2).map(
-            (n) => (
+      {showQualifiers && (
+        <Box>
+          <Text fontSize="sm" fontWeight="medium" mb={2} color="fg.default">
+            How many teams qualify?
+          </Text>
+          <HStack gap={2} flexWrap="wrap">
+            {Array.from(
+              { length: Math.max(0, teamCount - 1) },
+              (_, i) => i + 2,
+            ).map((n) => (
               <Chip
                 key={n}
                 active={qualifiers === n}
@@ -121,13 +127,13 @@ export function CustomPlayoffBuilder({
               >
                 {n}
               </Chip>
-            ),
-          )}
-        </HStack>
-        <Text fontSize="xs" color="fg.muted" mt={1}>
-          Top {qualifiers} of {teamCount} teams reach the playoffs.
-        </Text>
-      </Box>
+            ))}
+          </HStack>
+          <Text fontSize="xs" color="fg.muted" mt={1}>
+            Top {qualifiers} of {teamCount} teams reach the playoffs.
+          </Text>
+        </Box>
+      )}
 
       {/* Matches */}
       <VStack align="stretch" gap={3}>

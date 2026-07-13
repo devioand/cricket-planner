@@ -1,40 +1,34 @@
 "use client";
 
 import {
+  Badge,
   Box,
+  Card,
   Heading,
   HStack,
   NumberInput,
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LuUsers, LuSettings2, LuTrophy } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
 import type {
   PlayoffConfig,
-  PlayoffFormat,
+  PlayoffSlot,
 } from "@/contexts/tournament-context/types";
-import { validatePlayoffConfig } from "@/contexts/tournament-context/algorithms/playoff-config-validation";
-import {
-  PlayoffFormatSelector,
-  recommendedPlayoffFormat,
-} from "@/components/tournaments/playoff-format-selector";
 import { TeamListEditor } from "./team-list-editor";
-import { CustomPlayoffBuilder } from "./custom-playoff-builder";
+import {
+  PlayoffDesigner,
+  resolvePlayoffSelection,
+  templatesFor,
+  type PlayoffTemplate,
+} from "./playoff-designer";
 
 const STEPS = ["Teams", "Settings", "Playoffs", "Review"] as const;
-
-/** Minimum teams each format needs (mirrors the selector's gating). */
-const FORMAT_MIN_TEAMS: Record<PlayoffFormat, number> = {
-  none: 2,
-  "final-only": 2,
-  "world-cup": 4,
-  league: 4,
-  custom: 3,
-};
 
 const DEFAULT_CUSTOM: PlayoffConfig = {
   qualifiers: 2,
@@ -50,13 +44,11 @@ const DEFAULT_CUSTOM: PlayoffConfig = {
   ],
 };
 
-const FORMAT_LABEL: Record<PlayoffFormat, string> = {
-  none: "No playoffs — table topper wins",
-  "final-only": "Final only (top 2)",
-  "world-cup": "World Cup — Semis + Final",
-  league: "League/IPL — Q1, Eliminator, Q2, Final",
-  custom: "Custom bracket",
-};
+/** Preferred qualifier count for a team count (before the user changes it). */
+function defaultQualifiers(teamCount: number): number {
+  if (teamCount >= 4) return 4;
+  return Math.max(2, teamCount);
+}
 
 export function SetupWizard() {
   const { state, store } = useLiveTournament();
@@ -77,24 +69,33 @@ function Wizard() {
   const [teams, setTeams] = useState<string[]>(state.teams);
   const [maxOvers, setMaxOvers] = useState(state.maxOvers);
   const [maxWickets, setMaxWickets] = useState(state.maxWickets);
-  const [playoffFormat, setPlayoffFormat] = useState<PlayoffFormat>(
-    state.playoffFormat,
-  );
+  // Qualifiers-first playoff selection: 0 = no playoffs.
+  const [qualifiers, setQualifiers] = useState<number>(-1); // -1 → derive from team count
+  const [template, setTemplate] = useState<PlayoffTemplate>("world-cup");
   const [customConfig, setCustomConfig] =
     useState<PlayoffConfig>(DEFAULT_CUSTOM);
   const [starting, setStarting] = useState(false);
 
   const teamCount = teams.length;
-  const recommended = recommendedPlayoffFormat(teamCount);
 
-  // If the chosen format no longer fits the team count (e.g. teams were
-  // removed), fall back to the recommended one when we reach the playoff step.
-  const effectiveFormat: PlayoffFormat =
-    teamCount >= FORMAT_MIN_TEAMS[playoffFormat] ? playoffFormat : recommended;
+  // Effective qualifiers: default until the user picks, then clamped to the
+  // current team count (0 stays 0 = no playoffs).
+  const rawQualifiers = qualifiers < 0 ? defaultQualifiers(teamCount) : qualifiers;
+  const effQualifiers =
+    rawQualifiers === 0 ? 0 : Math.min(Math.max(2, rawQualifiers), teamCount);
 
-  const customValidation = useMemo(
-    () => validatePlayoffConfig(customConfig, teamCount),
-    [customConfig, teamCount],
+  // Effective template: keep the user's choice if it still fits the count,
+  // otherwise fall back to the first sensible one.
+  const availableTemplates = templatesFor(effQualifiers);
+  const effTemplate: PlayoffTemplate = availableTemplates.includes(template)
+    ? template
+    : availableTemplates[0] ?? "final";
+
+  const selection = resolvePlayoffSelection(
+    effQualifiers,
+    effTemplate,
+    customConfig,
+    teamCount,
   );
 
   const stepValid = (() => {
@@ -104,7 +105,7 @@ function Wizard() {
       case 1:
         return maxOvers >= 1 && maxWickets >= 1;
       case 2:
-        return effectiveFormat === "custom" ? customValidation.valid : true;
+        return selection.valid;
       default:
         return true;
     }
@@ -126,8 +127,8 @@ function Wizard() {
       teams,
       maxOvers,
       maxWickets,
-      playoffFormat: effectiveFormat,
-      playoffConfig: effectiveFormat === "custom" ? customConfig : null,
+      playoffFormat: selection.format,
+      playoffConfig: selection.config,
     });
     if (result.success) {
       router.push(`/tournament/round-robin/${store.id}/matches`);
@@ -186,32 +187,17 @@ function Wizard() {
         {step === 2 && (
           <StepShell
             title="Playoffs"
-            hint="How the top teams decide the champion."
+            hint="Pick how many teams qualify, then the structure."
           >
-            <VStack align="stretch" gap={5}>
-              <PlayoffFormatSelector
-                value={effectiveFormat}
-                onChange={setPlayoffFormat}
-                teamCount={teamCount}
-                recommended={recommended}
-              />
-              {effectiveFormat === "custom" && (
-                <Box>
-                  <Heading size="sm" mb={1}>
-                    Build your bracket
-                  </Heading>
-                  <Text fontSize="sm" color="fg.muted" mb={3}>
-                    Add matches and fill each side from a seed or another
-                    match&apos;s result. Mark exactly one match as the final.
-                  </Text>
-                  <CustomPlayoffBuilder
-                    teamCount={teamCount}
-                    value={customConfig}
-                    onChange={setCustomConfig}
-                  />
-                </Box>
-              )}
-            </VStack>
+            <PlayoffDesigner
+              teamCount={teamCount}
+              qualifiers={effQualifiers}
+              template={effTemplate}
+              customConfig={customConfig}
+              onQualifiersChange={setQualifiers}
+              onTemplateChange={setTemplate}
+              onCustomConfigChange={setCustomConfig}
+            />
           </StepShell>
         )}
 
@@ -221,8 +207,8 @@ function Wizard() {
               teams={teams}
               maxOvers={maxOvers}
               maxWickets={maxWickets}
-              format={effectiveFormat}
-              customConfig={effectiveFormat === "custom" ? customConfig : null}
+              playoffLabel={selection.label}
+              playoffConfig={selection.config}
             />
           </StepShell>
         )}
@@ -397,44 +383,246 @@ function ReviewSummary({
   teams,
   maxOvers,
   maxWickets,
-  format,
-  customConfig,
+  playoffLabel,
+  playoffConfig,
 }: {
   teams: string[];
   maxOvers: number;
   maxWickets: number;
-  format: PlayoffFormat;
-  customConfig: PlayoffConfig | null;
+  playoffLabel: string;
+  playoffConfig: PlayoffConfig | null;
 }) {
+  // The card badge carries the qualifier count, so drop the "(top N)" suffix.
+  const structureName = playoffLabel.replace(/\s*\(top \d+\)/i, "");
+
+  // Match counts. With exactly 2 teams there's no group stage — a single final.
+  const n = teams.length;
+  const groupMatches = n >= 3 ? (n * (n - 1)) / 2 : 0;
+  const playoffMatches =
+    n === 2 ? 1 : playoffConfig ? playoffConfig.matches.length : 0;
+  const totalMatches = groupMatches + playoffMatches;
+
   return (
-    <VStack align="stretch" gap={4}>
-      <SummaryRow label="Teams">
-        <Text fontSize="sm" color="fg.default">
-          {teams.join(", ")}
-        </Text>
-      </SummaryRow>
-      <SummaryRow label="Format">
-        <Text fontSize="sm" color="fg.default">
-          Round Robin · {maxOvers} overs · {maxWickets} wickets
-        </Text>
-      </SummaryRow>
-      <SummaryRow label="Playoffs">
-        <Text fontSize="sm" color="fg.default">
-          {FORMAT_LABEL[format]}
-        </Text>
-        {customConfig && (
-          <VStack align="stretch" gap={0.5} mt={1}>
-            {customConfig.matches.map((m) => (
-              <Text key={m.id} fontSize="xs" color="fg.muted">
-                • {m.label}
-                {m.isFinal ? " (final)" : ""}
-              </Text>
-            ))}
+    <VStack align="stretch" gap={3}>
+      <MatchCountBanner
+        total={totalMatches}
+        group={groupMatches}
+        playoffs={playoffMatches}
+      />
+
+      <SummaryCard
+        icon={<LuUsers size={16} />}
+        title="Teams"
+        badge={`${teams.length}`}
+      >
+        <HStack gap={2} flexWrap="wrap">
+          {teams.map((t) => (
+            <Badge
+              key={t}
+              colorPalette="blue"
+              variant="subtle"
+              px={2.5}
+              py={1}
+              borderRadius="full"
+              fontSize="sm"
+            >
+              {t}
+            </Badge>
+          ))}
+        </HStack>
+      </SummaryCard>
+
+      <SummaryCard icon={<LuSettings2 size={16} />} title="Match format">
+        <VStack align="stretch" gap={3}>
+          <HStack gap={2} align="baseline">
+            <Text fontSize="sm" fontWeight="medium" color="fg.default">
+              Round Robin
+            </Text>
+            <Text fontSize="xs" color="fg.muted">
+              every team plays once
+            </Text>
+          </HStack>
+          <HStack gap={2.5} align="stretch">
+            <StatTile label="Overs" value={maxOvers} />
+            <StatTile label="Wickets" value={maxWickets} />
+          </HStack>
+        </VStack>
+      </SummaryCard>
+
+      <SummaryCard
+        icon={<LuTrophy size={16} />}
+        title="Playoffs"
+        badge={playoffConfig ? `Top ${playoffConfig.qualifiers}` : "None"}
+      >
+        {playoffConfig ? (
+          <VStack align="stretch" gap={3}>
+            <Text fontSize="sm" fontWeight="medium" color="fg.default">
+              {structureName}
+            </Text>
+            <BracketPreview config={playoffConfig} />
           </VStack>
+        ) : (
+          <Text fontSize="sm" color="fg.muted">
+            No knockout — the team that tops the standings is the champion.
+          </Text>
         )}
-      </SummaryRow>
+      </SummaryCard>
     </VStack>
   );
+}
+
+function MatchCountBanner({
+  total,
+  group,
+  playoffs,
+}: {
+  total: number;
+  group: number;
+  playoffs: number;
+}) {
+  return (
+    <Card.Root
+      borderWidth={1}
+      borderColor={{ base: "blue.200", _dark: "blue.800" }}
+      bg={{ base: "blue.50", _dark: "blue.950" }}
+    >
+      <Card.Body p={4}>
+        <HStack justify="space-between" align="center" gap={3}>
+          <HStack gap={3} align="center">
+            <Text fontSize="3xl" fontWeight="bold" color="fg.default" lineHeight="1">
+              {total}
+            </Text>
+            <Text fontSize="sm" fontWeight="medium" color="fg.default">
+              {total === 1 ? "match" : "matches"}
+              <br />
+              to play
+            </Text>
+          </HStack>
+          <VStack align="stretch" gap={1.5}>
+            <HStack gap={2} justify="flex-end">
+              <Text fontSize="xs" color="fg.muted">
+                Group stage
+              </Text>
+              <Badge colorPalette="gray" variant="subtle" borderRadius="md">
+                {group}
+              </Badge>
+            </HStack>
+            <HStack gap={2} justify="flex-end">
+              <Text fontSize="xs" color="fg.muted">
+                Playoffs
+              </Text>
+              <Badge colorPalette="yellow" variant="subtle" borderRadius="md">
+                {playoffs}
+              </Badge>
+            </HStack>
+          </VStack>
+        </HStack>
+      </Card.Body>
+    </Card.Root>
+  );
+}
+
+function SummaryCard({
+  icon,
+  title,
+  badge,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  badge?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card.Root borderWidth={1} borderColor="card.border" bg="card.bg">
+      <Card.Body p={4}>
+        <HStack justify="space-between" align="center" mb={3}>
+          <HStack gap={2} color="fg.muted">
+            {icon}
+            <Text
+              fontSize="xs"
+              fontWeight="semibold"
+              textTransform="uppercase"
+              letterSpacing="wide"
+            >
+              {title}
+            </Text>
+          </HStack>
+          {badge && (
+            <Badge colorPalette="gray" variant="subtle" borderRadius="md">
+              {badge}
+            </Badge>
+          )}
+        </HStack>
+        {children}
+      </Card.Body>
+    </Card.Root>
+  );
+}
+
+function StatTile({ label, value }: { label: string; value: string | number }) {
+  return (
+    <Box flex="1" bg="bg.subtle" borderRadius="lg" px={3} py={2.5} textAlign="center">
+      <Text fontSize="md" fontWeight="bold" color="fg.default" lineHeight="1.2">
+        {value}
+      </Text>
+      <Text
+        fontSize="2xs"
+        color="fg.muted"
+        textTransform="uppercase"
+        letterSpacing="wide"
+        mt={0.5}
+      >
+        {label}
+      </Text>
+    </Box>
+  );
+}
+
+/** A compact list of playoff matches with each side described in plain words. */
+function BracketPreview({ config }: { config: PlayoffConfig }) {
+  const labelById: Record<string, string> = {};
+  for (const m of config.matches) labelById[m.id] = m.label;
+
+  return (
+    <VStack align="stretch" gap={2}>
+      {config.matches.map((m) => (
+        <HStack
+          key={m.id}
+          gap={3}
+          align="center"
+          bg={m.isFinal ? { base: "yellow.50", _dark: "yellow.950" } : "bg.subtle"}
+          borderRadius="lg"
+          px={3}
+          py={2}
+        >
+          <Box fontSize="md" flexShrink={0}>
+            {m.isFinal ? "🏆" : "⚔️"}
+          </Box>
+          <Box flex="1" minW={0}>
+            <Text fontSize="sm" fontWeight="medium" color="fg.default">
+              {m.label}
+            </Text>
+            <Text fontSize="xs" color="fg.muted">
+              {slotText(m.slot1, labelById)} vs {slotText(m.slot2, labelById)}
+            </Text>
+          </Box>
+        </HStack>
+      ))}
+    </VStack>
+  );
+}
+
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
+}
+
+function slotText(slot: PlayoffSlot, labelById: Record<string, string>): string {
+  if (slot.kind === "seed") return ordinal(slot.seed);
+  const ref = labelById[slot.matchId] ?? slot.matchId;
+  return `${slot.kind === "winnerOf" ? "Winner" : "Loser"} of ${ref}`;
 }
 
 function SummaryRow({
