@@ -16,6 +16,10 @@ export function Header() {
   const isAuthPage = pathname === "/login" || pathname === "/signup";
   const isAuthed = !!session;
 
+  // Inside a tournament, the tournament's own app bar takes over the top space
+  // (name, progress, sync + the theme toggle), so the generic nav is hidden.
+  if (pathname.startsWith("/tournament/round-robin/")) return null;
+
   const handleSignOut = async () => {
     await authClient.signOut();
     router.push("/login");

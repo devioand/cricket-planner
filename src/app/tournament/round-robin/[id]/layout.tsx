@@ -4,8 +4,7 @@ import { requireUser } from "@/lib/session";
 import { getTournament } from "@/lib/repositories/tournament-repository";
 import { getTournamentWinner } from "@/contexts/tournament-context/engine";
 import { CompletedBanner } from "@/components/tournaments/completed-banner";
-import { RoundRobinNavigation } from "@/components/tournaments/round-robin-navigation";
-import { SyncBar } from "@/components/tournaments/sync-bar";
+import { TournamentHeader } from "@/components/tournaments/tournament-header";
 import { LiveTournamentProvider } from "@/contexts/tournament-context/live-provider";
 
 /**
@@ -27,21 +26,25 @@ export default async function RoundRobinTournamentLayout({
   if (!record) notFound();
 
   return (
-    <Box p={{ base: 4, md: 8 }} maxW="600px" mx="auto" w="full">
-      <LiveTournamentProvider
-        key={record.status}
-        init={{ id: record.id, status: record.status, state: record.state }}
+    <LiveTournamentProvider
+      key={record.status}
+      init={{ id: record.id, status: record.status, state: record.state }}
+    >
+      <TournamentHeader name={record.name} />
+      <Box
+        maxW="600px"
+        mx="auto"
+        w="full"
+        px={{ base: 4, md: 5 }}
+        pt={5}
+        pb={10}
       >
         <CompletedBanner
           completed={record.status === "completed"}
           winner={getTournamentWinner(record.state)}
         />
-        <RoundRobinNavigation name={record.name} />
         {children}
-        {/* Sync / Finish live at the END of the content, not the top, so they
-            are deliberate actions and can't be tapped by accident. */}
-        <SyncBar />
-      </LiveTournamentProvider>
-    </Box>
+      </Box>
+    </LiveTournamentProvider>
   );
 }
