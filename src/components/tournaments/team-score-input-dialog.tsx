@@ -158,7 +158,9 @@ export function TeamScoreInputDialog({
                       mt={1}
                       colorPalette="purple"
                     >
-                      🏆 {match.playoffType?.replace("-", " ").toUpperCase()}
+                      🏆{" "}
+                      {match.label?.toUpperCase() ??
+                        match.playoffType?.replace("-", " ").toUpperCase()}
                     </Text>
                   )}
                 </Box>

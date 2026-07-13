@@ -8,13 +8,15 @@ import type {
   CricketTeamStats,
   CricketMatchResult,
   InningsScore,
+  PlayoffConfig,
   TossResult,
   TournamentType,
   TournamentPhase,
   PlayoffFormat,
-  PlayoffType,
   TossDecision,
 } from "@/contexts/tournament-context/types";
+import { getTournamentWinner } from "@/contexts/tournament-context/engine";
+import { buildPlayoffConfig } from "@/contexts/tournament-context/algorithms/playoff-engine";
 
 /**
  * Tournament repository — the ONLY place that knows how the in-memory
@@ -71,15 +73,9 @@ const strOrUndef = (v: unknown): string | undefined =>
 /** High-level lifecycle derived from the tournament state. */
 function deriveStatus(state: TournamentState): TournamentStatus {
   if (!state.isGenerated) return "setup";
-  return getFinalWinner(state) ? "completed" : "in_progress";
-}
-
-/** The champion's name, or null if the final hasn't been decided. */
-function getFinalWinner(state: TournamentState): string | null {
-  const finalMatch = state.matches.find(
-    (m) => m.isPlayoff && m.playoffType === "final" && m.status === "completed",
-  );
-  return finalMatch?.result?.winner || null;
+  // Uses the engine's winner logic so every format resolves consistently —
+  // including "none" (champion = table topper) and custom brackets.
+  return getTournamentWinner(state) ? "completed" : "in_progress";
 }
 
 // ── Row → state reconstruction ───────────────────────────────────────────────
@@ -174,7 +170,9 @@ function rowToMatch(r: Row, innings: Row[]): Match {
     overs: num(r.overs),
     maxWickets: num(r.max_wickets),
     isPlayoff: Boolean(r.is_playoff),
-    playoffType: (r.playoff_type as PlayoffType) ?? undefined,
+    playoffType: strOrUndef(r.playoff_type),
+    label: strOrUndef(r.playoff_label),
+    isFinal: Boolean(r.is_final),
     phase: (r.phase as TournamentPhase) ?? undefined,
     secondInningsStarted: Boolean(r.second_innings_started),
     toss,
@@ -255,16 +253,30 @@ async function loadRecord(db: Db, t: Row): Promise<TournamentRecord> {
     rowToMatch(m, inningsByMatch.get(String(m.id)) ?? []),
   );
 
+  const playoffFormat = t.playoff_format as PlayoffFormat;
+  const teams = teamsRes.rows.map((r) => String(r.name));
+  const isGenerated = Boolean(t.is_generated);
+
+  // `playoff_config` is null for rows created before flexible playoffs. For
+  // already-generated legacy tournaments, rebuild the config from the format so
+  // bracket advancement + winner logic keep working.
+  const playoffConfig: PlayoffConfig | null = t.playoff_config
+    ? (t.playoff_config as PlayoffConfig)
+    : isGenerated
+      ? buildPlayoffConfig(playoffFormat, teams.length, null)
+      : null;
+
   const state: TournamentState = {
     algorithm: t.algorithm as TournamentType,
-    teams: teamsRes.rows.map((r) => String(r.name)),
+    teams,
     maxOvers: num(t.max_overs),
     maxWickets: num(t.max_wickets),
     matches,
-    isGenerated: Boolean(t.is_generated),
+    isGenerated,
     teamStats,
     phase: t.phase as TournamentPhase,
-    playoffFormat: t.playoff_format as PlayoffFormat,
+    playoffFormat,
+    playoffConfig,
   };
 
   return {
@@ -296,6 +308,10 @@ export async function createTournament(
   userId: string,
   input: CreateTournamentInput,
 ): Promise<string> {
+  // Note: playoff_config is intentionally NOT written here — the playoff
+  // structure is chosen later in the setup wizard and persisted on the first
+  // Sync (see writeState). Keeping this insert to the original columns also lets
+  // tournament creation work before the 0002 migration is applied.
   const { rows } = await pool.query(
     `insert into public.tournaments
        (user_id, name, algorithm, playoff_format, max_overs, max_wickets,
@@ -333,20 +349,21 @@ async function writeState(
 ): Promise<string> {
   const upd = await client.query(
     `update public.tournaments
-        set algorithm = $1, playoff_format = $2, max_overs = $3,
-            max_wickets = $4, is_generated = $5, phase = $6, status = $7,
-            winner = $8
-      where id = $9 and user_id = $10
+        set algorithm = $1, playoff_format = $2, playoff_config = $3,
+            max_overs = $4, max_wickets = $5, is_generated = $6, phase = $7,
+            status = $8, winner = $9
+      where id = $10 and user_id = $11
       returning updated_at`,
     [
       state.algorithm,
       state.playoffFormat,
+      state.playoffConfig ? JSON.stringify(state.playoffConfig) : null,
       state.maxOvers,
       state.maxWickets,
       state.isGenerated,
       state.phase,
       deriveStatus(state),
-      getFinalWinner(state),
+      getTournamentWinner(state),
       id,
       userId,
     ],
@@ -467,6 +484,8 @@ async function insertMatches(
       m.maxWickets,
       m.isPlayoff ?? false,
       m.playoffType ?? null,
+      m.isFinal ?? false,
+      m.label ?? null,
       m.phase ?? null,
       m.secondInningsStarted ?? false,
       m.toss?.tossWinner ?? null,
@@ -484,10 +503,11 @@ async function insertMatches(
   const inserted = await client.query(
     `insert into public.matches
        (tournament_id, match_key, match_order, team1, team2, round, status,
-        venue, overs, max_wickets, is_playoff, playoff_type, phase,
-        second_innings_started, toss_winner, toss_decision, toss_loser,
-        result_winner, result_loser, result_is_draw, result_is_no_result,
-        result_margin_type, result_margin, result_match_type)
+        venue, overs, max_wickets, is_playoff, playoff_type, is_final,
+        playoff_label, phase, second_innings_started, toss_winner,
+        toss_decision, toss_loser, result_winner, result_loser, result_is_draw,
+        result_is_no_result, result_margin_type, result_margin,
+        result_match_type)
      values ${matchInsert.placeholders}
      returning id, match_key`,
     matchInsert.params,

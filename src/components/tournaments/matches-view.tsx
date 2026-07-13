@@ -73,46 +73,58 @@ export function MatchesView() {
         </VStack>
       )}
 
-      {/* Playoffs */}
-      <VStack align="stretch" gap={4}>
-        <Box textAlign="center" py={4}>
-          <Text
-            fontSize="xl"
-            fontWeight="bold"
-            color="colorPalette.700"
-            mb={1}
-            colorPalette="yellow"
-          >
-            🏆 Playoff Stage
+      {/* Playoffs — hidden entirely when the format has none. */}
+      {state.playoffFormat === "none" ? (
+        <Box p={6} bg="bg.subtle" rounded="lg" textAlign="center">
+          <Text fontSize="lg" fontWeight="bold" color="fg.default" mb={1}>
+            🏆 No playoffs
           </Text>
           <Text fontSize="sm" color="fg.muted">
-            Top teams compete for the championship
+            The team that tops the standings is the champion.
           </Text>
         </Box>
-
-        {playoffMatches.length === 0 && (
-          <Box p={6} bg="bg.subtle" rounded="lg" textAlign="center">
-            <Text fontSize="xl" fontWeight="bold" color="fg.default" mb={2}>
-              🚨 No Playoff Matches
+      ) : (
+        <VStack align="stretch" gap={4}>
+          <Box textAlign="center" py={4}>
+            <Text
+              fontSize="xl"
+              fontWeight="bold"
+              color="colorPalette.700"
+              mb={1}
+              colorPalette="yellow"
+            >
+              🏆 Playoff Stage
             </Text>
-            <Text fontSize="md" color="fg.muted">
-              Playoff matches will appear here once the tournament is generated.
+            <Text fontSize="sm" color="fg.muted">
+              Top teams compete for the championship
             </Text>
           </Box>
-        )}
 
-        {playoffMatches.map((match, index) => (
-          <Box key={match.id} position="relative">
-            <MatchCard
-              match={match}
-              matchNumber={index + 1}
-              totalMatches={playoffMatches.length}
-              isPlayoff
-              readOnly={readOnly}
-            />
-          </Box>
-        ))}
-      </VStack>
+          {playoffMatches.length === 0 && (
+            <Box p={6} bg="bg.subtle" rounded="lg" textAlign="center">
+              <Text fontSize="xl" fontWeight="bold" color="fg.default" mb={2}>
+                🚨 No Playoff Matches
+              </Text>
+              <Text fontSize="md" color="fg.muted">
+                Playoff matches will appear here once the tournament is
+                generated.
+              </Text>
+            </Box>
+          )}
+
+          {playoffMatches.map((match, index) => (
+            <Box key={match.id} position="relative">
+              <MatchCard
+                match={match}
+                matchNumber={index + 1}
+                totalMatches={playoffMatches.length}
+                isPlayoff
+                readOnly={readOnly}
+              />
+            </Box>
+          ))}
+        </VStack>
+      )}
     </VStack>
   );
 }

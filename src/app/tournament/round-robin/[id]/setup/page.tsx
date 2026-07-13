@@ -1,6 +1,6 @@
-import { SetupForm } from "@/components/tournaments/setup-form";
+import { SetupWizard } from "@/components/tournaments/wizard/setup-wizard";
 
 // Auth + tournament load happen once in the layout, which seeds the live store.
 export default function RoundRobinSetup() {
-  return <SetupForm />;
+  return <SetupWizard />;
 }

@@ -16,11 +16,13 @@
 
 import type {
   TournamentState,
+  PlayoffConfig,
   PlayoffFormat,
   TossDecision,
 } from "@/contexts/tournament-context/types";
 import * as engine from "@/contexts/tournament-context/engine";
 import type { CompleteMatchResult } from "@/contexts/tournament-context/engine";
+import { buildPlayoffConfig } from "@/contexts/tournament-context/algorithms/playoff-engine";
 
 /** DB lifecycle status, as produced by the tournament repository. */
 export type TournamentStatus = "setup" | "in_progress" | "completed";
@@ -51,7 +53,23 @@ export interface LocalSnapshot {
   hydrating: boolean;
 }
 
-const STORAGE_VERSION = 1;
+// v2 adds `playoffConfig` to the persisted state. v1 payloads are migrated on
+// read (see `normalizeState`) rather than discarded, so in-progress local
+// tournaments survive the upgrade.
+const STORAGE_VERSION = 2;
+
+/**
+ * Bring a persisted state up to the current shape. v1 states have no
+ * `playoffConfig`; rebuild it from the format + team count so bracket
+ * advancement keeps working for tournaments generated before this field existed.
+ */
+function normalizeState(state: TournamentState): TournamentState {
+  if (state.playoffConfig !== undefined) return state;
+  const config: PlayoffConfig | null = state.isGenerated
+    ? buildPlayoffConfig(state.playoffFormat, state.teams.length, null)
+    : null;
+  return { ...state, playoffConfig: config };
+}
 
 /** The ONLY key shape this store ever reads or writes. Always per-id. */
 export const keyFor = (id: string): string =>
@@ -187,6 +205,7 @@ export class TournamentStore {
     maxOvers: number;
     maxWickets: number;
     playoffFormat: PlayoffFormat;
+    playoffConfig?: PlayoffConfig | null;
   }): { success: boolean; errors?: string[] } {
     if (this.snapshot.readOnly) return { success: false };
 
@@ -196,11 +215,13 @@ export class TournamentStore {
       teamStats: {},
       matches: [],
       isGenerated: false,
+      playoffConfig: null,
     };
     for (const team of setup.teams) next = engine.addTeam(next, team);
     next = engine.setMaxOvers(next, setup.maxOvers);
     next = engine.setMaxWickets(next, setup.maxWickets);
     next = engine.setPlayoffFormat(next, setup.playoffFormat);
+    next = engine.setPlayoffConfig(next, setup.playoffConfig ?? null);
 
     const gen = engine.generateMatches(next);
     if (gen.success) this.commit(gen.state);
@@ -246,9 +267,12 @@ export class TournamentStore {
       const raw = window.localStorage.getItem(keyFor(this.id));
       if (!raw) return null;
       const parsed = JSON.parse(raw) as Partial<PersistedShape>;
-      if (parsed?.__v !== STORAGE_VERSION || !parsed.state) return null;
+      // Accept the current version and the previous one (migrated on read).
+      if (!parsed.state || parsed?.__v == null || parsed.__v > STORAGE_VERSION) {
+        return null;
+      }
       return {
-        state: parsed.state,
+        state: normalizeState(parsed.state),
         readOnly: false,
         isDirty: parsed.isDirty ?? false,
         lastSyncedAt: parsed.lastSyncedAt ?? null,
