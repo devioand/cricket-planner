@@ -5,6 +5,7 @@ import { Text, VStack, Box, HStack, Skeleton } from "@chakra-ui/react";
 import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
 import { MatchCard } from "@/components/tournaments/match-card";
 import { SampleResultsButton } from "@/components/tournaments/sample-results-button";
+import { FinishBanner } from "@/components/tournaments/finish-banner";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -54,6 +55,8 @@ export function MatchesView() {
 
   return (
     <VStack align="stretch" gap={6}>
+      <FinishBanner />
+
       {process.env.NODE_ENV === "development" && !readOnly && pending > 0 && (
         <SampleResultsButton pending={pending} />
       )}
