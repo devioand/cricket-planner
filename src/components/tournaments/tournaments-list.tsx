@@ -11,13 +11,13 @@ import {
   CloseButton,
 } from "@chakra-ui/react";
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LuPlus } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 import { deleteTournamentAction } from "@/app/tournaments/actions";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
-import { CreateTournamentDialog } from "@/components/tournaments/create-tournament-dialog";
 import type { TournamentSummary } from "@/lib/repositories/tournament-repository";
 
 export function TournamentsList({
@@ -26,7 +26,6 @@ export function TournamentsList({
   tournaments: TournamentSummary[];
 }) {
   const router = useRouter();
-  const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<TournamentSummary | null>(
     null,
   );
@@ -64,12 +63,14 @@ export function TournamentsList({
               Resume an ongoing tournament or revisit a completed one.
             </Text>
           </Box>
-          <Button colorPalette="blue" onClick={() => setCreateOpen(true)}>
-            <HStack gap={2}>
-              <LuPlus />
-              <Text>New Tournament</Text>
-            </HStack>
-          </Button>
+          <Link href="/tournaments/new">
+            <Button colorPalette="blue">
+              <HStack gap={2}>
+                <LuPlus />
+                <Text>New Tournament</Text>
+              </HStack>
+            </Button>
+          </Link>
         </HStack>
 
         {/* Empty state */}
@@ -89,16 +90,14 @@ export function TournamentsList({
             <Text color="fg.muted" mb={6}>
               Create your first tournament to get started.
             </Text>
-            <Button
-              colorPalette="blue"
-              size="lg"
-              onClick={() => setCreateOpen(true)}
-            >
-              <HStack gap={2}>
-                <LuPlus />
-                <Text>Create a Tournament</Text>
-              </HStack>
-            </Button>
+            <Link href="/tournaments/new">
+              <Button colorPalette="blue" size="lg">
+                <HStack gap={2}>
+                  <LuPlus />
+                  <Text>Create a Tournament</Text>
+                </HStack>
+              </Button>
+            </Link>
           </Box>
         ) : (
           <VStack gap={3} align="stretch">
@@ -112,11 +111,6 @@ export function TournamentsList({
           </VStack>
         )}
       </VStack>
-
-      <CreateTournamentDialog
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-      />
 
       {/* Delete confirmation */}
       <Dialog.Root

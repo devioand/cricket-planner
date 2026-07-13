@@ -1,101 +1,86 @@
 "use client";
 
-import { Box, HStack } from "@chakra-ui/react";
+import { Box, HStack, IconButton } from "@chakra-ui/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useState } from "react";
+import { LuInfo } from "react-icons/lu";
 import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
+import { TournamentDetailsDialog } from "@/components/tournaments/tournament-details-dialog";
 
-export function RoundRobinNavigation() {
+/**
+ * Compact tournament chrome: a two-way segmented control (Matches / Standings)
+ * plus an info button for the read-only details. Setup is no longer a tab — a
+ * generated tournament's focus is playing, so the shell stays minimal.
+ */
+export function RoundRobinNavigation({ name }: { name: string }) {
   const pathname = usePathname();
-  const { state, store } = useLiveTournament();
+  const { store } = useLiveTournament();
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const base = `/tournament/round-robin/${store.id}`;
-  const isGenerated = state.isGenerated;
 
-  const navItems = [
-    {
-      href: `${base}/setup`,
-      label: "🏏 Setup",
-      isActive: pathname === `${base}/setup`,
-      isEnabled: true,
-    },
-    {
-      href: `${base}/matches`,
-      label: "⚽ Matches",
-      isActive: pathname === `${base}/matches`,
-      isEnabled: isGenerated,
-    },
-    {
-      href: `${base}/standings`,
-      label: "🏆 Standings",
-      isActive: pathname === `${base}/standings`,
-      isEnabled: isGenerated,
-    },
+  const tabs = [
+    { href: `${base}/matches`, label: "Matches" },
+    { href: `${base}/standings`, label: "Standings" },
   ];
 
   return (
-    <Box
-      bg="card.bg"
-      borderWidth={1}
-      borderColor="border.default"
-      borderRadius="xl"
-      p={3}
-      mb={6}
-      shadow="sm"
-    >
-      <HStack gap={2} overflowX="auto" w="full">
-        {navItems.map((item) => (
-          <NavButton
-            key={item.href}
-            href={item.href}
-            label={item.label}
-            isActive={item.isActive}
-            isEnabled={item.isEnabled}
-          />
-        ))}
+    <>
+      <HStack gap={2} mb={4} align="stretch">
+        <HStack
+          gap={1}
+          flex="1"
+          bg="bg.subtle"
+          borderRadius="lg"
+          p={1}
+          borderWidth={1}
+          borderColor="border.subtle"
+        >
+          {tabs.map((tab) => {
+            const active = pathname === tab.href;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                style={{ flex: 1, display: "flex" }}
+              >
+                <Box
+                  w="full"
+                  textAlign="center"
+                  px={3}
+                  py={2}
+                  borderRadius="md"
+                  fontSize="sm"
+                  fontWeight={active ? "semibold" : "medium"}
+                  colorPalette="blue"
+                  bg={active ? "colorPalette.500" : "transparent"}
+                  color={active ? "white" : "fg.muted"}
+                  transition="all 0.15s"
+                  _hover={active ? {} : { color: "fg.default" }}
+                >
+                  {tab.label}
+                </Box>
+              </Link>
+            );
+          })}
+        </HStack>
+
+        <IconButton
+          aria-label="Tournament details"
+          variant="outline"
+          colorPalette="gray"
+          onClick={() => setDetailsOpen(true)}
+          flexShrink={0}
+        >
+          <LuInfo />
+        </IconButton>
       </HStack>
-    </Box>
-  );
-}
 
-interface NavButtonProps {
-  href: string;
-  label: string;
-  isActive: boolean;
-  isEnabled: boolean;
-}
-
-function NavButton({ href, label, isActive, isEnabled }: NavButtonProps) {
-  const buttonContent = (
-    <Box
-      as="button"
-      w="full"
-      px={{ base: 3, md: 4 }}
-      py={{ base: 2.5, md: 3 }}
-      borderRadius="lg"
-      fontSize={{ base: "sm", md: "md" }}
-      fontWeight={isActive ? "semibold" : "medium"}
-      transition="all 0.2s ease"
-      bg={isActive ? "colorPalette.500" : "bg.subtle"}
-      color={isActive ? "white" : isEnabled ? "fg.default" : "fg.disabled"}
-      borderColor={isEnabled ? "transparent" : "border.subtle"}
-      opacity={isEnabled ? 1 : 0.6}
-      cursor={isEnabled ? "pointer" : "not-allowed"}
-      colorPalette="blue"
-      _hover={
-        isEnabled ? { bg: isActive ? "colorPalette.600" : "bg.subtle" } : {}
-      }
-    >
-      {label}
-    </Box>
-  );
-
-  return isEnabled ? (
-    <Link href={href} style={{ flex: "1", display: "flex" }}>
-      {buttonContent}
-    </Link>
-  ) : (
-    <Box flex="1" display="flex">
-      {buttonContent}
-    </Box>
+      <TournamentDetailsDialog
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        name={name}
+      />
+    </>
   );
 }

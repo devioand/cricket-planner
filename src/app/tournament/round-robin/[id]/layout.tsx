@@ -36,7 +36,7 @@ export default async function RoundRobinTournamentLayout({
           completed={record.status === "completed"}
           winner={getTournamentWinner(record.state)}
         />
-        <RoundRobinNavigation />
+        <RoundRobinNavigation name={record.name} />
         {children}
         {/* Sync / Finish live at the END of the content, not the top, so they
             are deliberate actions and can't be tapped by accident. */}

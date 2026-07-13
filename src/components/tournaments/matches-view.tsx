@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
  * scoring action reflects instantly without a server round-trip.
  */
 export function MatchesView() {
-  const { state, readOnly, hydrating, store } = useLiveTournament();
+  const { state, readOnly, hydrating } = useLiveTournament();
 
   // On a hard reload the server can't read localStorage; show a skeleton until
   // the client reveals the real state (instead of flashing stale DB data).
@@ -28,15 +28,15 @@ export function MatchesView() {
             color="fg.default"
             mb={4}
           >
-            📋 No Tournament Generated
+            📋 Nothing to show yet
           </Text>
           <Text fontSize="md" color="fg.muted" mb={6}>
-            Please set up your tournament first by adding teams and generating
-            matches
+            This tournament isn&apos;t available on this device. It may not have
+            been synced yet — open it on the device where you created it.
           </Text>
-          <Link href={`/tournament/round-robin/${store.id}/setup`}>
+          <Link href="/tournaments">
             <Button colorPalette="blue" size="lg">
-              ← Go to Setup
+              ← Back to tournaments
             </Button>
           </Link>
         </Box>
