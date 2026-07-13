@@ -15,9 +15,15 @@ export interface RoundRobinResult {
 }
 
 /**
- * Generate Round Robin tournament matches with optimized scheduling
- * In Round Robin, every team plays every other team exactly once
- * Matches are scheduled in rounds to ensure teams get rest between games
+ * Generate Round Robin tournament matches with rest-optimized scheduling
+ * In Round Robin, every team plays every other team exactly once.
+ *
+ * Matches are played one at a time (single pitch), so the ordering below is
+ * the actual play order. It is built to give teams rest between games: whenever
+ * enough other teams are still waiting, the next match is handed to teams that
+ * have rested longest, so the two teams that just finished don't play again
+ * back-to-back. With very few teams (e.g. 3) some repeats are unavoidable, and
+ * the algorithm still spreads them out as much as possible.
  */
 export function generateRoundRobinMatches(
   options: RoundRobinOptions
@@ -40,74 +46,97 @@ export function generateRoundRobinMatches(
     }
   }
 
-  // Now schedule matches in rounds with optimal rest
-  const scheduledMatches = scheduleMatchesInRounds(allPairs);
+  // Order the pairs into a play sequence that maximizes rest between games
+  const scheduledMatches = scheduleMatchesForRest(allPairs);
 
-  // Convert to Match objects
-  const matches: Match[] = [];
-  let matchId = 1;
+  // Convert to Match objects. `round` carries the play-order position so the
+  // matches view (which sorts by round) preserves this rest-optimized order.
+  const matches: Match[] = scheduledMatches.map((pair, index) => ({
+    id: `RR-${(index + 1).toString().padStart(3, "0")}`,
+    team1: pair.team1,
+    team2: pair.team2,
+    round: index + 1,
+    status: "scheduled",
+    overs: maxOvers,
+    maxWickets: maxWickets,
+  }));
 
-  scheduledMatches.forEach((round, roundIndex) => {
-    round.forEach((pair) => {
-      const match: Match = {
-        id: `RR-${matchId.toString().padStart(3, "0")}`,
-        team1: pair.team1,
-        team2: pair.team2,
-        round: roundIndex + 1,
-        status: "scheduled",
-        overs: maxOvers,
-        maxWickets: maxWickets,
-      };
-
-      matches.push(match);
-      matchId++;
-    });
-  });
-
-  const totalRounds = scheduledMatches.length;
-  const maxMatchesPerRound = Math.max(...scheduledMatches.map((r) => r.length));
-
+  // Matches are played sequentially, so each match occupies its own slot.
   return {
     matches,
-    totalRounds,
-    matchesPerRound: maxMatchesPerRound,
+    totalRounds: matches.length,
+    matchesPerRound: 1,
   };
 }
 
 /**
- * Schedule matches in rounds to optimize team rest periods
- * Uses a greedy algorithm to maximize parallel matches while ensuring teams get rest
+ * Order round-robin pairs into a single play sequence that maximizes the rest
+ * each team gets between its matches.
+ *
+ * Greedy: at every slot, pick the remaining pair whose two teams have rested
+ * the longest since either last played. This pushes the just-finished teams to
+ * the back of the queue whenever other teams are available, avoiding
+ * back-to-back matches. Ties favour teams that have played fewer games so far
+ * (so nobody's fixtures bunch up at the end), then original pair order for
+ * deterministic output.
  */
-function scheduleMatchesInRounds(
+function scheduleMatchesForRest(
   pairs: { team1: string; team2: string }[]
-): { team1: string; team2: string }[][] {
-  const rounds: { team1: string; team2: string }[][] = [];
-  const remainingPairs = [...pairs];
+): { team1: string; team2: string }[] {
+  const remaining = pairs.map((pair, origin) => ({ ...pair, origin }));
+  const sequence: { team1: string; team2: string }[] = [];
 
-  while (remainingPairs.length > 0) {
-    const currentRound: { team1: string; team2: string }[] = [];
-    const teamsInCurrentRound = new Set<string>();
+  const lastPlayedAt = new Map<string, number>();
+  const gamesPlayed = new Map<string, number>();
 
-    // Greedy approach: try to fit as many non-conflicting matches as possible
-    for (let i = remainingPairs.length - 1; i >= 0; i--) {
-      const pair = remainingPairs[i];
+  // Rest = slots elapsed since a team last played (Infinity if it hasn't yet).
+  const restOf = (team: string, slot: number) => {
+    const last = lastPlayedAt.get(team);
+    return last === undefined ? Number.POSITIVE_INFINITY : slot - last;
+  };
+  const gamesOf = (team: string) => gamesPlayed.get(team) ?? 0;
 
-      // Check if both teams are available (not already playing in this round)
-      if (
-        !teamsInCurrentRound.has(pair.team1) &&
-        !teamsInCurrentRound.has(pair.team2)
-      ) {
-        currentRound.push(pair);
-        teamsInCurrentRound.add(pair.team1);
-        teamsInCurrentRound.add(pair.team2);
-        remainingPairs.splice(i, 1);
+  for (let slot = 0; remaining.length > 0; slot++) {
+    let best = 0;
+    for (let i = 1; i < remaining.length; i++) {
+      const cand = remaining[i];
+      const bestPair = remaining[best];
+
+      // The team with the shorter rest is the binding constraint for a pair;
+      // maximizing that value spreads every team's games as far apart as possible.
+      const candRest = Math.min(
+        restOf(cand.team1, slot),
+        restOf(cand.team2, slot)
+      );
+      const bestRest = Math.min(
+        restOf(bestPair.team1, slot),
+        restOf(bestPair.team2, slot)
+      );
+
+      if (candRest !== bestRest) {
+        if (candRest > bestRest) best = i;
+        continue;
       }
+
+      const candGames = gamesOf(cand.team1) + gamesOf(cand.team2);
+      const bestGames = gamesOf(bestPair.team1) + gamesOf(bestPair.team2);
+      if (candGames !== bestGames) {
+        if (candGames < bestGames) best = i;
+        continue;
+      }
+
+      if (cand.origin < bestPair.origin) best = i;
     }
 
-    rounds.push(currentRound);
+    const [chosen] = remaining.splice(best, 1);
+    sequence.push({ team1: chosen.team1, team2: chosen.team2 });
+    lastPlayedAt.set(chosen.team1, slot);
+    lastPlayedAt.set(chosen.team2, slot);
+    gamesPlayed.set(chosen.team1, gamesOf(chosen.team1) + 1);
+    gamesPlayed.set(chosen.team2, gamesOf(chosen.team2) + 1);
   }
 
-  return rounds;
+  return sequence;
 }
 
 /**
