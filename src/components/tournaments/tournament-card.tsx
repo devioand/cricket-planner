@@ -53,17 +53,13 @@ export function TournamentCard({
 
   return (
     <Card.Root
-      colorPalette={status.color}
       borderWidth={1}
       borderColor="card.border"
-      borderLeftWidth="4px"
-      borderLeftColor="colorPalette.400"
       bg="card.bg"
       cursor="pointer"
       transition="all 0.2s"
       _hover={{
         borderColor: "blue.300",
-        borderLeftColor: "colorPalette.400",
         shadow: "md",
         transform: "translateY(-1px)",
       }}
