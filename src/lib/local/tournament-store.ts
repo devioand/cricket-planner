@@ -30,6 +30,7 @@ export type TournamentStatus = "setup" | "in_progress" | "completed";
 /** Everything the store needs from the server to bootstrap. */
 export interface StoreInit {
   id: string;
+  name: string;
   status: TournamentStatus;
   state: TournamentState;
 }
@@ -88,6 +89,8 @@ function canUseStorage(): boolean {
 
 export class TournamentStore {
   readonly id: string;
+  /** Tournament display name (static metadata, not part of the reactive state). */
+  readonly name: string;
 
   /** In-memory cache — a stable reference between mutations. */
   private snapshot: LocalSnapshot;
@@ -99,6 +102,7 @@ export class TournamentStore {
 
   constructor(init: StoreInit) {
     this.id = init.id;
+    this.name = init.name;
     const readOnly = init.status === "completed";
 
     // Server + hydration snapshot: the DB state. For an in-progress tournament
@@ -226,6 +230,11 @@ export class TournamentStore {
     const gen = engine.generateMatches(next);
     if (gen.success) this.commit(gen.state);
     return { success: gen.success, errors: gen.errors };
+  }
+
+  /** Set (or clear) the planned match-night window. ISO strings, or undefined. */
+  setSchedule(start: string | undefined, end: string | undefined): void {
+    this.commit(engine.setSchedule(this.snapshot.state, start, end));
   }
 
   /** Dev-only: fill scheduled non-TBD matches with random in-progress scores. */

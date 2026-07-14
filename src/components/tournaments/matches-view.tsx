@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Text, VStack, Box, HStack, Skeleton } from "@chakra-ui/react";
+import { LuShare2 } from "react-icons/lu";
 import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
 import { MatchCard } from "@/components/tournaments/match-card";
 import { SampleResultsButton } from "@/components/tournaments/sample-results-button";
 import { FinishBanner } from "@/components/tournaments/finish-banner";
+import { ShareFixtureDialog } from "@/components/tournaments/share-fixture-dialog";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -13,7 +16,8 @@ import { Button } from "@/components/ui/button";
  * scoring action reflects instantly without a server round-trip.
  */
 export function MatchesView() {
-  const { state, readOnly, hydrating } = useLiveTournament();
+  const { state, readOnly, hydrating, store } = useLiveTournament();
+  const [shareOpen, setShareOpen] = useState(false);
 
   // On a hard reload the server can't read localStorage; show a skeleton until
   // the client reveals the real state (instead of flashing stale DB data).
@@ -56,6 +60,22 @@ export function MatchesView() {
   return (
     <VStack align="stretch" gap={6}>
       <FinishBanner />
+
+      <Button
+        variant="outline"
+        colorPalette="green"
+        size="md"
+        w="full"
+        onClick={() => setShareOpen(true)}
+      >
+        <LuShare2 /> Share fixtures
+      </Button>
+
+      <ShareFixtureDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        name={store.name}
+      />
 
       {process.env.NODE_ENV === "development" && !readOnly && pending > 0 && (
         <SampleResultsButton pending={pending} />

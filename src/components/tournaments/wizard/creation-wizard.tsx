@@ -162,7 +162,12 @@ export function CreationWizard() {
         maxWickets,
       });
       // Generate the schedule locally into this id's store, then open matches.
-      const store = new TournamentStore({ id, status: "setup", state: initialState });
+      const store = new TournamentStore({
+        id,
+        name: name.trim(),
+        status: "setup",
+        state: initialState,
+      });
       const res = store.generate({
         teams,
         maxOvers,

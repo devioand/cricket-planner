@@ -69,6 +69,8 @@ const numOrUndef = (v: unknown): number | undefined =>
   v === null || v === undefined ? undefined : Number(v);
 const strOrUndef = (v: unknown): string | undefined =>
   v === null || v === undefined ? undefined : String(v);
+const isoOrUndef = (v: unknown): string | undefined =>
+  v === null || v === undefined ? undefined : new Date(v as string).toISOString();
 
 /** High-level lifecycle derived from the tournament state. */
 function deriveStatus(state: TournamentState): TournamentStatus {
@@ -277,6 +279,8 @@ async function loadRecord(db: Db, t: Row): Promise<TournamentRecord> {
     phase: t.phase as TournamentPhase,
     playoffFormat,
     playoffConfig,
+    scheduledStart: isoOrUndef(t.scheduled_start),
+    scheduledEnd: isoOrUndef(t.scheduled_end),
   };
 
   return {
@@ -351,8 +355,8 @@ async function writeState(
     `update public.tournaments
         set algorithm = $1, playoff_format = $2, playoff_config = $3,
             max_overs = $4, max_wickets = $5, is_generated = $6, phase = $7,
-            status = $8, winner = $9
-      where id = $10 and user_id = $11
+            status = $8, winner = $9, scheduled_start = $10, scheduled_end = $11
+      where id = $12 and user_id = $13
       returning updated_at`,
     [
       state.algorithm,
@@ -364,6 +368,8 @@ async function writeState(
       state.phase,
       deriveStatus(state),
       getTournamentWinner(state),
+      state.scheduledStart ?? null,
+      state.scheduledEnd ?? null,
       id,
       userId,
     ],

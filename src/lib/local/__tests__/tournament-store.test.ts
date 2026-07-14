@@ -54,7 +54,12 @@ function scheduledMatchState(): TournamentState {
 }
 
 const inProgress = (id: string) =>
-  new TournamentStore({ id, status: "in_progress", state: scheduledMatchState() });
+  new TournamentStore({
+    id,
+    name: "Test Cup",
+    status: "in_progress",
+    state: scheduledMatchState(),
+  });
 
 describe("TournamentStore — hydration", () => {
   it("serves the DB state when no local copy exists, and does not write on construction", () => {
@@ -128,6 +133,7 @@ describe("TournamentStore — hydration", () => {
   it("never hydrates a completed tournament (renders straight from the DB)", () => {
     const store = new TournamentStore({
       id: "HY2",
+      name: "Test Cup",
       status: "completed",
       state: scheduledMatchState(),
     });
@@ -155,6 +161,7 @@ describe("TournamentStore — mutations persist locally", () => {
   it("generate() builds the schedule locally and persists", () => {
     const store = new TournamentStore({
       id: "GEN",
+      name: "Test Cup",
       status: "setup",
       state: initialState,
     });
@@ -213,6 +220,7 @@ describe("TournamentStore — completed is a pure read (INVARIANT 2)", () => {
   it("serves DB state read-only and never touches localStorage", () => {
     const store = new TournamentStore({
       id: "DONE",
+      name: "Test Cup",
       status: "completed",
       state: scheduledMatchState(),
     });
@@ -239,6 +247,7 @@ describe("TournamentStore — cross-tournament isolation (INVARIANT 1)", () => {
     // Open (and even poke at) completed tournament B.
     const b = new TournamentStore({
       id: "B",
+      name: "Test Cup",
       status: "completed",
       state: scheduledMatchState(),
     });
