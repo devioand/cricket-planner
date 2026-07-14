@@ -28,7 +28,12 @@ export default async function RoundRobinTournamentLayout({
   return (
     <LiveTournamentProvider
       key={record.status}
-      init={{ id: record.id, status: record.status, state: record.state }}
+      init={{
+        id: record.id,
+        name: record.name,
+        status: record.status,
+        state: record.state,
+      }}
     >
       <TournamentHeader name={record.name} />
       <Box

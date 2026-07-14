@@ -131,6 +131,10 @@ export interface TournamentState {
   // The resolved playoff structure used to generate playoff matches.
   // null before generation and for the "none" format.
   playoffConfig: PlayoffConfig | null;
+  // Optional planned "match night" window (ISO 8601 strings). Used for display
+  // and the shareable fixture card; absent for tournaments with no set schedule.
+  scheduledStart?: string;
+  scheduledEnd?: string;
 }
 
 // Extended types for future features
