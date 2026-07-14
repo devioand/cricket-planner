@@ -5,7 +5,6 @@ import {
   Box,
   CloseButton,
   Dialog,
-  Input,
   Portal,
   Spinner,
   Text,
@@ -15,7 +14,7 @@ import { LuDownload, LuShare2 } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
-import { FixtureCard } from "@/components/tournaments/fixture-card";
+import { StatsCard } from "@/components/tournaments/stats-card";
 import {
   downloadDataUrl,
   nextPaint,
@@ -25,30 +24,11 @@ import {
 } from "@/components/tournaments/share/capture";
 
 /**
- * Share the pre-match fixture draft as an image. Lets the user set the match
- * window, previews the generated card, and shares it via the native share sheet
+ * Share the tournament stats (points table, awards, highlights) as an image.
+ * Previews the generated card and shares it via the native share sheet
  * (WhatsApp etc.) with a download fallback. Fully on-device — no server needed.
  */
-
-/** ISO (UTC) → the `YYYY-MM-DDTHH:mm` a datetime-local input expects (local time). */
-function isoToLocalInput(iso?: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours(),
-  )}:${pad(d.getMinutes())}`;
-}
-
-/** datetime-local value (local time) → ISO string, or undefined when empty. */
-function localInputToIso(value: string): string | undefined {
-  if (!value) return undefined;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
-}
-
-export function ShareFixtureDialog({
+export function ShareStatsDialog({
   open,
   onClose,
   name,
@@ -57,7 +37,7 @@ export function ShareFixtureDialog({
   onClose: () => void;
   name: string;
 }) {
-  const { state, store } = useLiveTournament();
+  const { state } = useLiveTournament();
   const cardRef = useRef<HTMLDivElement>(null);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [rendering, setRendering] = useState(false);
@@ -81,13 +61,13 @@ export function ShareFixtureDialog({
     }
   }, []);
 
-  // (Re)generate whenever the dialog is open and the schedule/teams/matches change.
+  // (Re)generate whenever the dialog is open and the underlying data changes.
   useEffect(() => {
     if (!open) return;
     void render();
-  }, [open, render, state.scheduledStart, state.scheduledEnd, state.teams, state.matches]);
+  }, [open, render, state.matches, state.teamStats]);
 
-  const filename = `${slugify(name)}-fixtures.png`;
+  const filename = `${slugify(name)}-stats.png`;
 
   const handleDownload = () => {
     if (dataUrl) downloadDataUrl(dataUrl, filename);
@@ -98,7 +78,7 @@ export function ShareFixtureDialog({
     try {
       const { shared } = await shareOrDownloadImage(dataUrl, filename, {
         title: name,
-        text: `${name} — fixtures 🏏`,
+        text: `${name} — stats 🏏`,
       });
       if (!shared) {
         toaster.create({
@@ -109,7 +89,6 @@ export function ShareFixtureDialog({
         });
       }
     } catch (err) {
-      // A user cancelling the share sheet throws AbortError — ignore it.
       if (err instanceof DOMException && err.name === "AbortError") return;
       toaster.create({
         title: "Couldn't share",
@@ -132,7 +111,7 @@ export function ShareFixtureDialog({
           <Dialog.Content maxW="480px" mx={4} bg="dialog.bg" borderRadius="xl">
             <Dialog.Header pb={2}>
               <Dialog.Title fontSize="lg" fontWeight="600">
-                Share fixtures
+                Share stats
               </Dialog.Title>
               <Dialog.CloseTrigger asChild>
                 <CloseButton
@@ -148,49 +127,10 @@ export function ShareFixtureDialog({
 
             <Dialog.Body pb={5}>
               <VStack align="stretch" gap={5}>
-                {/* Match window editor */}
-                <VStack align="stretch" gap={3}>
-                  <Text fontSize="sm" fontWeight="600" color="fg.default">
-                    🗓️ Match window
-                  </Text>
-                  <VStack align="stretch" gap={2.5}>
-                    <Box>
-                      <Text fontSize="xs" color="fg.muted" mb={1}>
-                        Starts
-                      </Text>
-                      <Input
-                        type="datetime-local"
-                        size="md"
-                        value={isoToLocalInput(state.scheduledStart)}
-                        onChange={(e) =>
-                          store.setSchedule(
-                            localInputToIso(e.target.value),
-                            state.scheduledEnd,
-                          )
-                        }
-                      />
-                    </Box>
-                    <Box>
-                      <Text fontSize="xs" color="fg.muted" mb={1}>
-                        Ends
-                      </Text>
-                      <Input
-                        type="datetime-local"
-                        size="md"
-                        value={isoToLocalInput(state.scheduledEnd)}
-                        onChange={(e) =>
-                          store.setSchedule(
-                            state.scheduledStart,
-                            localInputToIso(e.target.value),
-                          )
-                        }
-                      />
-                    </Box>
-                  </VStack>
-                  <Text fontSize="xs" color="fg.muted">
-                    Saved on this device — Sync from the top bar to store it.
-                  </Text>
-                </VStack>
+                <Text fontSize="sm" color="fg.muted">
+                  Points table, team awards, and match highlights — ready for the
+                  group chat.
+                </Text>
 
                 {/* Preview */}
                 <Box
@@ -209,7 +149,7 @@ export function ShareFixtureDialog({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={dataUrl}
-                      alt="Fixture card preview"
+                      alt="Tournament stats preview"
                       style={{ width: "100%", display: "block" }}
                     />
                   ) : (
@@ -232,7 +172,7 @@ export function ShareFixtureDialog({
                 {/* Actions */}
                 <VStack align="stretch" gap={2.5}>
                   <Button
-                    colorPalette="green"
+                    colorPalette="blue"
                     size="lg"
                     onClick={handleShare}
                     disabled={!dataUrl || rendering}
@@ -256,14 +196,8 @@ export function ShareFixtureDialog({
       </Portal>
 
       {/* Off-screen full-size render target for the PNG capture. */}
-      <Box
-        position="fixed"
-        top={0}
-        left="-99999px"
-        pointerEvents="none"
-        aria-hidden
-      >
-        <FixtureCard ref={cardRef} tournamentName={name} state={state} />
+      <Box position="fixed" top={0} left="-99999px" pointerEvents="none" aria-hidden>
+        <StatsCard ref={cardRef} tournamentName={name} state={state} />
       </Box>
     </Dialog.Root>
   );

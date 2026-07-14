@@ -5,6 +5,18 @@ import type {
   TournamentState,
   PlayoffSlot,
 } from "@/contexts/tournament-context/types";
+import {
+  ACCENT,
+  ACCENT_SOFT,
+  CARD,
+  CARD_BG,
+  CARD_BORDER,
+  CARD_WIDTH,
+  FONT,
+  INK,
+  MUTED,
+  TEXT,
+} from "@/components/tournaments/share/card-style";
 
 /**
  * The shareable fixture-draft card. Rendered at a fixed 1080px design width and
@@ -16,19 +28,7 @@ import type {
  * pixel width is correct — the output is an image, not a responsive screen.
  */
 
-// Fixed design palette (theme-independent) — the app's blue scale (theme.ts).
-const INK = "#0c142e"; // blue.950 — deep ground
-const INK_2 = "#1a365d"; // blue.900
-const CARD = "rgba(255,255,255,0.05)";
-const CARD_BORDER = "rgba(255,255,255,0.12)";
-const ACCENT = "#63b3ed"; // blue.300 — bright accent on dark
-const ACCENT_SOFT = "99,179,237"; // blue.300 as rgb, for translucent fills
-const TEXT = "#eaf2fb";
-const MUTED = "#9db6d4";
-const FONT =
-  '"Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif';
-
-export const FIXTURE_CARD_WIDTH = 1080;
+export const FIXTURE_CARD_WIDTH = CARD_WIDTH;
 
 export interface FixtureCardProps {
   tournamentName: string;
@@ -118,7 +118,7 @@ export const FixtureCard = forwardRef<HTMLDivElement, FixtureCardProps>(
           boxSizing: "border-box",
           fontFamily: FONT,
           color: TEXT,
-          background: `radial-gradient(120% 80% at 50% -10%, ${INK_2} 0%, ${INK} 60%)`,
+          background: CARD_BG,
           padding: "72px 64px 60px",
         }}
       >
