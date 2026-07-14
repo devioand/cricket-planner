@@ -117,7 +117,7 @@ export default function LoginPage() {
               </Field.Root>
 
               {error && (
-                <Text fontSize="sm" color="red.500">
+                <Text fontSize="sm" color={{ base: "red.500", _dark: "red.300" }}>
                   {error}
                 </Text>
               )}
@@ -137,7 +137,7 @@ export default function LoginPage() {
           <Text fontSize="sm" color="fg.muted" textAlign="center">
             Don&apos;t have an account?{" "}
             <Link href="/signup">
-              <Text as="span" color="blue.500" fontWeight="medium">
+              <Text as="span" color={{ base: "blue.500", _dark: "blue.300" }} fontWeight="medium">
                 Sign up
               </Text>
             </Link>

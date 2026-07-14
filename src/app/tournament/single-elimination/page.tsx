@@ -20,7 +20,7 @@ export default function SingleEliminationTournament() {
     >
       <VStack gap={6}>
         <Text fontSize="6xl">⚡</Text>
-        <Heading size={{ base: "lg", md: "xl" }} color="red.600">
+        <Heading size={{ base: "lg", md: "xl" }} color={{ base: "red.600", _dark: "red.300" }}>
           Single Elimination Tournament
         </Heading>
         <Text fontSize={{ base: "md", md: "lg" }} color="gray.600" maxW="xl">

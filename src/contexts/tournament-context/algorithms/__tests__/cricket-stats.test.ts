@@ -2,6 +2,7 @@ import {
   initializeTeamStats,
   updateTeamStatsAfterMatch,
   getTournamentStandings,
+  getQualifiedTeams,
   createSampleMatchResult,
   oversToBalls,
   ballsToOvers,
@@ -13,6 +14,8 @@ import type {
   CricketMatchResult,
   CricketTeamStats,
   InningsScore,
+  PlayoffConfig,
+  TournamentState,
 } from "../../types";
 
 describe("Cricket Stats Module", () => {
@@ -844,6 +847,101 @@ describe("Cricket Stats Module", () => {
       expect(teamAStats.battingRunRate).toBeCloseTo(8.0, 1); // 80/10
       expect(teamAStats.bowlingRunRate).toBeCloseTo(8.95, 2); // 85/9.5
       expect(teamAStats.netRunRate).toBeCloseTo(-0.947, 2); // 8.0 - 8.95
+    });
+  });
+
+  describe("getQualifiedTeams (clinch logic)", () => {
+    const teamStat = (
+      teamName: string,
+      points: number,
+      netRunRate = 0,
+    ): CricketTeamStats => ({
+      ...initializeTeamStats(teamName),
+      matchesPlayed: 1,
+      points,
+      netRunRate,
+    });
+
+    const rrMatch = (
+      team1: string,
+      team2: string,
+      status: Match["status"],
+    ): Match => ({
+      id: `${team1}-${team2}`,
+      team1,
+      team2,
+      round: 1,
+      status,
+      overs: 20,
+      maxWickets: 10,
+    });
+
+    const makeState = (
+      stats: CricketTeamStats[],
+      matches: Match[],
+      qualifiers: number | null,
+    ): TournamentState => {
+      const teamStats: Record<string, CricketTeamStats> = {};
+      for (const s of stats) teamStats[s.teamName] = s;
+      const playoffConfig: PlayoffConfig | null =
+        qualifiers === null ? null : { qualifiers, matches: [] };
+      return {
+        algorithm: "round-robin",
+        teams: stats.map((s) => s.teamName),
+        maxOvers: 20,
+        maxWickets: 10,
+        matches,
+        isGenerated: true,
+        teamStats,
+        phase: "round-robin",
+        playoffFormat: qualifiers === null ? "none" : "world-cup",
+        playoffConfig,
+      };
+    };
+
+    it("returns nobody when there are no playoffs", () => {
+      const state = makeState(
+        [teamStat("A", 6), teamStat("B", 4)],
+        [],
+        null,
+      );
+      expect(getQualifiedTeams(state).size).toBe(0);
+    });
+
+    it("marks only a team that can no longer be pushed out (top 2)", () => {
+      // A(6) is done; only C vs D remain. B(4) can still be tied by C (→4),
+      // so B is NOT clinched; A is.
+      const state = makeState(
+        [teamStat("A", 6), teamStat("B", 4), teamStat("C", 2), teamStat("D", 0)],
+        [rrMatch("C", "D", "scheduled")],
+        2,
+      );
+      const q = getQualifiedTeams(state);
+      expect([...q].sort()).toEqual(["A"]);
+    });
+
+    it("marks both leaders once neither can be caught", () => {
+      const state = makeState(
+        [teamStat("A", 6), teamStat("B", 6), teamStat("C", 0), teamStat("D", 0)],
+        [rrMatch("C", "D", "scheduled")],
+        2,
+      );
+      expect([...getQualifiedTeams(state)].sort()).toEqual(["A", "B"]);
+    });
+
+    it("resolves to the top N by standings once the round-robin is done", () => {
+      // B and C tie on points; NRR breaks it for the 2nd spot.
+      const state = makeState(
+        [
+          teamStat("A", 6),
+          teamStat("B", 4, 1.0),
+          teamStat("C", 4, -1.0),
+          teamStat("D", 0),
+        ],
+        [rrMatch("A", "B", "completed")],
+        2,
+      );
+      expect([...getQualifiedTeams(state)].sort()).toEqual(["A", "B"]);
     });
   });
 });

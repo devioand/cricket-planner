@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Text, VStack, Box, HStack, Skeleton } from "@chakra-ui/react";
 import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
+import { getQualifiedTeams } from "@/contexts/tournament-context/algorithms/cricket-stats";
 import { MatchCard } from "@/components/tournaments/match-card";
 import { SampleResultsButton } from "@/components/tournaments/sample-results-button";
 import { FinishBanner } from "@/components/tournaments/finish-banner";
@@ -52,6 +53,7 @@ export function MatchesView() {
     .filter((m) => m.isPlayoff)
     .sort((a, b) => a.round - b.round);
   const pending = state.matches.filter((m) => m.status !== "completed").length;
+  const qualifiedTeams = getQualifiedTeams(state);
 
   return (
     <VStack align="stretch" gap={6}>
@@ -72,6 +74,7 @@ export function MatchesView() {
               matchNumber={index + 1}
               totalMatches={roundRobinMatches.length}
               readOnly={readOnly}
+              qualifiedTeams={qualifiedTeams}
             />
           ))}
         </VStack>

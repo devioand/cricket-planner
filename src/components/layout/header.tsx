@@ -27,6 +27,7 @@ export function Header() {
   };
 
   const homeHref = isAuthed ? "/" : "/login";
+  const onTournaments = pathname === "/tournaments";
 
   return (
     <Box
@@ -52,27 +53,37 @@ export function Header() {
             >
               <Logo />
             </Box>
-            <Box>
+            <Box minW={0}>
               <Heading
                 size="md"
-                lineHeight="1"
+                lineHeight="1.1"
                 _hover={{ color: "blue.500" }}
                 transition="color 0.2s"
+                truncate
               >
                 Cricket Planner
               </Heading>
-              <Text fontSize="sm" color="fg.muted">
+              <Text
+                fontSize="sm"
+                color="fg.muted"
+                display={{ base: "none", sm: "block" }}
+              >
                 Tournament Management System
               </Text>
             </Box>
           </Link>
 
-          <HStack gap={3}>
+          <HStack gap={{ base: 1.5, md: 3 }}>
             {!isPending && isAuthed && !isAuthPage && (
               <>
                 <Link href="/tournaments">
-                  <Button variant="ghost" size="sm" colorPalette="blue">
-                    🏆 Tournaments
+                  <Button
+                    variant={onTournaments ? "subtle" : "ghost"}
+                    size="sm"
+                    colorPalette="blue"
+                    aria-current={onTournaments ? "page" : undefined}
+                  >
+                    🏆 <Box as="span" display={{ base: "none", sm: "inline" }}>Tournaments</Box>
                   </Button>
                 </Link>
                 {session?.user?.email && (

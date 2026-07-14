@@ -5,6 +5,7 @@ import {
   CricketMatchResult,
   InningsScore,
   Match,
+  TournamentState,
 } from "../types";
 
 /**
@@ -353,4 +354,58 @@ export function createSampleMatchResult(
     margin,
     matchType: "completed",
   };
+}
+
+/**
+ * Teams that have CLINCHED a playoff spot — mathematically guaranteed a top
+ * `qualifiers` finish no matter how the remaining round-robin matches go.
+ *
+ * A team X is safe when at most `qualifiers - 1` other teams can still catch or
+ * pass it: comparing X's worst case (loses all remaining → 0 more points)
+ * against every rival's best case (wins all remaining → +2 each). Rivals that
+ * can only tie are counted as threats too, so the result is conservative — it
+ * never shows "Q" for a team that could still miss out. Once the round-robin is
+ * complete, it resolves to the actual top `qualifiers` by standings.
+ *
+ * Returns an empty set when there are no playoffs (`qualifiers` 0 / "none").
+ */
+const POINTS_FOR_WIN = 2;
+
+export function getQualifiedTeams(state: TournamentState): Set<string> {
+  const qualified = new Set<string>();
+  const qualifiers = state.playoffConfig?.qualifiers ?? 0;
+  if (qualifiers <= 0) return qualified;
+
+  const standings = getTournamentStandings(state.teamStats);
+  if (standings.length === 0) return qualified;
+
+  // Remaining round-robin matches per team (still to be played).
+  const remaining = new Map<string, number>();
+  for (const t of standings) remaining.set(t.teamName, 0);
+  for (const m of state.matches) {
+    if (m.isPlayoff) continue;
+    if (m.status === "completed" || m.status === "cancelled") continue;
+    remaining.set(m.team1, (remaining.get(m.team1) ?? 0) + 1);
+    remaining.set(m.team2, (remaining.get(m.team2) ?? 0) + 1);
+  }
+  const roundRobinDone = [...remaining.values()].every((v) => v === 0);
+
+  // Round-robin over → the top `qualifiers` by standings are through.
+  if (roundRobinDone) {
+    for (const t of standings.slice(0, qualifiers)) qualified.add(t.teamName);
+    return qualified;
+  }
+
+  // Mid-tournament → only mark teams that can no longer be pushed out.
+  for (const x of standings) {
+    const xWorst = x.points; // loses every remaining match
+    let threats = 0;
+    for (const y of standings) {
+      if (y.teamName === x.teamName) continue;
+      const yBest = y.points + POINTS_FOR_WIN * (remaining.get(y.teamName) ?? 0);
+      if (yBest >= xWorst) threats++;
+    }
+    if (threats < qualifiers) qualified.add(x.teamName);
+  }
+  return qualified;
 }
