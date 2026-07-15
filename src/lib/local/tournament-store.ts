@@ -19,6 +19,7 @@ import type {
   PlayoffConfig,
   PlayoffFormat,
   TossDecision,
+  TrophyConfig,
 } from "@/contexts/tournament-context/types";
 import * as engine from "@/contexts/tournament-context/engine";
 import type { CompleteMatchResult } from "@/contexts/tournament-context/engine";
@@ -206,6 +207,7 @@ export class TournamentStore {
     maxWickets: number;
     playoffFormat: PlayoffFormat;
     playoffConfig?: PlayoffConfig | null;
+    trophy?: TrophyConfig | null;
   }): { success: boolean; errors?: string[] } {
     if (this.snapshot.readOnly) return { success: false };
 
@@ -216,6 +218,7 @@ export class TournamentStore {
       matches: [],
       isGenerated: false,
       playoffConfig: null,
+      trophy: setup.trophy ?? null,
     };
     for (const team of setup.teams) next = engine.addTeam(next, team);
     next = engine.setMaxOvers(next, setup.maxOvers);
