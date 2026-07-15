@@ -3,6 +3,7 @@ import { Rubik } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import { Provider } from "@/components/ui/provider";
 import { Header } from "@/components/layout/header";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { Toaster } from "@/components/ui/toaster";
 
 const rubik = Rubik({
@@ -11,8 +12,8 @@ const rubik = Rubik({
 });
 
 export const metadata: Metadata = {
-  title: "Cricket Planner",
-  description: "Cricket Planner",
+  title: "CricMatrix",
+  description: "CricMatrix — plan and run cricket tournaments.",
 };
 
 export default function RootLayout({
@@ -34,6 +35,7 @@ export default function RootLayout({
           <Toaster />
           <Header />
           {children}
+          <BottomNav />
         </Provider>
       </body>
     </html>
