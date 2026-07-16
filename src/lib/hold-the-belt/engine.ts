@@ -17,15 +17,16 @@ export function deriveView(s: BeltSession): BeltView {
   let champion: string | null = null;
   let champReason: "streak" | "cap" | null = null;
   let longest: { player: string; streak: number } | null = null;
+  let cappedOut = false;
 
-  // Per-player running totals. `achievedAt` = the game index at which a player
-  // first reached their longest reign, used to break cap ties (earliest wins).
+  // Per-player running totals. `recentAt` = the most recent game index at which
+  // a player stood at their longest reign — the "hot hand" cap tiebreak.
   const stats = new Map<
     string,
-    { longest: number; wins: number; achievedAt: number }
+    { longest: number; wins: number; recentAt: number }
   >();
   for (const p of s.players) {
-    if (!stats.has(p)) stats.set(p, { longest: 0, wins: 0, achievedAt: Infinity });
+    if (!stats.has(p)) stats.set(p, { longest: 0, wins: 0, recentAt: 0 });
   }
 
   for (const r of s.results) {
@@ -37,11 +38,11 @@ export function deriveView(s: BeltSession): BeltView {
       streak = 1;
     }
 
-    const st = stats.get(holder) ?? { longest: 0, wins: 0, achievedAt: Infinity };
+    const st = stats.get(holder) ?? { longest: 0, wins: 0, recentAt: 0 };
     st.wins += 1;
-    if (streak > st.longest) {
+    if (streak >= st.longest) {
       st.longest = streak;
-      st.achievedAt = played;
+      st.recentAt = played;
     }
     stats.set(holder, st);
 
@@ -56,32 +57,33 @@ export function deriveView(s: BeltSession): BeltView {
       break;
     }
     if (played >= s.gameCap) {
-      champion = longest?.player ?? holder;
+      cappedOut = true;
       champReason = "cap";
       break;
     }
     challenger = queue.shift() ?? null;
   }
 
-  // Leader-first: longest reign desc, then earliest-achieved, then wins desc.
+  // Leader-first: longest reign desc → total wins desc → most recent (hot hand).
   const standings: BeltStanding[] = [...stats.entries()]
     .map(([player, st]) => ({
       player,
       longestReign: st.longest,
       totalWins: st.wins,
-      isHolder: !champion && player === holder,
+      isHolder: !champion && !cappedOut && player === holder,
       currentStreak: player === holder ? streak : 0,
       isLeader: false,
     }))
     .sort((a, b) => {
       if (b.longestReign !== a.longestReign) return b.longestReign - a.longestReign;
-      const at = stats.get(a.player)!.achievedAt - stats.get(b.player)!.achievedAt;
-      if (at !== 0) return at;
-      return b.totalWins - a.totalWins;
+      if (b.totalWins !== a.totalWins) return b.totalWins - a.totalWins;
+      return stats.get(b.player)!.recentAt - stats.get(a.player)!.recentAt;
     });
   if (standings.length > 0 && standings[0].longestReign > 0) {
     standings[0].isLeader = true;
   }
+  // At the cap, the belt goes to the top of the standings (best reign, then wins).
+  if (cappedOut) champion = standings[0]?.player ?? holder;
 
   return {
     holder,
@@ -105,6 +107,30 @@ export function deriveView(s: BeltSession): BeltView {
  */
 export function projectChampion(s: BeltSession, winner: string): string | null {
   return deriveView(applyResult(s, winner)).champion;
+}
+
+/**
+ * The champion if the outcome is already forced — i.e. every possible way the
+ * remaining games could go leads to the same winner (a "dead rubber" situation,
+ * or an early mathematical clinch). Returns null if the result is still live.
+ * Bounded to nearby endings so it stays cheap to call on every render.
+ */
+export function guaranteedChampion(s: BeltSession): string | null {
+  const v = deriveView(s);
+  if (v.champion) return v.champion;
+  if (v.gamesLeft > 8) return null; // too far out to be decided; keep playing
+  return clinch(s);
+}
+
+function clinch(s: BeltSession): string | null {
+  const v = deriveView(s);
+  if (v.champion) return v.champion;
+  if (!v.holder || !v.challenger) return null;
+  // Both branches must lead to the same champion for it to be guaranteed.
+  const ifHolder = clinch(applyResult(s, v.holder));
+  if (ifHolder === null) return null;
+  const ifChallenger = clinch(applyResult(s, v.challenger));
+  return ifHolder === ifChallenger ? ifHolder : null;
 }
 
 /** The player who loses if `winner` wins the current game (or null if invalid). */

@@ -1,6 +1,7 @@
 import {
   applyResult,
   deriveView,
+  guaranteedChampion,
   loserOf,
   projectChampion,
   undoResult,
@@ -131,12 +132,36 @@ describe("hold-the-belt engine", () => {
     expect(v.holder).toBe("Ali");
     expect(v.challenger).toBe("Asad");
     expect(v.gamesLeft).toBe(1);
-    expect(v.standings[0].player).toBe("Asad"); // current cap leader
+    // Tiebreak: Ali & Asad both reign 2 / 2 wins, but Ali's reign is more recent.
+    expect(v.standings[0].player).toBe("Ali");
 
-    // If Ali (holder) wins → 3-reign beats Asad's 2 → Ali takes it.
+    // The two outcomes crown DIFFERENT champions → still a live game.
     expect(projectChampion(s, "Ali")).toBe("Ali");
-    // If Asad (challenger) wins → cap hit, Asad still has the longest reign.
     expect(projectChampion(s, "Asad")).toBe("Asad");
+    expect(guaranteedChampion(s)).toBeNull();
+  });
+
+  it("detects a clinch (dead rubber) — every outcome leads to the same champion", () => {
+    // Asad reels off 3 straight (target 4, cap 4). The last game can't matter:
+    // Asad wins → 4-streak; challenger wins → Asad still tops the cap standings.
+    const s = base({
+      targetStreak: 4,
+      gameCap: 4,
+      results: [
+        { winner: "Asad", loser: "Ali" },
+        { winner: "Asad", loser: "Salman" },
+        { winner: "Asad", loser: "Ali" },
+      ],
+    });
+    const v = deriveView(s);
+    expect(v.champion).toBeNull(); // not literally decided yet
+    expect(v.gamesLeft).toBe(1);
+    expect(guaranteedChampion(s)).toBe("Asad"); // ...but already clinched
+  });
+
+  it("returns no clinch while the belt is genuinely in play", () => {
+    const s = base({ targetStreak: 3, gameCap: 12 });
+    expect(guaranteedChampion(s)).toBeNull();
   });
 
   it("undo removes the most recent result", () => {

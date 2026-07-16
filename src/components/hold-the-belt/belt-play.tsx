@@ -14,7 +14,11 @@ import { LuRotateCcw, LuSwords } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { TrophyBadge } from "@/components/trophies/trophy-badge";
 import { BeltStore } from "@/lib/hold-the-belt/belt-store";
-import { deriveView, projectChampion } from "@/lib/hold-the-belt/engine";
+import {
+  deriveView,
+  guaranteedChampion,
+  projectChampion,
+} from "@/lib/hold-the-belt/engine";
 import type { BeltSession, BeltStanding } from "@/lib/hold-the-belt/types";
 
 export function BeltPlay({ id }: { id: string }) {
@@ -38,10 +42,35 @@ function BeltPlayInner({ store }: { store: BeltStore }) {
     store.getSnapshot,
     store.getSnapshot,
   );
+  const [playingOut, setPlayingOut] = useState(false);
   const view = deriveView(session);
 
+  // Literal finish (streak reached / cap played out).
   if (view.champion) {
-    return <BeltChampion session={session} store={store} />;
+    return (
+      <BeltChampion
+        champion={view.champion}
+        reason={view.champReason ?? "cap"}
+        session={session}
+        store={store}
+      />
+    );
+  }
+
+  // Early clinch: the remaining games can't change the winner — skip the dead
+  // rubber and crown now (unless the crew chooses to play it out).
+  const clinched = guaranteedChampion(session);
+  if (clinched && !playingOut) {
+    return (
+      <BeltChampion
+        champion={clinched}
+        reason="clinched"
+        session={session}
+        store={store}
+        gamesSkipped={view.gamesLeft}
+        onPlayOut={() => setPlayingOut(true)}
+      />
+    );
   }
 
   // Exact projection for a decisive game (holder's match point or the cap game).
@@ -264,14 +293,24 @@ function StreakDots({ streak, target }: { streak: number; target: number }) {
 }
 
 function BeltChampion({
+  champion,
+  reason,
   session,
   store,
+  gamesSkipped,
+  onPlayOut,
 }: {
+  champion: string;
+  reason: "streak" | "cap" | "clinched";
   session: BeltSession;
   store: BeltStore;
+  gamesSkipped?: number;
+  onPlayOut?: () => void;
 }) {
   const router = useRouter();
   const view = deriveView(session);
+  const championReign =
+    view.standings.find((s) => s.player === champion)?.longestReign ?? 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -285,6 +324,13 @@ function BeltChampion({
       cancelled = true;
     };
   }, []);
+
+  const reasonText =
+    reason === "streak"
+      ? `${session.targetStreak} straight wins`
+      : reason === "clinched"
+        ? "Clinched — unbeatable on reign + wins"
+        : `Longest reign · ${championReign} in a row`;
 
   return (
     <Box p={{ base: 4, md: 8 }} maxW="600px" mx="auto" w="full">
@@ -306,19 +352,22 @@ function BeltChampion({
         />
 
         <VStack gap={1}>
-          <Heading size={{ base: "xl", md: "2xl" }}>
-            🏆 {view.champion}
-          </Heading>
+          <Heading size={{ base: "xl", md: "2xl" }}>🏆 {champion}</Heading>
           <Text fontSize="md" color="fg.muted">
             is the boss
           </Text>
         </VStack>
 
         <Badge colorPalette="yellow" variant="subtle" size="lg">
-          {view.champReason === "streak"
-            ? `${session.targetStreak} straight wins`
-            : `Longest reign · ${view.longestReign?.streak ?? 0} in a row`}
+          {reasonText}
         </Badge>
+
+        {reason === "clinched" && gamesSkipped ? (
+          <Text fontSize="sm" color="fg.muted" maxW="340px">
+            Decided with {gamesSkipped} game{gamesSkipped === 1 ? "" : "s"} to
+            spare — no remaining match could change the result.
+          </Text>
+        ) : null}
 
         <VStack align="stretch" gap={2.5} w="full" maxW="320px" pt={2}>
           <Button
@@ -340,6 +389,17 @@ function BeltChampion({
           >
             🥊 New belt
           </Button>
+          {onPlayOut && (
+            <Button
+              onClick={onPlayOut}
+              variant="ghost"
+              colorPalette="gray"
+              size="sm"
+              w="full"
+            >
+              Play out the remaining games anyway
+            </Button>
+          )}
         </VStack>
       </VStack>
     </Box>
@@ -414,7 +474,7 @@ function Standings({ standings }: { standings: BeltStanding[] }) {
           Standings
         </Text>
         <Text fontSize="xs" color="fg.muted">
-          🔥 longest streak (wins the belt at the cap) · W = games won
+          🔥 longest streak wins at the cap (ties → most wins) · W = games won
         </Text>
       </VStack>
       <VStack align="stretch" gap={1.5}>
