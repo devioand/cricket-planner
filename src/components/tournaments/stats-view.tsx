@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Badge,
   Box,
@@ -9,7 +10,10 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
+import { LuShare2 } from "react-icons/lu";
+import { Button } from "@/components/ui/button";
 import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
+import { ShareStatsDialog } from "@/components/tournaments/share-stats-dialog";
 import {
   computeTournamentInsights,
   type Award,
@@ -19,7 +23,8 @@ import {
 
 /** Fun, energetic tournament analytics — the big numbers, highlights, and awards. */
 export function StatsView() {
-  const { state, hydrating } = useLiveTournament();
+  const { state, hydrating, store } = useLiveTournament();
+  const [shareOpen, setShareOpen] = useState(false);
   if (hydrating) return null;
 
   const insights = computeTournamentInsights(state);
@@ -43,6 +48,22 @@ export function StatsView() {
 
   return (
     <VStack align="stretch" gap={7}>
+      <Button
+        variant="outline"
+        colorPalette="blue"
+        size="md"
+        w="full"
+        onClick={() => setShareOpen(true)}
+      >
+        <LuShare2 /> Share stats
+      </Button>
+
+      <ShareStatsDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        name={store.name}
+      />
+
       {insights.champion ? (
         <ChampionHero champion={insights.champion} />
       ) : (

@@ -167,6 +167,10 @@ export interface TournamentState {
   // The champion's trophy, designed in the wizard. Optional: absent on
   // tournaments created before trophies existed (they get a default in the UI).
   trophy?: TrophyConfig | null;
+  // Optional planned "match night" window (ISO 8601 strings). Used for display
+  // and the shareable fixture card; absent for tournaments with no set schedule.
+  scheduledStart?: string;
+  scheduledEnd?: string;
 }
 
 // Extended types for future features

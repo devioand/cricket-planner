@@ -123,6 +123,24 @@ export function setPlayoffConfig(
   return { ...state, playoffConfig: config };
 }
 
+/**
+ * Set (or clear) the planned "match night" window. Pass ISO strings, or
+ * undefined for either bound to leave it unset. Returns the same reference when
+ * nothing changes so `useSyncExternalStore` consumers don't re-render.
+ */
+export function setSchedule(
+  state: TournamentState,
+  start: string | undefined,
+  end: string | undefined,
+): TournamentState {
+  const nextStart = start || undefined;
+  const nextEnd = end || undefined;
+  if (state.scheduledStart === nextStart && state.scheduledEnd === nextEnd) {
+    return state;
+  }
+  return { ...state, scheduledStart: nextStart, scheduledEnd: nextEnd };
+}
+
 // ── Match generation ─────────────────────────────────────────────────────────
 
 export function generateMatches(state: TournamentState): {
