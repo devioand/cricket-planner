@@ -2,7 +2,7 @@
 
 import { Box, Heading, Text, VStack, HStack } from "@chakra-ui/react";
 import Link from "next/link";
-import { LuPlus } from "react-icons/lu";
+import { LuPlus, LuSwords } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
 import type { TournamentSummary } from "@/lib/repositories/tournament-repository";
@@ -34,14 +34,24 @@ export function HomeDashboard({
                 Pick up one of your ongoing tournaments.
               </Text>
             </Box>
-            <Link href="/tournaments/new">
-              <Button colorPalette="blue">
-                <HStack gap={2}>
-                  <LuPlus />
-                  <Text>New Tournament</Text>
-                </HStack>
-              </Button>
-            </Link>
+            <HStack gap={2}>
+              <Link href="/belt/new">
+                <Button variant="outline" colorPalette="yellow">
+                  <HStack gap={2}>
+                    <LuSwords />
+                    <Text>Hold the Belt</Text>
+                  </HStack>
+                </Button>
+              </Link>
+              <Link href="/tournaments/new">
+                <Button colorPalette="blue">
+                  <HStack gap={2}>
+                    <LuPlus />
+                    <Text>New Tournament</Text>
+                  </HStack>
+                </Button>
+              </Link>
+            </HStack>
           </HStack>
 
           <VStack gap={3} align="stretch">
@@ -92,14 +102,24 @@ function EmptyHero({ hasCompleted }: { hasCompleted: boolean }) {
           </Text>
         </VStack>
 
-        <Link href="/tournaments/new">
-          <Button size="lg" colorPalette="blue">
-            <HStack gap={2}>
-              <LuPlus />
-              <Text>New Tournament</Text>
-            </HStack>
-          </Button>
-        </Link>
+        <VStack gap={3}>
+          <Link href="/tournaments/new">
+            <Button size="lg" colorPalette="blue">
+              <HStack gap={2}>
+                <LuPlus />
+                <Text>New Tournament</Text>
+              </HStack>
+            </Button>
+          </Link>
+          <Link href="/belt/new">
+            <Button size="lg" variant="outline" colorPalette="yellow">
+              <HStack gap={2}>
+                <LuSwords />
+                <Text>Hold the Belt</Text>
+              </HStack>
+            </Button>
+          </Link>
+        </VStack>
 
         {hasCompleted && (
           <Link href="/tournaments">
