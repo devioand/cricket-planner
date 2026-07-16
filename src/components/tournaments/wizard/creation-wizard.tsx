@@ -21,6 +21,7 @@ import { initialState } from "@/contexts/tournament-context/engine";
 import type {
   PlayoffConfig,
   TournamentType,
+  TrophyConfig,
 } from "@/contexts/tournament-context/types";
 import {
   BracketPreview,
@@ -30,7 +31,9 @@ import {
   SummaryCard,
   TeamChips,
 } from "@/components/tournaments/tournament-summary";
+import { TrophyBadge } from "@/components/trophies/trophy-badge";
 import { TeamListEditor } from "./team-list-editor";
+import { TrophyDesigner } from "./trophy-designer";
 import {
   PlayoffDesigner,
   resolvePlayoffSelection,
@@ -38,7 +41,19 @@ import {
   type PlayoffTemplate,
 } from "./playoff-designer";
 
-const STEPS = ["Basics", "Teams", "Settings", "Playoffs", "Review"] as const;
+const STEPS = [
+  "Basics",
+  "Teams",
+  "Settings",
+  "Playoffs",
+  "Trophy",
+  "Review",
+] as const;
+
+const DEFAULT_TROPHY: TrophyConfig = {
+  shape: "classic",
+  metal: "gold",
+};
 
 const FORMATS: {
   id: TournamentType;
@@ -102,6 +117,7 @@ export function CreationWizard() {
   const [template, setTemplate] = useState<PlayoffTemplate>("world-cup");
   const [customConfig, setCustomConfig] =
     useState<PlayoffConfig>(DEFAULT_CUSTOM);
+  const [trophy, setTrophy] = useState<TrophyConfig>(DEFAULT_TROPHY);
   const [creating, setCreating] = useState(false);
 
   const teamCount = teams.length;
@@ -174,6 +190,7 @@ export function CreationWizard() {
         maxWickets,
         playoffFormat: selection.format,
         playoffConfig: selection.config,
+        trophy,
       });
       if (!res.success) throw new Error(res.errors?.[0] ?? "Generate failed");
       router.push(`/tournament/round-robin/${id}/matches`);
@@ -294,6 +311,15 @@ export function CreationWizard() {
         )}
 
         {step === 4 && (
+          <StepShell
+            title="Design the trophy"
+            hint="This is what the champion wins. Make it yours."
+          >
+            <TrophyDesigner config={trophy} onChange={setTrophy} />
+          </StepShell>
+        )}
+
+        {step === 5 && (
           <StepShell title="Review" hint="Check everything, then create.">
             <ReviewSummary
               teams={teams}
@@ -301,6 +327,7 @@ export function CreationWizard() {
               maxWickets={maxWickets}
               playoffLabel={selection.label}
               playoffConfig={selection.config}
+              trophy={trophy}
             />
           </StepShell>
         )}
@@ -537,12 +564,14 @@ function ReviewSummary({
   maxWickets,
   playoffLabel,
   playoffConfig,
+  trophy,
 }: {
   teams: string[];
   maxOvers: number;
   maxWickets: number;
   playoffLabel: string;
   playoffConfig: PlayoffConfig | null;
+  trophy: TrophyConfig;
 }) {
   const structureName = playoffLabel.replace(/\s*\(top \d+\)/i, "");
   const counts = matchCounts(teams.length, playoffConfig);
@@ -597,6 +626,10 @@ function ReviewSummary({
             No knockout — the team that tops the standings is the champion.
           </Text>
         )}
+      </SummaryCard>
+
+      <SummaryCard icon={<LuTrophy size={16} />} title="Trophy">
+        <TrophyBadge config={trophy} size="md" />
       </SummaryCard>
     </VStack>
   );

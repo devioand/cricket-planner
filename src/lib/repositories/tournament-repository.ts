@@ -14,6 +14,7 @@ import type {
   TournamentPhase,
   PlayoffFormat,
   TossDecision,
+  TrophyConfig,
 } from "@/contexts/tournament-context/types";
 import { getTournamentWinner } from "@/contexts/tournament-context/engine";
 import { buildPlayoffConfig } from "@/contexts/tournament-context/algorithms/playoff-engine";
@@ -39,6 +40,7 @@ export interface TournamentSummary {
   status: TournamentStatus;
   playoffFormat: PlayoffFormat;
   winner: string | null;
+  trophy: TrophyConfig | null;
   teamCount: number;
   maxOvers: number;
   maxWickets: number;
@@ -190,7 +192,8 @@ export async function listTournaments(
 ): Promise<TournamentSummary[]> {
   const { rows } = await pool.query(
     `select t.id, t.name, t.algorithm, t.status, t.playoff_format,
-            t.winner, t.max_overs, t.max_wickets, t.created_at, t.updated_at,
+            t.winner, t.trophy, t.max_overs, t.max_wickets,
+            t.created_at, t.updated_at,
             (select count(*) from public.teams te where te.tournament_id = t.id) as team_count
        from public.tournaments t
       where t.user_id = $1
@@ -205,6 +208,7 @@ export async function listTournaments(
     status: r.status as TournamentStatus,
     playoffFormat: r.playoff_format as PlayoffFormat,
     winner: (r.winner as string) ?? null,
+    trophy: (r.trophy as TrophyConfig) ?? null,
     teamCount: num(r.team_count),
     maxOvers: num(r.max_overs),
     maxWickets: num(r.max_wickets),
@@ -279,6 +283,7 @@ async function loadRecord(db: Db, t: Row): Promise<TournamentRecord> {
     phase: t.phase as TournamentPhase,
     playoffFormat,
     playoffConfig,
+    trophy: (t.trophy as TrophyConfig) ?? null,
     scheduledStart: isoOrUndef(t.scheduled_start),
     scheduledEnd: isoOrUndef(t.scheduled_end),
   };
@@ -355,8 +360,9 @@ async function writeState(
     `update public.tournaments
         set algorithm = $1, playoff_format = $2, playoff_config = $3,
             max_overs = $4, max_wickets = $5, is_generated = $6, phase = $7,
-            status = $8, winner = $9, scheduled_start = $10, scheduled_end = $11
-      where id = $12 and user_id = $13
+            status = $8, winner = $9, trophy = $10,
+            scheduled_start = $11, scheduled_end = $12
+      where id = $13 and user_id = $14
       returning updated_at`,
     [
       state.algorithm,
@@ -368,6 +374,7 @@ async function writeState(
       state.phase,
       deriveStatus(state),
       getTournamentWinner(state),
+      state.trophy ? JSON.stringify(state.trophy) : null,
       state.scheduledStart ?? null,
       state.scheduledEnd ?? null,
       id,

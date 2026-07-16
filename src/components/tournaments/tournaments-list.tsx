@@ -6,6 +6,7 @@ import {
   Text,
   VStack,
   HStack,
+  SimpleGrid,
   Dialog,
   Portal,
   CloseButton,
@@ -100,7 +101,7 @@ export function TournamentsList({
             </Link>
           </Box>
         ) : (
-          <VStack gap={3} align="stretch">
+          <SimpleGrid columns={{ base: 1, md: 2 }} gap={3}>
             {tournaments.map((t) => (
               <TournamentCard
                 key={t.id}
@@ -108,7 +109,7 @@ export function TournamentsList({
                 onDelete={setDeleteTarget}
               />
             ))}
-          </VStack>
+          </SimpleGrid>
         )}
       </VStack>
 
@@ -129,7 +130,7 @@ export function TournamentsList({
             >
               <Dialog.Header pb={3}>
                 <VStack gap={1} w="full" align="center">
-                  <Text fontSize="lg" fontWeight="500" color="red.600">
+                  <Text fontSize="lg" fontWeight="500" color={{ base: "red.600", _dark: "red.300" }}>
                     Delete Tournament?
                   </Text>
                 </VStack>
@@ -158,7 +159,7 @@ export function TournamentsList({
                   <Text
                     fontSize="sm"
                     textAlign="center"
-                    color="red.600"
+                    color={{ base: "red.600", _dark: "red.300" }}
                     fontWeight="medium"
                   >
                     This action cannot be undone.

@@ -58,7 +58,11 @@ export function TournamentCard({
       bg="card.bg"
       cursor="pointer"
       transition="all 0.2s"
-      _hover={{ borderColor: "blue.300", shadow: "sm" }}
+      _hover={{
+        borderColor: "blue.300",
+        shadow: "md",
+        transform: "translateY(-1px)",
+      }}
       onClick={() => router.push(href)}
     >
       <Card.Body p={{ base: 4, md: 5 }}>
@@ -100,7 +104,11 @@ export function TournamentCard({
             </HStack>
 
             {t.status === "completed" && t.winner ? (
-              <Text fontSize="sm" fontWeight="medium" color="green.600">
+              <Text
+                fontSize="sm"
+                fontWeight="medium"
+                color={{ base: "green.600", _dark: "green.300" }}
+              >
                 🏆 Champion: {t.winner}
               </Text>
             ) : null}

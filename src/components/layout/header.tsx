@@ -1,12 +1,23 @@
 "use client";
 
-import { Box, Container, Flex, Heading, HStack, Text } from "@chakra-ui/react";
+import {
+  Avatar,
+  Box,
+  Container,
+  Flex,
+  Heading,
+  HStack,
+  Menu,
+  Portal,
+  Text,
+} from "@chakra-ui/react";
 import { Button } from "@/components/ui/button";
 import { ColorModeButton } from "@/components/ui/color-mode";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import Logo from "../icons/logo";
+import { LuLogOut } from "react-icons/lu";
 import { authClient, useSession } from "@/lib/auth-client";
+import { isNavItemActive, NAV_ITEMS } from "./nav-items";
 
 export function Header() {
   const pathname = usePathname();
@@ -27,6 +38,7 @@ export function Header() {
   };
 
   const homeHref = isAuthed ? "/" : "/login";
+  const showNav = !isPending && isAuthed && !isAuthPage;
 
   return (
     <Box
@@ -38,63 +50,106 @@ export function Header() {
     >
       <Container maxW="7xl">
         <Flex justify="space-between" align="center">
-          <Link
-            href={homeHref}
-            style={{ display: "flex", alignItems: "center", gap: "12px" }}
-          >
-            <Box
-              fontSize="2xl"
-              role="img"
-              aria-label="Cricket"
-              transition="transform 0.2s"
-              _hover={{ transform: "scale(1.1)" }}
-              color="fg.default"
+          <HStack gap={{ base: 3, md: 8 }}>
+            <Link
+              href={homeHref}
+              style={{ display: "flex", alignItems: "center" }}
             >
-              <Logo />
-            </Box>
-            <Box>
               <Heading
-                size="md"
+                size="lg"
                 lineHeight="1"
-                _hover={{ color: "blue.500" }}
-                transition="color 0.2s"
+                fontWeight="bold"
+                letterSpacing="-0.02em"
+                whiteSpace="nowrap"
+                transition="opacity 0.2s"
+                _hover={{ opacity: 0.85 }}
               >
-                Cricket Planner
+                <Box as="span" color="fg.default">
+                  Cric
+                </Box>
+                <Box as="span" color="blue.500">
+                  Matrix
+                </Box>
               </Heading>
-              <Text fontSize="sm" color="fg.muted">
-                Tournament Management System
-              </Text>
-            </Box>
-          </Link>
+            </Link>
 
-          <HStack gap={3}>
-            {!isPending && isAuthed && !isAuthPage && (
-              <>
-                <Link href="/tournaments">
-                  <Button variant="ghost" size="sm" colorPalette="blue">
-                    🏆 Tournaments
-                  </Button>
-                </Link>
-                {session?.user?.email && (
-                  <Text
-                    fontSize="sm"
-                    color="fg.muted"
-                    display={{ base: "none", md: "block" }}
-                    maxW="180px"
-                    truncate
+            {/* Desktop top nav. On mobile these live in the bottom tab bar. */}
+            {showNav && (
+              <HStack as="nav" display={{ base: "none", md: "flex" }} gap={1}>
+                {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
+                  const active = isNavItemActive(pathname, href);
+                  return (
+                    <Link key={href} href={href}>
+                      <Button
+                        variant={active ? "subtle" : "ghost"}
+                        size="sm"
+                        colorPalette="blue"
+                        aria-current={active ? "page" : undefined}
+                      >
+                        <Icon />
+                        {label}
+                      </Button>
+                    </Link>
+                  );
+                })}
+              </HStack>
+            )}
+          </HStack>
+
+          <HStack gap={{ base: 1.5, md: 3 }}>
+            {showNav && (
+              <Menu.Root positioning={{ placement: "bottom-end" }}>
+                <Menu.Trigger asChild>
+                  <Box
+                    as="button"
+                    borderRadius="full"
+                    cursor="pointer"
+                    transition="opacity 0.2s, box-shadow 0.2s"
+                    aria-label="Account menu"
+                    _hover={{ opacity: 0.85 }}
+                    _focusVisible={{
+                      outline: "2px solid",
+                      outlineColor: "blue.500",
+                      outlineOffset: "2px",
+                    }}
                   >
-                    {session.user.email}
-                  </Text>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  colorPalette="gray"
-                  onClick={handleSignOut}
-                >
-                  Sign out
-                </Button>
-              </>
+                    <Avatar.Root size="sm" colorPalette="blue">
+                      <Avatar.Fallback
+                        name={session.user.name || session.user.email}
+                      />
+                      {session.user.image && (
+                        <Avatar.Image src={session.user.image} />
+                      )}
+                    </Avatar.Root>
+                  </Box>
+                </Menu.Trigger>
+                <Portal>
+                  <Menu.Positioner>
+                    <Menu.Content minW="220px">
+                      <Box px="3" py="2">
+                        {session.user.name && (
+                          <Text fontSize="sm" fontWeight="medium" truncate>
+                            {session.user.name}
+                          </Text>
+                        )}
+                        <Text fontSize="xs" color="fg.muted" truncate>
+                          {session.user.email}
+                        </Text>
+                      </Box>
+                      <Menu.Separator />
+                      <Menu.Item
+                        value="signout"
+                        onClick={handleSignOut}
+                        color="red.fg"
+                        _hover={{ bg: "red.subtle", color: "red.fg" }}
+                      >
+                        <LuLogOut />
+                        <Box flex="1">Sign out</Box>
+                      </Menu.Item>
+                    </Menu.Content>
+                  </Menu.Positioner>
+                </Portal>
+              </Menu.Root>
             )}
             <ColorModeButton />
           </HStack>

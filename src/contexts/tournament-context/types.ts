@@ -117,6 +117,39 @@ export interface InningsScore {
 }
 
 // Tournament state interface
+/**
+ * The trophy silhouette. Two families: classic tournament cups, and challenge
+ * / fitness pieces (belt, crown, medal, flame, iron, bolt) for head-to-heads.
+ */
+export type TrophyShape =
+  | "grand"
+  | "classic"
+  | "flute"
+  | "chalice"
+  | "star"
+  | "orb"
+  | "belt"
+  | "crown"
+  | "medal"
+  | "flame"
+  | "iron"
+  | "bolt";
+
+/** Preset metals, or "custom" to use `TrophyConfig.color`. */
+export type TrophyMetal = "gold" | "silver" | "bronze" | "custom";
+
+/**
+ * A champion's trophy, designed in the setup wizard and awarded to whoever
+ * wins the tournament. Composed from parts (shape + metal/color) so it renders
+ * as a graphic — no image uploads, works offline. The tournament name and
+ * winner are shown as captions in the cabinet, not engraved on the trophy.
+ */
+export interface TrophyConfig {
+  shape: TrophyShape;
+  metal: TrophyMetal;
+  color?: string; // hex, used when metal === "custom"
+}
+
 export interface TournamentState {
   algorithm: TournamentType;
   teams: string[];
@@ -131,6 +164,9 @@ export interface TournamentState {
   // The resolved playoff structure used to generate playoff matches.
   // null before generation and for the "none" format.
   playoffConfig: PlayoffConfig | null;
+  // The champion's trophy, designed in the wizard. Optional: absent on
+  // tournaments created before trophies existed (they get a default in the UI).
+  trophy?: TrophyConfig | null;
   // Optional planned "match night" window (ISO 8601 strings). Used for display
   // and the shareable fixture card; absent for tournaments with no set schedule.
   scheduledStart?: string;

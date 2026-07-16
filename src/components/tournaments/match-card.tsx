@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Text, VStack, HStack, IconButton } from "@chakra-ui/react";
+import { Badge, Box, Text, VStack, HStack, IconButton } from "@chakra-ui/react";
 import { useState } from "react";
 import type { Match } from "@/contexts/tournament-context/types";
 import { displayCricketOvers } from "@/contexts/tournament-context/algorithms/cricket-stats";
@@ -50,12 +50,32 @@ function PlayoffConsequences({
   );
 }
 
+/** Small badge marking a team that has clinched a playoff spot. */
+function QualifiedBadge() {
+  return (
+    <Badge
+      colorPalette="green"
+      variant="solid"
+      borderRadius="full"
+      px={1.5}
+      fontSize="2xs"
+      fontWeight="bold"
+      flexShrink={0}
+      title="Qualified for the playoffs"
+    >
+      Q
+    </Badge>
+  );
+}
+
 interface MatchCardProps {
   match: Match;
   matchNumber: number;
   totalMatches: number;
   isPlayoff?: boolean;
   readOnly?: boolean;
+  /** Teams that have clinched a playoff spot (round-robin cards only). */
+  qualifiedTeams?: Set<string>;
 }
 
 export function MatchCard({
@@ -64,6 +84,7 @@ export function MatchCard({
   totalMatches,
   isPlayoff = false,
   readOnly = false,
+  qualifiedTeams,
 }: MatchCardProps) {
   const [isTeam1ScoreDialogOpen, setIsTeam1ScoreDialogOpen] = useState(false);
   const [isTeam2ScoreDialogOpen, setIsTeam2ScoreDialogOpen] = useState(false);
@@ -251,9 +272,14 @@ export function MatchCard({
           {/* Team Rows */}
           <VStack align="stretch" gap={2}>
             <HStack justify="space-between" align="center">
-              <Text fontSize="md" fontWeight="medium" color="fg.default">
-                👤 {match.team1}
-              </Text>
+              <HStack gap={1.5} align="center" minW={0}>
+                <Text fontSize="md" fontWeight="medium" color="fg.default">
+                  👤 {match.team1}
+                </Text>
+                {!isPlayoff && qualifiedTeams?.has(match.team1) && (
+                  <QualifiedBadge />
+                )}
+              </HStack>
               <HStack gap={2} align="center">
                 {canEditScores && (
                   <IconButton
@@ -273,9 +299,14 @@ export function MatchCard({
             </HStack>
 
             <HStack justify="space-between" align="center">
-              <Text fontSize="md" fontWeight="medium" color="fg.default">
-                👤 {match.team2}
-              </Text>
+              <HStack gap={1.5} align="center" minW={0}>
+                <Text fontSize="md" fontWeight="medium" color="fg.default">
+                  👤 {match.team2}
+                </Text>
+                {!isPlayoff && qualifiedTeams?.has(match.team2) && (
+                  <QualifiedBadge />
+                )}
+              </HStack>
               <HStack gap={2} align="center">
                 {canEditScores && (
                   <IconButton

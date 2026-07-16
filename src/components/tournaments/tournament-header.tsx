@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Badge,
   Box,
   ClientOnly,
   HStack,
@@ -95,7 +96,7 @@ export function TournamentHeader({ name }: { name: string }) {
                 >
                   {name}
                 </Text>
-                <Box color="fg.subtle" flexShrink={0} display="flex">
+                <Box color="fg.muted" flexShrink={0} display="flex">
                   <LuInfo size={14} />
                 </Box>
               </HStack>
@@ -208,16 +209,21 @@ function SyncState({
   // A finished tournament is already persisted and read-only.
   if (readOnly) {
     return (
-      <HStack gap={1.5} flexShrink={0} color="green.500" px={1}>
-        <LuCheck size={14} />
-        <Text
-          fontSize="xs"
-          fontWeight="medium"
-          display={{ base: "none", sm: "block" }}
-        >
-          Saved
-        </Text>
-      </HStack>
+      <Badge
+        colorPalette="green"
+        variant="subtle"
+        borderRadius="full"
+        px={2.5}
+        py={1}
+        flexShrink={0}
+      >
+        <HStack gap={1.5}>
+          <LuCheck size={12} />
+          <Text fontSize="xs" fontWeight="semibold">
+            Saved
+          </Text>
+        </HStack>
+      </Badge>
     );
   }
 
@@ -239,24 +245,37 @@ function SyncState({
     );
   }
 
-  const savedLabel = lastSyncedAt
-    ? `Saved ${new Date(lastSyncedAt).toLocaleTimeString([], {
+  const savedTime = lastSyncedAt
+    ? new Date(lastSyncedAt).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
-      })}`
-    : "Saved";
+      })
+    : null;
   return (
-    <HStack gap={1.5} flexShrink={0} color="fg.muted" px={1}>
-      <Box color="green.500" display="flex">
-        <LuCheck size={14} />
-      </Box>
-      <Text
-        fontSize="xs"
-        fontWeight="medium"
-        display={{ base: "none", sm: "block" }}
-      >
-        {savedLabel}
-      </Text>
-    </HStack>
+    <Badge
+      colorPalette="green"
+      variant="subtle"
+      borderRadius="full"
+      px={2.5}
+      py={1}
+      flexShrink={0}
+    >
+      <HStack gap={1.5}>
+        <LuCheck size={12} />
+        <Text fontSize="xs" fontWeight="semibold">
+          Saved
+        </Text>
+        {savedTime && (
+          <Text
+            fontSize="xs"
+            fontWeight="medium"
+            opacity={0.75}
+            display={{ base: "none", sm: "inline" }}
+          >
+            · {savedTime}
+          </Text>
+        )}
+      </HStack>
+    </Badge>
   );
 }
