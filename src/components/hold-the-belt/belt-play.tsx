@@ -8,14 +8,14 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { LuRotateCcw, LuSwords } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { TrophyBadge } from "@/components/trophies/trophy-badge";
 import { BeltStore } from "@/lib/hold-the-belt/belt-store";
-import { deriveView } from "@/lib/hold-the-belt/engine";
-import type { BeltSession } from "@/lib/hold-the-belt/types";
+import { deriveView, projectChampion } from "@/lib/hold-the-belt/engine";
+import type { BeltSession, BeltStanding } from "@/lib/hold-the-belt/types";
 
 export function BeltPlay({ id }: { id: string }) {
   const [store, setStore] = useState<BeltStore | null>(null);
@@ -43,6 +43,15 @@ function BeltPlayInner({ store }: { store: BeltStore }) {
   if (view.champion) {
     return <BeltChampion session={session} store={store} />;
   }
+
+  // Exact projection for a decisive game (holder's match point or the cap game).
+  const ifHolderWins = view.holder
+    ? projectChampion(session, view.holder)
+    : null;
+  const ifChallengerWins = view.challenger
+    ? projectChampion(session, view.challenger)
+    : null;
+  const decisive = Boolean(ifHolderWins || ifChallengerWins);
 
   return (
     <Box p={{ base: 4, md: 8 }} maxW="600px" mx="auto" w="full">
@@ -75,6 +84,16 @@ function BeltPlayInner({ store }: { store: BeltStore }) {
             </HStack>
 
             <ChallengerCard name={view.challenger} />
+
+            {decisive && (
+              <OnTheLine
+                lastGame={view.gamesLeft === 1}
+                holder={view.holder}
+                challenger={view.challenger}
+                ifHolderWins={ifHolderWins}
+                ifChallengerWins={ifChallengerWins}
+              />
+            )}
 
             {/* Who won */}
             <VStack align="stretch" gap={2.5} pt={1}>
@@ -139,6 +158,9 @@ function BeltPlayInner({ store }: { store: BeltStore }) {
             </HStack>
           </Box>
         )}
+
+        {/* Live standings */}
+        {view.gamesPlayed > 0 && <Standings standings={view.standings} />}
 
         {/* Footer: progress + undo */}
         <HStack justify="space-between" pt={2}>
@@ -320,6 +342,134 @@ function BeltChampion({
           </Button>
         </VStack>
       </VStack>
+    </Box>
+  );
+}
+
+function OnTheLine({
+  lastGame,
+  holder,
+  challenger,
+  ifHolderWins,
+  ifChallengerWins,
+}: {
+  lastGame: boolean;
+  holder: string;
+  challenger: string;
+  ifHolderWins: string | null;
+  ifChallengerWins: string | null;
+}) {
+  return (
+    <Box
+      p={4}
+      borderRadius="lg"
+      borderWidth="1px"
+      borderColor={{ base: "orange.300", _dark: "orange.700" }}
+      bg={{ base: "orange.50", _dark: "orange.950" }}
+    >
+      <VStack align="stretch" gap={2}>
+        <Text fontWeight="bold" fontSize="sm" textAlign="center">
+          {lastGame
+            ? "🏁 Last game — the belt is on the line"
+            : "🎯 Match point"}
+        </Text>
+        <VStack align="stretch" gap={1}>
+          <Text fontSize="sm">
+            🏆 <Strong>{holder}</Strong> wins →{" "}
+            {ifHolderWins ? (
+              <>
+                <Strong>{ifHolderWins}</Strong> takes the belt
+              </>
+            ) : (
+              "the belt stays in play"
+            )}
+          </Text>
+          <Text fontSize="sm">
+            ⚔️ <Strong>{challenger}</Strong> wins →{" "}
+            {ifChallengerWins ? (
+              <>
+                <Strong>{ifChallengerWins}</Strong> takes the belt
+              </>
+            ) : (
+              "the chase continues"
+            )}
+          </Text>
+        </VStack>
+      </VStack>
+    </Box>
+  );
+}
+
+function Standings({ standings }: { standings: BeltStanding[] }) {
+  return (
+    <Box>
+      <VStack align="stretch" gap={0.5} mb={2}>
+        <Text
+          fontSize="xs"
+          fontWeight="semibold"
+          textTransform="uppercase"
+          letterSpacing="0.05em"
+          color="fg.muted"
+        >
+          Standings
+        </Text>
+        <Text fontSize="xs" color="fg.muted">
+          🔥 longest streak (wins the belt at the cap) · W = games won
+        </Text>
+      </VStack>
+      <VStack align="stretch" gap={1.5}>
+        {standings.map((s, i) => (
+          <HStack
+            key={s.player}
+            justify="space-between"
+            px={3}
+            py={2}
+            borderRadius="md"
+            borderWidth="1px"
+            borderColor={
+              s.isLeader
+                ? { base: "yellow.300", _dark: "yellow.700" }
+                : "border.default"
+            }
+            bg={
+              s.isLeader ? { base: "yellow.50", _dark: "yellow.950" } : "bg.subtle"
+            }
+          >
+            <HStack gap={2} minW={0}>
+              <Text fontSize="sm" fontWeight="bold" color="fg.muted" w="16px">
+                {i + 1}
+              </Text>
+              <Text fontSize="sm" fontWeight="medium" truncate>
+                {s.player}
+              </Text>
+              {s.isHolder && (
+                <Badge colorPalette="yellow" variant="solid" size="sm">
+                  🏆
+                </Badge>
+              )}
+              {s.isLeader && (
+                <Badge colorPalette="yellow" variant="subtle" size="sm">
+                  Leading
+                </Badge>
+              )}
+            </HStack>
+            <HStack gap={3} flexShrink={0}>
+              <Text fontSize="sm">🔥 {s.longestReign}</Text>
+              <Text fontSize="sm" color="fg.muted">
+                {s.totalWins}W
+              </Text>
+            </HStack>
+          </HStack>
+        ))}
+      </VStack>
+    </Box>
+  );
+}
+
+function Strong({ children }: { children: ReactNode }) {
+  return (
+    <Box as="span" fontWeight="semibold" color="fg.default">
+      {children}
     </Box>
   );
 }

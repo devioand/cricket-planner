@@ -24,6 +24,16 @@ export interface BeltSession {
   createdAt: string; // ISO
 }
 
+/** One player's running totals, used for the live leaderboard. */
+export interface BeltStanding {
+  player: string;
+  longestReign: number; // best consecutive-win streak so far (incl. an ongoing one)
+  totalWins: number;
+  isHolder: boolean; // currently holds the belt
+  currentStreak: number; // the holder's live streak (0 for everyone else)
+  isLeader: boolean; // would win the belt right now if the cap were hit
+}
+
 /** Derived, read-only view of the current state (never stored). */
 export interface BeltView {
   holder: string | null; // who currently holds the belt
@@ -36,4 +46,5 @@ export interface BeltView {
   champion: string | null; // set once decided
   champReason: "streak" | "cap" | null;
   longestReign: { player: string; streak: number } | null;
+  standings: BeltStanding[]; // sorted leader-first (cap tiebreak order)
 }

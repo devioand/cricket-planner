@@ -1,4 +1,4 @@
-import type { BeltSession, BeltView } from "./types";
+import type { BeltSession, BeltStanding, BeltView } from "./types";
 
 /**
  * Fold the append-only result log into the live view. Start: the first two
@@ -18,6 +18,16 @@ export function deriveView(s: BeltSession): BeltView {
   let champReason: "streak" | "cap" | null = null;
   let longest: { player: string; streak: number } | null = null;
 
+  // Per-player running totals. `achievedAt` = the game index at which a player
+  // first reached their longest reign, used to break cap ties (earliest wins).
+  const stats = new Map<
+    string,
+    { longest: number; wins: number; achievedAt: number }
+  >();
+  for (const p of s.players) {
+    if (!stats.has(p)) stats.set(p, { longest: 0, wins: 0, achievedAt: Infinity });
+  }
+
   for (const r of s.results) {
     played++;
     if (r.winner === holder) {
@@ -26,6 +36,15 @@ export function deriveView(s: BeltSession): BeltView {
       holder = r.winner;
       streak = 1;
     }
+
+    const st = stats.get(holder) ?? { longest: 0, wins: 0, achievedAt: Infinity };
+    st.wins += 1;
+    if (streak > st.longest) {
+      st.longest = streak;
+      st.achievedAt = played;
+    }
+    stats.set(holder, st);
+
     if (holder && (!longest || streak > longest.streak)) {
       longest = { player: holder, streak };
     }
@@ -44,6 +63,26 @@ export function deriveView(s: BeltSession): BeltView {
     challenger = queue.shift() ?? null;
   }
 
+  // Leader-first: longest reign desc, then earliest-achieved, then wins desc.
+  const standings: BeltStanding[] = [...stats.entries()]
+    .map(([player, st]) => ({
+      player,
+      longestReign: st.longest,
+      totalWins: st.wins,
+      isHolder: !champion && player === holder,
+      currentStreak: player === holder ? streak : 0,
+      isLeader: false,
+    }))
+    .sort((a, b) => {
+      if (b.longestReign !== a.longestReign) return b.longestReign - a.longestReign;
+      const at = stats.get(a.player)!.achievedAt - stats.get(b.player)!.achievedAt;
+      if (at !== 0) return at;
+      return b.totalWins - a.totalWins;
+    });
+  if (standings.length > 0 && standings[0].longestReign > 0) {
+    standings[0].isLeader = true;
+  }
+
   return {
     holder,
     challenger,
@@ -55,7 +94,17 @@ export function deriveView(s: BeltSession): BeltView {
     champion,
     champReason,
     longestReign: longest,
+    standings,
   };
+}
+
+/**
+ * Who would be champion if `winner` wins the current game? Returns null if the
+ * game wouldn't decide the session (or the winner isn't on the pitch). Used for
+ * the "on the line" projection on decisive games.
+ */
+export function projectChampion(s: BeltSession, winner: string): string | null {
+  return deriveView(applyResult(s, winner)).champion;
 }
 
 /** The player who loses if `winner` wins the current game (or null if invalid). */

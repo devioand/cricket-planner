@@ -1,4 +1,10 @@
-import { applyResult, deriveView, loserOf, undoResult } from "../engine";
+import {
+  applyResult,
+  deriveView,
+  loserOf,
+  projectChampion,
+  undoResult,
+} from "../engine";
 import type { BeltSession } from "../types";
 
 const base = (overrides: Partial<BeltSession> = {}): BeltSession => ({
@@ -84,6 +90,53 @@ describe("hold-the-belt engine", () => {
     expect(loserOf(v, "Asad")).toBe("Ali");
     expect(loserOf(v, "Ali")).toBe("Asad");
     expect(loserOf(v, "Salman")).toBeNull();
+  });
+
+  it("builds a leader-first standings with per-player longest reign + wins", () => {
+    // Asad reigns to 2, then Ali takes the belt.
+    const s = base({
+      results: [
+        { winner: "Asad", loser: "Ali" }, // Asad 1
+        { winner: "Asad", loser: "Salman" }, // Asad 2
+        { winner: "Ali", loser: "Asad" }, // Ali 1 (belt changes)
+      ],
+    });
+    const v = deriveView(s);
+    const asad = v.standings.find((x) => x.player === "Asad")!;
+    const ali = v.standings.find((x) => x.player === "Ali")!;
+
+    expect(v.standings[0].player).toBe("Asad"); // leads on longest reign
+    expect(v.standings[0].isLeader).toBe(true);
+    expect(asad.longestReign).toBe(2);
+    expect(asad.totalWins).toBe(2);
+    expect(ali.longestReign).toBe(1);
+    expect(ali.isHolder).toBe(true); // currently holds
+    expect(ali.currentStreak).toBe(1);
+  });
+
+  it("projects different champions for each outcome of a decisive last game", () => {
+    // target 4, cap 5. After 4 games: Ali holds on a 2-reign; Asad leads the
+    // cap tiebreak (also a 2-reign, achieved earlier). The 5th game is the cap.
+    const s = base({
+      targetStreak: 4,
+      gameCap: 5,
+      results: [
+        { winner: "Asad", loser: "Ali" }, // Asad 1
+        { winner: "Asad", loser: "Salman" }, // Asad 2  ← leads
+        { winner: "Ali", loser: "Asad" }, // Ali 1
+        { winner: "Ali", loser: "Salman" }, // Ali 2
+      ],
+    });
+    const v = deriveView(s);
+    expect(v.holder).toBe("Ali");
+    expect(v.challenger).toBe("Asad");
+    expect(v.gamesLeft).toBe(1);
+    expect(v.standings[0].player).toBe("Asad"); // current cap leader
+
+    // If Ali (holder) wins → 3-reign beats Asad's 2 → Ali takes it.
+    expect(projectChampion(s, "Ali")).toBe("Ali");
+    // If Asad (challenger) wins → cap hit, Asad still has the longest reign.
+    expect(projectChampion(s, "Asad")).toBe("Asad");
   });
 
   it("undo removes the most recent result", () => {
