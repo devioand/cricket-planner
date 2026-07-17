@@ -22,7 +22,7 @@ export interface ShapeArt {
 
 const G = "url(#GRAD)";
 const SHEEN = 'fill="rgba(255,255,255,0.3)"';
-const LEATHER = "#3a2c1d";
+const LEATHER = "#4a3728";
 
 /** Shared wide two-tier metallic foot. */
 const NAMEPLATE = `
@@ -113,15 +113,21 @@ export const TROPHY_ART: Record<TrophyShape, ShapeArt> = {
   belt: {
     engraveY: 100, engraveSize: 8, textLen: 44, onDark: false,
     art: `
-      <path d="M2 76 Q60 68 118 76 L118 100 Q60 108 2 100 Z" fill="${LEATHER}"/>
-      <path d="M2 79 Q60 71 118 79 M2 97 Q60 105 118 97" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="1" stroke-dasharray="2 3"/>
-      <path d="M14 80 l16 -5 6 13 -6 13 -16 -5 z" fill="${G}"/>
-      <path d="M106 80 l-16 -5 -6 13 6 13 16 -5 z" fill="${G}"/>
-      <circle cx="60" cy="88" r="31" fill="${G}"/>
-      <circle cx="60" cy="88" r="25" fill="rgba(0,0,0,.14)"/>
-      <circle cx="60" cy="88" r="25" fill="none" stroke="${G}" stroke-width="1.4"/>
-      <path d="M60 57 A31 31 0 0 0 32 96 A31 31 0 0 1 60 57 Z" ${SHEEN}/>
-      <path d="M60 66 l3 6 6.5 .6 -5 4.4 1.6 6.4 -6.1 -3.6 -6.1 3.6 1.6 -6.4 -5 -4.4 6.5 -.6 z" fill="${G}"/>`,
+      <rect x="2" y="70" width="52" height="38" rx="13" fill="${LEATHER}"/>
+      <rect x="66" y="70" width="52" height="38" rx="13" fill="${LEATHER}"/>
+      <rect x="2" y="99" width="52" height="9" rx="4" fill="rgba(0,0,0,0.18)"/>
+      <rect x="66" y="99" width="52" height="9" rx="4" fill="rgba(0,0,0,0.18)"/>
+      <rect x="8" y="80" width="18" height="18" rx="6" fill="rgba(0,0,0,0.2)"/>
+      <path d="M17 81.5 L18.76 86.57 L24.13 86.68 L19.85 89.93 L21.41 95.07 L17 92 L12.59 95.07 L14.15 89.93 L9.87 86.68 L15.24 86.57 Z" fill="${G}"/>
+      <rect x="94" y="80" width="18" height="18" rx="6" fill="rgba(0,0,0,0.2)"/>
+      <path d="M103 81.5 L104.76 86.57 L110.13 86.68 L105.85 89.93 L107.41 95.07 L103 92 L98.59 95.07 L100.15 89.93 L95.87 86.68 L101.24 86.57 Z" fill="${G}"/>
+      <circle cx="60" cy="88" r="34" fill="${G}"/>
+      <circle cx="60" cy="88" r="34" fill="none" stroke="rgba(0,0,0,0.12)" stroke-width="1"/>
+      <circle cx="60" cy="88" r="30" fill="none" stroke="rgba(255,255,255,0.32)" stroke-width="2.5"/>
+      <circle cx="60" cy="88" r="22" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.5"/>
+      <path d="M60 56 A32 32 0 0 0 30 98 A32 32 0 0 1 60 56 Z" fill="rgba(255,255,255,0.26)"/>
+      <path d="M60 71 L64.05 82.66 L76.37 82.9 L66.56 90.36 L70.13 102.06 L60 94.98 L49.87 102.06 L53.44 90.36 L43.63 82.9 L55.95 82.66 Z" fill="${G}"/>
+      <path d="M60 71 L64.05 82.66 L76.37 82.9 L66.56 90.36 L70.13 102.06 L60 94.98 L49.87 102.06 L53.44 90.36 L43.63 82.9 L55.95 82.66 Z" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="0.8"/>`,
   },
   crown: {
     ...BASE,
