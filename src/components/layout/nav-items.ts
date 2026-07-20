@@ -1,6 +1,12 @@
 import { usePathname } from "next/navigation";
 import type { IconType } from "react-icons";
-import { LuListOrdered, LuMedal, LuSwords, LuTrophy } from "react-icons/lu";
+import {
+  LuListOrdered,
+  LuMedal,
+  LuSwords,
+  LuTrophy,
+  LuUsers,
+} from "react-icons/lu";
 import { useSession } from "@/lib/auth-client";
 
 export interface NavItem {
@@ -15,6 +21,7 @@ export interface NavItem {
  */
 export const NAV_ITEMS: NavItem[] = [
   { label: "Tournaments", href: "/tournaments", icon: LuSwords },
+  { label: "Club", href: "/club", icon: LuUsers },
   { label: "Trophies", href: "/trophies", icon: LuTrophy },
   { label: "Awards", href: "/awards", icon: LuMedal },
   { label: "Leaderboard", href: "/leaderboard", icon: LuListOrdered },

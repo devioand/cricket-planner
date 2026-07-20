@@ -32,6 +32,8 @@ import {
   TeamChips,
 } from "@/components/tournaments/tournament-summary";
 import { TrophyBadge } from "@/components/trophies/trophy-badge";
+import { ClubPlayerPicker } from "@/components/clubs/club-player-picker";
+import { clubStore } from "@/lib/clubs/club-store";
 import { TeamListEditor } from "./team-list-editor";
 import { TrophyDesigner } from "./trophy-designer";
 import {
@@ -99,6 +101,10 @@ const DEFAULT_CUSTOM: PlayoffConfig = {
   ],
 };
 
+/** Upper bound on teams in one tournament. Shared by the step validation and
+ *  the club picker so the cap has a single source of truth. */
+const MAX_TEAMS = 20;
+
 function defaultQualifiers(teamCount: number): number {
   if (teamCount >= 4) return 4;
   return Math.max(2, teamCount);
@@ -143,7 +149,7 @@ export function CreationWizard() {
       case 0:
         return name.trim().length > 0;
       case 1:
-        return teamCount >= 2 && teamCount <= 20;
+        return teamCount >= 2 && teamCount <= MAX_TEAMS;
       case 2:
         return maxOvers >= 1 && maxWickets >= 1;
       case 3:
@@ -193,6 +199,9 @@ export function CreationWizard() {
         trophy,
       });
       if (!res.success) throw new Error(res.errors?.[0] ?? "Generate failed");
+      // Stamp the club players who turned out, so the picker can lead with
+      // whoever plays most often. No-op when there's no club yet.
+      clubStore.markPlayed(teams);
       router.push(`/tournament/round-robin/${id}/matches`);
     } catch (err) {
       console.error("Failed to create tournament:", err);
@@ -261,9 +270,16 @@ export function CreationWizard() {
         {step === 1 && (
           <StepShell
             title={`Teams (${teamCount})`}
-            hint="Add every team. Each plays the others once."
+            hint="Tap who's playing, or add teams by hand. Each plays the others once."
           >
-            <TeamListEditor teams={teams} onChange={setTeams} />
+            <VStack align="stretch" gap={5}>
+              <ClubPlayerPicker
+                teams={teams}
+                onChange={setTeams}
+                max={MAX_TEAMS}
+              />
+              <TeamListEditor teams={teams} onChange={setTeams} />
+            </VStack>
           </StepShell>
         )}
 
