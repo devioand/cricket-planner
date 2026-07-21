@@ -14,14 +14,14 @@ const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
   throw new Error(
-    "DATABASE_URL is not set. Add your Supabase session-pooler connection string to .env.local"
+    "DATABASE_URL is not set. Add your Neon (pooled) Postgres connection string to .env.local"
   );
 }
 
 function createPool(): Pool {
   return new Pool({
     connectionString,
-    // Supabase's pooler requires TLS.
+    // The Neon pooler requires TLS.
     ssl: { rejectUnauthorized: false },
     max: 10,
   });
