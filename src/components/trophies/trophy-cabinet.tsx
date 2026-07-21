@@ -384,6 +384,7 @@ function TrophyDetail({
                 position="absolute"
                 top={3}
                 right={3}
+                zIndex={2}
                 size="sm"
                 color={CASE_MUTED}
                 _hover={{ color: CASE_INK, bg: "whiteAlpha.100" }}
