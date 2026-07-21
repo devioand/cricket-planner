@@ -197,17 +197,19 @@ function Featured({
           <TrophyBadge config={trophy.config} size="lg" showWonBy={false} />
         </Box>
         <VStack gap={0.5}>
+          {/* The champion is the point — biggest line. */}
           <Text
             fontFamily="heading"
             fontWeight="bold"
-            fontSize="lg"
+            fontSize="2xl"
             color={CASE_INK}
             textAlign="center"
+            lineHeight="1.1"
           >
-            {trophy.name}
+            {trophy.winner}
           </Text>
           <Text fontSize="sm" color={GOLD} fontWeight="medium" textAlign="center">
-            {trophy.winner}
+            {trophy.name}
           </Text>
           <Text fontSize="xs" color={CASE_FAINT}>
             {shortDate(trophy.wonAt)}
@@ -264,28 +266,27 @@ function Shelf({
         pb={5}
       >
         {row.map((t) => (
-          <VStack key={t.id} gap={0} minW={0} textAlign="center">
+          <VStack key={t.id} gap={0.5} minW={0} textAlign="center">
+            {/* Winner leads; the competition is the small caption under it. */}
             <Text
-              fontSize="10px"
-              letterSpacing="0.06em"
-              textTransform="uppercase"
+              fontSize="13px"
+              fontWeight="semibold"
+              lineHeight="1.2"
               color={CASE_INK}
-              truncate
-              maxW="full"
-            >
-              {t.name}
-            </Text>
-            <Text
-              fontSize="xs"
-              color={CASE_MUTED}
-              lineHeight="1.3"
-              truncate
+              lineClamp={2}
               maxW="full"
             >
               {t.winner}
             </Text>
-            <Text fontSize="10px" color={CASE_FAINT}>
-              {shortDate(t.wonAt)}
+            <Text
+              fontSize="9px"
+              letterSpacing="0.06em"
+              textTransform="uppercase"
+              color={CASE_MUTED}
+              truncate
+              maxW="full"
+            >
+              {t.name}
             </Text>
           </VStack>
         ))}
