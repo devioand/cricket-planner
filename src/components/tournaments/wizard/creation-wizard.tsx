@@ -61,7 +61,11 @@ function defaultQualifiers(teamCount: number): number {
 
 type StepName = "Players" | "Format" | "Sides" | "Teams" | "Finish";
 
-export function CreationWizard() {
+export function CreationWizard({
+  recentNames = [],
+}: {
+  recentNames?: string[];
+}) {
   const router = useRouter();
 
   const [step, setStep] = useState(0);
@@ -286,6 +290,7 @@ export function CreationWizard() {
             <FinishStep
               name={name}
               onName={setName}
+              recentNames={recentNames}
               maxOvers={maxOvers}
               onOvers={setMaxOvers}
               maxWickets={maxWickets}
@@ -454,6 +459,7 @@ function SidesStep({
 function FinishStep({
   name,
   onName,
+  recentNames,
   maxOvers,
   onOvers,
   maxWickets,
@@ -468,6 +474,7 @@ function FinishStep({
 }: {
   name: string;
   onName: (v: string) => void;
+  recentNames: string[];
   maxOvers: number;
   onOvers: (n: number) => void;
   maxWickets: number;
@@ -484,7 +491,7 @@ function FinishStep({
     <VStack align="stretch" gap={5}>
       <Box>
         <Text fontSize="sm" fontWeight="medium" mb={2} color="fg.default">
-          Tournament name
+          Name
         </Text>
         <Input
           placeholder="e.g. Sunday Cup"
@@ -505,6 +512,32 @@ function FinishStep({
             boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
           }}
         />
+        {recentNames.length > 0 && (
+          <HStack gap={2} mt={2} flexWrap="wrap">
+            {recentNames.map((n) => (
+              <Box
+                as="button"
+                key={n}
+                onClick={() => onName(n)}
+                aria-pressed={name === n}
+                px={3}
+                py={1.5}
+                borderRadius="full"
+                borderWidth="1px"
+                colorPalette="brand"
+                borderColor={name === n ? "colorPalette.500" : "border.default"}
+                bg={name === n ? { base: "brand.50", _dark: "brand.950" } : "card.bg"}
+                cursor="pointer"
+                transition="all 0.15s"
+                _hover={{ borderColor: "colorPalette.300" }}
+              >
+                <Text fontSize="xs" fontWeight="medium" color="fg.default" lineClamp={1}>
+                  {n}
+                </Text>
+              </Box>
+            ))}
+          </HStack>
+        )}
       </Box>
 
       {/* Play now, or park it in Upcoming for a chosen day. */}
