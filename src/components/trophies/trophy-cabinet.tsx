@@ -115,7 +115,7 @@ export function TrophyCabinet({
               textTransform="uppercase"
               color={CASE_MUTED}
             >
-              Silverware
+              Trophies
             </Text>
             <Text
               fontFamily="heading"
@@ -184,7 +184,7 @@ function Featured({
           textTransform="uppercase"
           color={GOLD}
         >
-          ★ Latest silverware
+          ★ Latest win
         </Text>
         <Box
           as="button"
