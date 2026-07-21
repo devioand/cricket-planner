@@ -114,7 +114,7 @@ export function ClubManager() {
             }}
           />
           <Button
-            colorPalette="blue"
+            colorPalette="brand"
             size="lg"
             h="48px"
             px={6}
@@ -187,7 +187,7 @@ function PlayerRow({
       borderColor="card.border"
       bg="card.bg"
       transition="all 0.2s"
-      _hover={{ borderColor: "blue.300" }}
+      _hover={{ borderColor: "brand.300" }}
     >
       <Card.Body pl={4} pr={2} py={2}>
         <HStack justify="space-between" align="center" gap={2}>
@@ -210,7 +210,7 @@ function PlayerRow({
               aria-label={`Edit ${player.name}`}
               size="sm"
               variant="ghost"
-              colorPalette="blue"
+              colorPalette="brand"
               onClick={onEdit}
             >
               <LuPencil />
@@ -285,7 +285,7 @@ function CreateClub({ onCreate }: { onCreate: (name: string) => void }) {
         }}
       />
       <Button
-        colorPalette="blue"
+        colorPalette="brand"
         size="lg"
         h="48px"
         w="full"
@@ -409,7 +409,7 @@ function RenameDialog({
                     Cancel
                   </Button>
                   <Button
-                    colorPalette="blue"
+                    colorPalette="brand"
                     flex="1"
                     h="44px"
                     onClick={submit}

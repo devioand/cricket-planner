@@ -50,7 +50,7 @@ export function StatsView() {
     <VStack align="stretch" gap={7}>
       <Button
         variant="outline"
-        colorPalette="blue"
+        colorPalette="brand"
         size="md"
         w="full"
         onClick={() => setShareOpen(true)}
@@ -169,11 +169,11 @@ const HIGHLIGHT_COLOR: Record<string, string> = {
   highest: "purple",
   biggest: "red",
   closest: "orange",
-  statement: "blue",
+  statement: "brand",
 };
 
 function HighlightCard({ highlight: h }: { highlight: Highlight }) {
-  const c = HIGHLIGHT_COLOR[h.key] ?? "blue";
+  const c = HIGHLIGHT_COLOR[h.key] ?? "brand";
   return (
     <VStack
       bg="card.bg"
@@ -219,7 +219,7 @@ function HighlightCard({ highlight: h }: { highlight: Highlight }) {
 // ── Awards ────────────────────────────────────────────────────────────────────
 
 const AWARD_COLOR: Record<string, string> = {
-  nrr: "blue",
+  nrr: "brand",
   batting: "green",
   bowling: "teal",
   wins: "yellow",
@@ -263,7 +263,7 @@ function AwardsLeader({ standout }: { standout: Standout }) {
 }
 
 function AwardCard({ award: a }: { award: Award }) {
-  const c = AWARD_COLOR[a.key] ?? "blue";
+  const c = AWARD_COLOR[a.key] ?? "brand";
   return (
     <VStack
       bg="card.bg"

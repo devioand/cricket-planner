@@ -15,7 +15,7 @@ export function ComingSoon({ icon: Icon, title, description }: ComingSoonProps) 
   return (
     <Box p={{ base: 4, md: 8 }} maxW="600px" mx="auto" w="full">
       <VStack gap={4} py={{ base: 16, md: 24 }} textAlign="center">
-        <Box fontSize="5xl" color="blue.solid" lineHeight="1">
+        <Box fontSize="5xl" color="brand.solid" lineHeight="1">
           <Icon />
         </Box>
         <Heading size={{ base: "lg", md: "xl" }}>{title}</Heading>
@@ -25,8 +25,8 @@ export function ComingSoon({ icon: Icon, title, description }: ComingSoonProps) 
         <Box
           fontSize="xs"
           fontWeight="semibold"
-          color="blue.fg"
-          bg="blue.subtle"
+          color="brand.fg"
+          bg="brand.subtle"
           px="3"
           py="1"
           borderRadius="full"

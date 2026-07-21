@@ -40,7 +40,7 @@ export function ClubPlayerPicker({ teams, onChange, max }: ClubPlayerPickerProps
           <LuUsers />
           <Text fontSize="sm">
             Save your regular players in your{" "}
-            <Link asChild color="blue.500" fontWeight="medium">
+            <Link asChild color="brand.500" fontWeight="medium">
               <NextLink href="/club">club</NextLink>
             </Link>{" "}
             and you can tap them here instead of typing.
@@ -96,10 +96,10 @@ export function ClubPlayerPicker({ teams, onChange, max }: ClubPlayerPickerProps
                 cursor={disabled ? "not-allowed" : "pointer"}
                 opacity={disabled ? 0.45 : 1}
                 transition="all 0.15s"
-                bg={isPicked ? "blue.500" : "card.bg"}
+                bg={isPicked ? "brand.500" : "card.bg"}
                 color={isPicked ? "white" : "fg.default"}
-                borderColor={isPicked ? "blue.500" : "card.border"}
-                _hover={disabled ? {} : { borderColor: "blue.300" }}
+                borderColor={isPicked ? "brand.500" : "card.border"}
+                _hover={disabled ? {} : { borderColor: "brand.300" }}
               >
                 {isPicked && <LuCheck size={15} />}
                 <Text fontSize="sm" fontWeight="medium">

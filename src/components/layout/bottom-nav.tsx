@@ -53,7 +53,7 @@ export function BottomNav() {
                 <VStack
                   gap="1"
                   py="2"
-                  color={active ? "blue.solid" : "fg.muted"}
+                  color={active ? "brand.solid" : "fg.muted"}
                   transition="color 0.15s"
                   _active={{ opacity: 0.6 }}
                 >

@@ -95,7 +95,7 @@ export function TeamChips({ teams }: { teams: string[] }) {
       {teams.map((t) => (
         <Badge
           key={t}
-          colorPalette="blue"
+          colorPalette="brand"
           variant="subtle"
           px={2.5}
           py={1}
@@ -158,8 +158,8 @@ export function MatchCountBanner({
   return (
     <Card.Root
       borderWidth={1}
-      borderColor={{ base: "blue.200", _dark: "blue.800" }}
-      bg={{ base: "blue.50", _dark: "blue.950" }}
+      borderColor={{ base: "brand.200", _dark: "brand.800" }}
+      bg={{ base: "brand.50", _dark: "brand.950" }}
     >
       <Card.Body p={4}>
         <HStack justify="space-between" align="center" gap={3}>

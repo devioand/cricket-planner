@@ -179,7 +179,7 @@ function EmptyShelf() {
           The shelf is empty. Win a tournament and it lands here.
         </Text>
         <NextLink href="/tournaments/new" style={{ width: "100%" }}>
-          <Button colorPalette="blue" size="md" w="full" h="44px">
+          <Button colorPalette="brand" size="md" w="full" h="44px">
             Start a tournament
           </Button>
         </NextLink>

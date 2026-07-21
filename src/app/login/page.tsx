@@ -124,7 +124,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                colorPalette="blue"
+                colorPalette="brand"
                 w="full"
                 size="lg"
                 loading={isSubmitting}
@@ -137,7 +137,7 @@ export default function LoginPage() {
           <Text fontSize="sm" color="fg.muted" textAlign="center">
             Don&apos;t have an account?{" "}
             <Link href="/signup">
-              <Text as="span" color={{ base: "blue.500", _dark: "blue.300" }} fontWeight="medium">
+              <Text as="span" color={{ base: "brand.500", _dark: "brand.300" }} fontWeight="medium">
                 Sign up
               </Text>
             </Link>

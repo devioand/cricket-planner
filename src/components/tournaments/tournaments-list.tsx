@@ -65,7 +65,7 @@ export function TournamentsList({
             </Text>
           </Box>
           <Link href="/tournaments/new">
-            <Button colorPalette="blue">
+            <Button colorPalette="brand">
               <HStack gap={2}>
                 <LuPlus />
                 <Text>New Tournament</Text>
@@ -92,7 +92,7 @@ export function TournamentsList({
               Create your first tournament to get started.
             </Text>
             <Link href="/tournaments/new">
-              <Button colorPalette="blue" size="lg">
+              <Button colorPalette="brand" size="lg">
                 <HStack gap={2}>
                   <LuPlus />
                   <Text>Create a Tournament</Text>

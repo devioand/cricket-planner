@@ -76,7 +76,7 @@ function CoinFlipDialog({ match, triggerLabel }: CoinFlipDialogProps) {
   return (
     <Dialog.Root open={isOpen} onOpenChange={(e) => setIsOpen(e.open)}>
       <Dialog.Trigger asChild>
-        <Button width="full" colorPalette="blue">
+        <Button width="full" colorPalette="brand">
           {triggerLabel}
         </Button>
       </Dialog.Trigger>
@@ -97,7 +97,7 @@ function CoinFlipDialog({ match, triggerLabel }: CoinFlipDialogProps) {
                   fontSize="lg"
                   color="colorPalette.600"
                   fontWeight="500"
-                  colorPalette="blue"
+                  colorPalette="brand"
                 >
                   {match.team1} vs {match.team2}
                 </Text>
@@ -132,7 +132,7 @@ function CoinFlipDialog({ match, triggerLabel }: CoinFlipDialogProps) {
                     onValueChange={(details) =>
                       setTeam1Call(details.value as "heads" | "tails")
                     }
-                    colorPalette="blue"
+                    colorPalette="brand"
                     disabled={isFlipping || flipComplete}
                   >
                     <HStack gap={3} justify="center">
@@ -146,7 +146,7 @@ function CoinFlipDialog({ match, triggerLabel }: CoinFlipDialogProps) {
                         bg="card.bg"
                         _hover={{ cursor: "pointer" }}
                         _checked={{
-                          borderColor: "blue.500",
+                          borderColor: "brand.500",
                         }}
                         _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
                       >
@@ -177,7 +177,7 @@ function CoinFlipDialog({ match, triggerLabel }: CoinFlipDialogProps) {
                         bg="card.bg"
                         _hover={{ cursor: "pointer" }}
                         _checked={{
-                          borderColor: "blue.500",
+                          borderColor: "brand.500",
                         }}
                         _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
                       >
@@ -303,7 +303,7 @@ function CoinFlipDialog({ match, triggerLabel }: CoinFlipDialogProps) {
                     borderRadius="lg"
                     fontSize="sm"
                     fontWeight="500"
-                    colorPalette="blue"
+                    colorPalette="brand"
                   >
                     {isFlipping ? "Flipping..." : "Flip the Coin!"}
                   </Button>

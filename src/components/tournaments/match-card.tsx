@@ -140,7 +140,7 @@ export function MatchCard({
       },
       inProgress: {
         bg: "card.bg",
-        borderColor: isPlayoff ? "yellow.300" : "blue.300",
+        borderColor: isPlayoff ? "yellow.300" : "brand.300",
       },
       scheduled: {
         bg: "card.bg",
@@ -286,7 +286,7 @@ export function MatchCard({
                     aria-label="Edit team 1 score"
                     size="xs"
                     variant="ghost"
-                    colorPalette="blue"
+                    colorPalette="brand"
                     onClick={() => setIsTeam1ScoreDialogOpen(true)}
                   >
                     ✏️

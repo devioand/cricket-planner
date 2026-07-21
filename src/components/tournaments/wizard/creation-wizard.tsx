@@ -1,21 +1,12 @@
 "use client";
 
-import {
-  Badge,
-  Box,
-  Heading,
-  HStack,
-  Input,
-  NumberInput,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
+import { Box, Heading, HStack, Input, Text, VStack } from "@chakra-ui/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LuCheck, LuSettings2, LuTrophy, LuUsers } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 import { createTournamentAction } from "@/app/tournaments/actions";
+import { clubStore } from "@/lib/clubs/club-store";
 import { TournamentStore } from "@/lib/local/tournament-store";
 import { initialState } from "@/contexts/tournament-context/engine";
 import type {
@@ -23,69 +14,23 @@ import type {
   TournamentType,
   TrophyConfig,
 } from "@/contexts/tournament-context/types";
-import {
-  BracketPreview,
-  matchCounts,
-  MatchCountBanner,
-  StatTile,
-  SummaryCard,
-  TeamChips,
-} from "@/components/tournaments/tournament-summary";
-import { TrophyBadge } from "@/components/trophies/trophy-badge";
-import { ClubPlayerPicker } from "@/components/clubs/club-player-picker";
-import { clubStore } from "@/lib/clubs/club-store";
-import { TeamListEditor } from "./team-list-editor";
 import { TrophyDesigner } from "./trophy-designer";
 import {
-  PlayoffDesigner,
+  TeamBuilder,
+  buildTeams,
+  pruneAssignment,
+  type Assignment,
+} from "./team-builder";
+import { PlayersStep } from "./players-step";
+import { FormatStep, FORMATS, type FormatSpec } from "./format-step";
+import { NumberField } from "./number-field";
+import {
   resolvePlayoffSelection,
   templatesFor,
   type PlayoffTemplate,
 } from "./playoff-designer";
 
-const STEPS = [
-  "Basics",
-  "Teams",
-  "Settings",
-  "Playoffs",
-  "Trophy",
-  "Review",
-] as const;
-
-const DEFAULT_TROPHY: TrophyConfig = {
-  shape: "classic",
-  metal: "gold",
-};
-
-const FORMATS: {
-  id: TournamentType;
-  name: string;
-  icon: string;
-  description: string;
-  available: boolean;
-}[] = [
-  {
-    id: "round-robin",
-    name: "Round Robin",
-    icon: "🔄",
-    description: "Everyone plays everyone, then playoffs",
-    available: true,
-  },
-  {
-    id: "single-elimination",
-    name: "Single Elimination",
-    icon: "⚡",
-    description: "One loss and you're out",
-    available: false,
-  },
-  {
-    id: "double-elimination",
-    name: "Double Elimination",
-    icon: "🔥",
-    description: "Two brackets, second chances",
-    available: false,
-  },
-];
+const DEFAULT_TROPHY: TrophyConfig = { shape: "classic", metal: "gold" };
 
 const DEFAULT_CUSTOM: PlayoffConfig = {
   qualifiers: 2,
@@ -101,70 +46,121 @@ const DEFAULT_CUSTOM: PlayoffConfig = {
   ],
 };
 
-/** Upper bound on teams in one tournament. Shared by the step validation and
- *  the club picker so the cap has a single source of truth. */
+/** Upper bound on teams in one tournament, and a generous cap on how many
+ *  people can be picked before they're split into sides. */
 const MAX_TEAMS = 20;
+const MAX_ATTENDEES = 30;
+
+/** Round-robin match count for a team count. */
+const rr = (t: number) => (t * (t - 1)) / 2;
 
 function defaultQualifiers(teamCount: number): number {
   if (teamCount >= 4) return 4;
   return Math.max(2, teamCount);
 }
 
+type StepName = "Players" | "Format" | "Sides" | "Teams" | "Finish";
+
 export function CreationWizard() {
   const router = useRouter();
 
   const [step, setStep] = useState(0);
+  const [attendees, setAttendees] = useState<string[]>([]);
+  const [formatId, setFormatId] = useState<string>("round-robin");
+  const [sides, setSides] = useState<1 | 2 | 3>(1);
+  const [extraMode, setExtraMode] = useState<"bigger" | "sitout">("bigger");
+  const [assign, setAssign] = useState<Assignment>({});
   const [name, setName] = useState("");
-  const [algorithm, setAlgorithm] = useState<TournamentType>("round-robin");
-  const [teams, setTeams] = useState<string[]>([]);
   const [maxOvers, setMaxOvers] = useState(20);
   const [maxWickets, setMaxWickets] = useState(10);
-  const [qualifiers, setQualifiers] = useState<number>(-1); // -1 → derive
-  const [template, setTemplate] = useState<PlayoffTemplate>("world-cup");
-  const [customConfig, setCustomConfig] =
-    useState<PlayoffConfig>(DEFAULT_CUSTOM);
   const [trophy, setTrophy] = useState<TrophyConfig>(DEFAULT_TROPHY);
   const [creating, setCreating] = useState(false);
 
-  const teamCount = teams.length;
+  const format = FORMATS.find((f) => f.id === formatId) ?? FORMATS[0];
+  const algorithm: TournamentType = format.algorithm ?? "round-robin";
 
-  const rawQualifiers =
-    qualifiers < 0 ? defaultQualifiers(teamCount) : qualifiers;
-  const effQualifiers =
-    rawQualifiers === 0 ? 0 : Math.min(Math.max(2, rawQualifiers), teamCount);
+  // Turn attendees + a side size into the team-name strings the engine runs on.
+  const built = buildTeams(attendees, sides, extraMode, assign);
+  const teams = sides === 1 ? attendees : built.teams;
+  const teamCount = sides === 1 ? attendees.length : built.caps.length;
+  const teamsComplete = sides === 1 ? attendees.length >= 2 : built.complete;
+
+  // Steps are dynamic: solo skips the team-building screen entirely.
+  const steps: StepName[] = [
+    "Players",
+    "Format",
+    "Sides",
+    ...(sides > 1 ? (["Teams"] as StepName[]) : []),
+    "Finish",
+  ];
+  const stepName = steps[Math.min(step, steps.length - 1)];
+  const isLast = step >= steps.length - 1;
+
+  // Playoffs default sensibly (no dedicated step) — a world-cup knockout off the
+  // round-robin table, sized to the field.
+  const effQualifiers = Math.min(
+    Math.max(2, defaultQualifiers(teamCount)),
+    teamCount,
+  );
   const availableTemplates = templatesFor(effQualifiers);
-  const effTemplate: PlayoffTemplate = availableTemplates.includes(template)
-    ? template
+  const effTemplate: PlayoffTemplate = availableTemplates.includes("world-cup")
+    ? "world-cup"
     : availableTemplates[0] ?? "final";
-
   const selection = resolvePlayoffSelection(
     effQualifiers,
     effTemplate,
-    customConfig,
+    DEFAULT_CUSTOM,
     teamCount,
   );
 
+  const handleAttendeesChange = (next: string[]) => {
+    setAttendees(next);
+    setAssign((a) => pruneAssignment(a, next));
+  };
+  const handleSidesChange = (next: 1 | 2 | 3) => {
+    setSides(next);
+    setAssign({});
+  };
+  const handleExtraModeChange = (next: "bigger" | "sitout") => {
+    setExtraMode(next);
+    setAssign({});
+  };
+  const handleFormat = (spec: FormatSpec) => setFormatId(spec.id);
+
+  const teamsForSize = (size: number) => Math.floor(attendees.length / size);
+  const sizeEnabled = (size: number) => {
+    const t = teamsForSize(size);
+    return t >= 2 && t <= MAX_TEAMS;
+  };
+
   const stepValid = (() => {
-    switch (step) {
-      case 0:
-        return name.trim().length > 0;
-      case 1:
-        return teamCount >= 2 && teamCount <= MAX_TEAMS;
-      case 2:
-        return maxOvers >= 1 && maxWickets >= 1;
-      case 3:
-        return selection.valid;
+    switch (stepName) {
+      case "Players":
+        return attendees.length >= 2 && attendees.length <= MAX_ATTENDEES;
+      case "Format":
+        return format.available;
+      case "Sides":
+        return sizeEnabled(sides);
+      case "Teams":
+        return built.complete;
+      case "Finish":
+        return (
+          name.trim().length > 0 &&
+          maxOvers >= 1 &&
+          maxWickets >= 1 &&
+          teamCount >= 2 &&
+          teamCount <= MAX_TEAMS &&
+          teamsComplete
+        );
       default:
         return true;
     }
   })();
 
-  const isLast = step === STEPS.length - 1;
-
   const goNext = () => {
     if (!stepValid) return;
     if (isLast) return create();
-    setStep((s) => Math.min(STEPS.length - 1, s + 1));
+    setStep((s) => Math.min(steps.length - 1, s + 1));
   };
   const goBack = () => setStep((s) => Math.max(0, s - 1));
 
@@ -172,10 +168,6 @@ export function CreationWizard() {
     if (creating) return;
     setCreating(true);
     try {
-      // The DB row's playoff_format is a placeholder here — the real format +
-      // config live in the generated local state and are persisted on the first
-      // Sync. Insert a legacy-safe value so creation also works before the
-      // flexible-playoffs migration is applied.
       const { id } = await createTournamentAction({
         name: name.trim(),
         algorithm,
@@ -183,7 +175,6 @@ export function CreationWizard() {
         maxOvers,
         maxWickets,
       });
-      // Generate the schedule locally into this id's store, then open matches.
       const store = new TournamentStore({
         id,
         name: name.trim(),
@@ -199,9 +190,8 @@ export function CreationWizard() {
         trophy,
       });
       if (!res.success) throw new Error(res.errors?.[0] ?? "Generate failed");
-      // Stamp the club players who turned out, so the picker can lead with
-      // whoever plays most often. No-op when there's no club yet.
-      clubStore.markPlayed(teams);
+      // Stamp who turned out so the picker leads with regulars next time.
+      clubStore.markPlayed(attendees);
       router.push(`/tournament/round-robin/${id}/matches`);
     } catch (err) {
       console.error("Failed to create tournament:", err);
@@ -217,140 +207,85 @@ export function CreationWizard() {
   };
 
   return (
-    <VStack align="stretch" gap={6} pb="88px">
-      <WizardProgress step={step} />
+    <VStack align="stretch" gap={6} pb="96px">
+      <WizardProgress steps={steps} step={step} />
 
       <Box>
-        {step === 0 && (
-          <StepShell title="Tournament basics" hint="Name it and pick a format.">
-            <VStack align="stretch" gap={5}>
-              <Box>
-                <Text fontSize="sm" fontWeight="medium" mb={2} color="fg.default">
-                  Tournament name
-                </Text>
-                <Input
-                  placeholder="e.g. Summer Cup 2026"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && stepValid) goNext();
-                  }}
-                  maxLength={60}
-                  size="lg"
-                  autoFocus
-                  bg="input.bg"
-                  borderColor="input.border"
-                  color="fg.default"
-                  _placeholder={{ color: "fg.placeholder" }}
-                  _focus={{
-                    borderColor: "input.focusBorder",
-                    boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
-                  }}
-                />
-              </Box>
-              <Box>
-                <Text fontSize="sm" fontWeight="medium" mb={2} color="fg.default">
-                  Format
-                </Text>
-                <VStack gap={2} align="stretch">
-                  {FORMATS.map((f) => (
-                    <FormatOption
-                      key={f.id}
-                      format={f}
-                      selected={algorithm === f.id}
-                      onSelect={() => f.available && setAlgorithm(f.id)}
-                    />
-                  ))}
-                </VStack>
-              </Box>
-            </VStack>
-          </StepShell>
-        )}
-
-        {step === 1 && (
+        {stepName === "Players" && (
           <StepShell
-            title={`Teams (${teamCount})`}
-            hint="Tap who's playing, or add teams by hand. Each plays the others once."
+            title={`Who's playing?${attendees.length ? ` (${attendees.length})` : ""}`}
+            hint="Tap who turned up. Add anyone new — they're saved for next time."
           >
-            <VStack align="stretch" gap={5}>
-              <ClubPlayerPicker
-                teams={teams}
-                onChange={setTeams}
-                max={MAX_TEAMS}
-              />
-              <TeamListEditor teams={teams} onChange={setTeams} />
-            </VStack>
-          </StepShell>
-        )}
-
-        {step === 2 && (
-          <StepShell
-            title="Match settings"
-            hint="Overs and wickets apply to every match."
-          >
-            <VStack align="stretch" gap={5}>
-              <NumberField
-                label="Max Overs"
-                helper="T20 = 20, ODI = 50"
-                value={maxOvers}
-                min={1}
-                max={50}
-                onChange={setMaxOvers}
-              />
-              <NumberField
-                label="Max Wickets"
-                helper="Standard: 10 wickets"
-                value={maxWickets}
-                min={1}
-                max={11}
-                onChange={setMaxWickets}
-              />
-            </VStack>
-          </StepShell>
-        )}
-
-        {step === 3 && (
-          <StepShell
-            title="Playoffs"
-            hint="Pick how many teams qualify, then the structure."
-          >
-            <PlayoffDesigner
-              teamCount={teamCount}
-              qualifiers={effQualifiers}
-              template={effTemplate}
-              customConfig={customConfig}
-              onQualifiersChange={setQualifiers}
-              onTemplateChange={setTemplate}
-              onCustomConfigChange={setCustomConfig}
+            <PlayersStep
+              selected={attendees}
+              onChange={handleAttendeesChange}
+              max={MAX_ATTENDEES}
             />
           </StepShell>
         )}
 
-        {step === 4 && (
+        {stepName === "Format" && (
           <StepShell
-            title="Design the trophy"
-            hint="This is what the champion wins. Make it yours."
+            title="How do you want to play?"
+            hint="Pick a format. More are on the way."
           >
-            <TrophyDesigner config={trophy} onChange={setTrophy} />
+            <FormatStep value={formatId} onSelect={handleFormat} />
           </StepShell>
         )}
 
-        {step === 5 && (
-          <StepShell title="Review" hint="Check everything, then create.">
-            <ReviewSummary
-              teams={teams}
+        {stepName === "Sides" && (
+          <StepShell
+            title="How do you split up?"
+            hint="Solo, or team up. Match counts are exact — they don't change with overs."
+          >
+            <SidesStep
+              value={sides}
+              onChange={handleSidesChange}
+              n={attendees.length}
+            />
+          </StepShell>
+        )}
+
+        {stepName === "Teams" && (
+          <StepShell
+            title={`Build the teams (${teamCount})`}
+            hint="Tap a player, then a slot. Or shuffle and tweak."
+          >
+            <TeamBuilder
+              attendees={attendees}
+              size={sides}
+              extraMode={extraMode}
+              onExtraModeChange={handleExtraModeChange}
+              assign={assign}
+              onAssignChange={setAssign}
+            />
+          </StepShell>
+        )}
+
+        {stepName === "Finish" && (
+          <StepShell
+            title="Name it and pick the prize"
+            hint={`${teamCount} ${
+              sides === 1 ? "players" : "teams"
+            } · round-robin${teamCount >= 3 ? " + playoffs" : ""}`}
+          >
+            <FinishStep
+              name={name}
+              onName={setName}
               maxOvers={maxOvers}
+              onOvers={setMaxOvers}
               maxWickets={maxWickets}
-              playoffLabel={selection.label}
-              playoffConfig={selection.config}
+              onWickets={setMaxWickets}
               trophy={trophy}
+              onTrophy={setTrophy}
+              onSubmit={() => stepValid && goNext()}
             />
           </StepShell>
         )}
       </Box>
 
       <WizardFooter
-        step={step}
+        showBack={step > 0}
         isLast={isLast}
         canProceed={stepValid}
         busy={creating}
@@ -363,25 +298,25 @@ export function CreationWizard() {
 
 // ── Steps & chrome ──────────────────────────────────────────────────────────
 
-function WizardProgress({ step }: { step: number }) {
+function WizardProgress({ steps, step }: { steps: string[]; step: number }) {
   return (
     <VStack align="stretch" gap={2}>
       <HStack justify="space-between">
-        <Text fontSize="sm" fontWeight="medium" color="fg.default">
-          {STEPS[step]}
+        <Text fontSize="sm" fontWeight="semibold" color="fg.default">
+          {steps[Math.min(step, steps.length - 1)]}
         </Text>
-        <Text fontSize="sm" color="fg.muted">
-          Step {step + 1} of {STEPS.length}
+        <Text fontSize="sm" color="fg.muted" fontVariantNumeric="tabular-nums">
+          Step {Math.min(step, steps.length - 1) + 1} of {steps.length}
         </Text>
       </HStack>
       <HStack gap={1.5}>
-        {STEPS.map((s, i) => (
+        {steps.map((s, i) => (
           <Box
             key={s}
             flex="1"
             h="4px"
             borderRadius="full"
-            bg={i <= step ? "blue.500" : "bg.emphasized"}
+            bg={i <= step ? "brand.500" : "bg.emphasized"}
             transition="background 0.2s"
           />
         ))}
@@ -402,7 +337,9 @@ function StepShell({
   return (
     <VStack align="stretch" gap={4}>
       <VStack align="stretch" gap={1}>
-        <Heading size="md">{title}</Heading>
+        <Heading size="lg" fontFamily="heading">
+          {title}
+        </Heading>
         <Text fontSize="sm" color="fg.muted">
           {hint}
         </Text>
@@ -412,128 +349,176 @@ function StepShell({
   );
 }
 
-function FormatOption({
-  format,
-  selected,
-  onSelect,
+function SidesStep({
+  value,
+  onChange,
+  n,
 }: {
-  format: (typeof FORMATS)[number];
-  selected: boolean;
-  onSelect: () => void;
+  value: 1 | 2 | 3;
+  onChange: (v: 1 | 2 | 3) => void;
+  n: number;
 }) {
+  const options: { v: 1 | 2 | 3; label: string; sub: string }[] = [
+    { v: 1, label: "Solo", sub: "one player a side" },
+    { v: 2, label: "Pairs", sub: "two a side" },
+    { v: 3, label: "Teams of 3", sub: "three a side" },
+  ];
   return (
-    <Box
-      role="radio"
-      aria-checked={selected}
-      aria-disabled={!format.available}
-      tabIndex={format.available ? 0 : -1}
-      onClick={onSelect}
-      onKeyDown={(e) => {
-        if (format.available && (e.key === "Enter" || e.key === " ")) {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
-      p={3}
-      borderWidth={selected ? 2 : 1}
-      borderRadius="lg"
-      colorPalette="blue"
-      borderColor={selected ? "colorPalette.500" : "border.default"}
-      bg={selected ? { base: "blue.50", _dark: "blue.950" } : "card.bg"}
-      cursor={format.available ? "pointer" : "not-allowed"}
-      opacity={format.available ? 1 : 0.6}
-      transition="all 0.15s"
-      _hover={
-        format.available && !selected ? { borderColor: "colorPalette.300" } : {}
-      }
-    >
-      <HStack justify="space-between" align="center">
-        <HStack gap={3} align="center">
-          <Text fontSize="xl" lineHeight="1">
-            {format.icon}
-          </Text>
-          <Box>
-            <Text fontWeight="medium" fontSize="sm" color="fg.default">
-              {format.name}
-            </Text>
-            <Text fontSize="xs" color="fg.muted">
-              {format.description}
-            </Text>
+    <VStack align="stretch" gap={2.5}>
+      {options.map((o) => {
+        const t = Math.floor(n / o.v);
+        const enabled = t >= 2 && t <= MAX_TEAMS;
+        const selected = value === o.v;
+        const leftover = n - t * o.v;
+        return (
+          <Box
+            as="button"
+            key={o.v}
+            onClick={() => enabled && onChange(o.v)}
+            aria-pressed={selected}
+            aria-disabled={!enabled}
+            textAlign="left"
+            p={4}
+            borderRadius="xl"
+            borderWidth={selected ? 2 : 1}
+            colorPalette="brand"
+            borderColor={selected ? "colorPalette.500" : "border.default"}
+            bg={selected ? { base: "brand.50", _dark: "brand.950" } : "card.bg"}
+            opacity={enabled ? 1 : 0.5}
+            cursor={enabled ? "pointer" : "not-allowed"}
+            transition="all 0.15s"
+            _hover={enabled && !selected ? { borderColor: "colorPalette.300" } : {}}
+          >
+            <HStack justify="space-between" align="baseline" gap={2}>
+              <Text fontFamily="heading" fontWeight="bold" fontSize="md" color="fg.default">
+                {o.label}
+              </Text>
+              <Text fontSize="xs" color="fg.muted">
+                {enabled ? `${t} ${o.v === 1 ? "players" : "teams"}` : "not enough players"}
+              </Text>
+            </HStack>
+            {enabled ? (
+              <HStack
+                gap={3}
+                mt={2}
+                fontSize="xs"
+                color="fg.muted"
+                fontVariantNumeric="tabular-nums"
+              >
+                <Text>
+                  <Text as="span" fontWeight="semibold" color="fg.default">
+                    {rr(t)}
+                  </Text>{" "}
+                  match{rr(t) === 1 ? "" : "es"}
+                </Text>
+                <Text>
+                  everyone plays{" "}
+                  <Text as="span" fontWeight="semibold" color="fg.default">
+                    {t - 1}
+                  </Text>
+                </Text>
+                {leftover > 0 && <Text>· {leftover} spare</Text>}
+              </HStack>
+            ) : (
+              <Text fontSize="xs" color="fg.muted" mt={1}>
+                {o.sub}
+              </Text>
+            )}
           </Box>
-        </HStack>
-        {format.available ? (
-          selected ? (
-            <Box color="colorPalette.500" display="flex">
-              <LuCheck />
-            </Box>
-          ) : null
-        ) : (
-          <Badge colorPalette="gray" variant="subtle" fontSize="xs" flexShrink={0}>
-            Soon
-          </Badge>
-        )}
-      </HStack>
-    </Box>
+        );
+      })}
+    </VStack>
   );
 }
 
-function NumberField({
-  label,
-  helper,
-  value,
-  min,
-  max,
-  onChange,
+function FinishStep({
+  name,
+  onName,
+  maxOvers,
+  onOvers,
+  maxWickets,
+  onWickets,
+  trophy,
+  onTrophy,
+  onSubmit,
 }: {
-  label: string;
-  helper: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (n: number) => void;
+  name: string;
+  onName: (v: string) => void;
+  maxOvers: number;
+  onOvers: (n: number) => void;
+  maxWickets: number;
+  onWickets: (n: number) => void;
+  trophy: TrophyConfig;
+  onTrophy: (t: TrophyConfig) => void;
+  onSubmit: () => void;
 }) {
   return (
-    <Box>
-      <Text fontSize="sm" fontWeight="medium" mb={2} color="fg.default">
-        {label}
-      </Text>
-      <NumberInput.Root
-        value={value.toString()}
-        min={min}
-        max={max}
-        onValueChange={(d) => {
-          const v = parseInt(d.value);
-          if (!isNaN(v)) onChange(v);
-        }}
-        size="lg"
-      >
-        <NumberInput.Control />
-        <NumberInput.Input
+    <VStack align="stretch" gap={5}>
+      <Box>
+        <Text fontSize="sm" fontWeight="medium" mb={2} color="fg.default">
+          Tournament name
+        </Text>
+        <Input
+          placeholder="e.g. Sunday Cup"
+          value={name}
+          onChange={(e) => onName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onSubmit();
+          }}
+          maxLength={60}
+          size="lg"
+          autoFocus
           bg="input.bg"
           borderColor="input.border"
           color="fg.default"
+          _placeholder={{ color: "fg.placeholder" }}
           _focus={{
             borderColor: "input.focusBorder",
             boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
           }}
         />
-      </NumberInput.Root>
-      <Text fontSize="xs" color="fg.muted" mt={1}>
-        {helper}
-      </Text>
-    </Box>
+      </Box>
+      <HStack gap={3} align="start">
+        <Box flex="1">
+          <NumberField
+            label="Overs"
+            helper="per match"
+            value={maxOvers}
+            min={1}
+            max={50}
+            onChange={onOvers}
+          />
+        </Box>
+        <Box flex="1">
+          <NumberField
+            label="Wickets"
+            helper="per side"
+            value={maxWickets}
+            min={1}
+            max={11}
+            onChange={onWickets}
+          />
+        </Box>
+      </HStack>
+      <Box>
+        <Text fontSize="sm" fontWeight="medium" mb={2} color="fg.default">
+          Trophy for the winner
+        </Text>
+        <TrophyDesigner config={trophy} onChange={onTrophy} />
+      </Box>
+    </VStack>
   );
 }
 
 function WizardFooter({
-  step,
+  showBack,
   isLast,
   canProceed,
   busy,
   onBack,
   onNext,
 }: {
-  step: number;
+  showBack: boolean;
   isLast: boolean;
   canProceed: boolean;
   busy: boolean;
@@ -554,7 +539,7 @@ function WizardFooter({
       zIndex={10}
     >
       <HStack gap={3} maxW="600px" mx="auto">
-        {step > 0 && (
+        {showBack && (
           <Button
             variant="outline"
             colorPalette="gray"
@@ -567,86 +552,9 @@ function WizardFooter({
           </Button>
         )}
         <Button onClick={onNext} disabled={!canProceed} loading={busy} flex="1">
-          {isLast ? "🚀 Create Tournament" : "Next"}
+          {isLast ? "Start playing" : "Next"}
         </Button>
       </HStack>
     </Box>
-  );
-}
-
-function ReviewSummary({
-  teams,
-  maxOvers,
-  maxWickets,
-  playoffLabel,
-  playoffConfig,
-  trophy,
-}: {
-  teams: string[];
-  maxOvers: number;
-  maxWickets: number;
-  playoffLabel: string;
-  playoffConfig: PlayoffConfig | null;
-  trophy: TrophyConfig;
-}) {
-  const structureName = playoffLabel.replace(/\s*\(top \d+\)/i, "");
-  const counts = matchCounts(teams.length, playoffConfig);
-
-  return (
-    <VStack align="stretch" gap={3}>
-      <MatchCountBanner
-        total={counts.total}
-        group={counts.group}
-        playoffs={counts.playoffs}
-      />
-
-      <SummaryCard
-        icon={<LuUsers size={16} />}
-        title="Teams"
-        badge={`${teams.length}`}
-      >
-        <TeamChips teams={teams} />
-      </SummaryCard>
-
-      <SummaryCard icon={<LuSettings2 size={16} />} title="Match format">
-        <VStack align="stretch" gap={3}>
-          <HStack gap={2} align="baseline">
-            <Text fontSize="sm" fontWeight="medium" color="fg.default">
-              Round Robin
-            </Text>
-            <Text fontSize="xs" color="fg.muted">
-              every team plays once
-            </Text>
-          </HStack>
-          <HStack gap={2.5} align="stretch">
-            <StatTile label="Overs" value={maxOvers} />
-            <StatTile label="Wickets" value={maxWickets} />
-          </HStack>
-        </VStack>
-      </SummaryCard>
-
-      <SummaryCard
-        icon={<LuTrophy size={16} />}
-        title="Playoffs"
-        badge={playoffConfig ? `Top ${playoffConfig.qualifiers}` : "None"}
-      >
-        {playoffConfig ? (
-          <VStack align="stretch" gap={3}>
-            <Text fontSize="sm" fontWeight="medium" color="fg.default">
-              {structureName}
-            </Text>
-            <BracketPreview config={playoffConfig} />
-          </VStack>
-        ) : (
-          <Text fontSize="sm" color="fg.muted">
-            No knockout — the team that tops the standings is the champion.
-          </Text>
-        )}
-      </SummaryCard>
-
-      <SummaryCard icon={<LuTrophy size={16} />} title="Trophy">
-        <TrophyBadge config={trophy} size="md" />
-      </SummaryCard>
-    </VStack>
   );
 }

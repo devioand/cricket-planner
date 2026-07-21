@@ -52,7 +52,7 @@ export function BeltSetup() {
       <VStack align="stretch" gap={6}>
         <VStack align="stretch" gap={1}>
           <HStack gap={2} color="fg.default">
-            <Box color="blue.solid" fontSize="xl" lineHeight="1">
+            <Box color="brand.solid" fontSize="xl" lineHeight="1">
               <LuSwords />
             </Box>
             <Heading size={{ base: "lg", md: "xl" }}>Hold the Belt</Heading>
@@ -132,7 +132,7 @@ export function BeltSetup() {
             onClick={start}
             disabled={!valid}
             loading={starting}
-            colorPalette="blue"
+            colorPalette="brand"
             w="full"
             size="lg"
           >

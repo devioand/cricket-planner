@@ -241,9 +241,9 @@ function TemplateCard({
       borderWidth={2}
       borderRadius="lg"
       cursor="pointer"
-      colorPalette="blue"
+      colorPalette="brand"
       borderColor={selected ? "colorPalette.500" : "border.default"}
-      bg={selected ? { base: "blue.50", _dark: "blue.950" } : "card.bg"}
+      bg={selected ? { base: "brand.50", _dark: "brand.950" } : "card.bg"}
       transition="all 0.15s"
       onClick={onClick}
       onKeyDown={(e) => {
@@ -297,7 +297,7 @@ function QualifierChip({
     <Box
       as="button"
       onClick={onClick}
-      colorPalette="blue"
+      colorPalette="brand"
       minW="44px"
       px={3}
       py={2}

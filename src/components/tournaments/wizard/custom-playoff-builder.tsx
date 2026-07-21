@@ -340,7 +340,7 @@ function Chip({
   onClick,
   children,
   size = "sm",
-  colorPalette = "blue",
+  colorPalette = "brand",
 }: ChipProps) {
   return (
     <Box

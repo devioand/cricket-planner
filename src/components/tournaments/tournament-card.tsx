@@ -25,7 +25,7 @@ const ALGORITHM_LABELS: Record<string, string> = {
 const STATUS_META: Record<TournamentStatus, { label: string; color: string }> =
   {
     setup: { label: "Setup", color: "gray" },
-    in_progress: { label: "In Progress", color: "blue" },
+    in_progress: { label: "In Progress", color: "brand" },
     completed: { label: "Completed", color: "green" },
   };
 
@@ -59,7 +59,7 @@ export function TournamentCard({
       cursor="pointer"
       transition="all 0.2s"
       _hover={{
-        borderColor: "blue.300",
+        borderColor: "brand.300",
         shadow: "md",
         transform: "translateY(-1px)",
       }}

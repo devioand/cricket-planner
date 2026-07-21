@@ -20,7 +20,7 @@ export default function NotFound() {
             fontSize={{ base: "7xl", md: "9xl" }}
             fontWeight="bold"
             color="colorPalette.500"
-            colorPalette="blue"
+            colorPalette="brand"
             lineHeight="1"
           >
             4
@@ -43,7 +43,7 @@ export default function NotFound() {
             fontSize={{ base: "7xl", md: "9xl" }}
             fontWeight="bold"
             color="colorPalette.500"
-            colorPalette="blue"
+            colorPalette="brand"
             lineHeight="1"
           >
             4
@@ -62,12 +62,12 @@ export default function NotFound() {
 
         <HStack gap={3} flexWrap="wrap" justify="center" pt={2}>
           <Link href="/">
-            <Button colorPalette="blue" size="lg">
+            <Button colorPalette="brand" size="lg">
               🏠 Back to Home
             </Button>
           </Link>
           <Link href="/tournaments">
-            <Button variant="outline" colorPalette="blue" size="lg">
+            <Button variant="outline" colorPalette="brand" size="lg">
               🏆 My Tournaments
             </Button>
           </Link>

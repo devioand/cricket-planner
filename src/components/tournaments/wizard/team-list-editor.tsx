@@ -90,7 +90,7 @@ export function TeamListEditor({
       ))}
 
       {!disabled && (
-        <Button onClick={openAdd} variant="outline" colorPalette="blue" w="full">
+        <Button onClick={openAdd} variant="outline" colorPalette="brand" w="full">
           <HStack gap={2}>
             <Text fontSize="lg">+</Text>
             <Text>Add Team</Text>
@@ -178,7 +178,7 @@ export function TeamListEditor({
                       Cancel
                     </Button>
                     <Button
-                      colorPalette="blue"
+                      colorPalette="brand"
                       flex="1"
                       size="md"
                       h="44px"
@@ -214,7 +214,7 @@ function TeamCard({ teamName, onEdit, onDelete, disabled }: TeamCardProps) {
       borderWidth={1}
       borderColor={disabled ? "border.subtle" : "card.border"}
       bg={disabled ? "bg.subtle" : "card.bg"}
-      _hover={!disabled ? { borderColor: "blue.300", shadow: "sm" } : {}}
+      _hover={!disabled ? { borderColor: "brand.300", shadow: "sm" } : {}}
       transition="all 0.2s"
       opacity={disabled ? 0.7 : 1}
     >
@@ -240,7 +240,7 @@ function TeamCard({ teamName, onEdit, onDelete, disabled }: TeamCardProps) {
                 aria-label="Edit team"
                 size="sm"
                 variant="ghost"
-                colorPalette="blue"
+                colorPalette="brand"
                 onClick={onEdit}
               >
                 ✏️

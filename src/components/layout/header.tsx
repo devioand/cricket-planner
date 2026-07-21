@@ -67,7 +67,7 @@ export function Header() {
                 <Box as="span" color="fg.default">
                   Cric
                 </Box>
-                <Box as="span" color="blue.500">
+                <Box as="span" color="brand.500">
                   Matrix
                 </Box>
               </Heading>
@@ -83,7 +83,7 @@ export function Header() {
                       <Button
                         variant={active ? "subtle" : "ghost"}
                         size="sm"
-                        colorPalette="blue"
+                        colorPalette="brand"
                         aria-current={active ? "page" : undefined}
                       >
                         <Icon />
@@ -109,11 +109,11 @@ export function Header() {
                     _hover={{ opacity: 0.85 }}
                     _focusVisible={{
                       outline: "2px solid",
-                      outlineColor: "blue.500",
+                      outlineColor: "brand.500",
                       outlineOffset: "2px",
                     }}
                   >
-                    <Avatar.Root size="sm" colorPalette="blue">
+                    <Avatar.Root size="sm" colorPalette="brand">
                       <Avatar.Fallback
                         name={session.user.name || session.user.email}
                       />

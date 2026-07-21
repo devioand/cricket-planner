@@ -148,7 +148,7 @@ export default function SignupPage() {
 
               <Button
                 type="submit"
-                colorPalette="blue"
+                colorPalette="brand"
                 w="full"
                 size="lg"
                 loading={isSubmitting}
@@ -161,7 +161,7 @@ export default function SignupPage() {
           <Text fontSize="sm" color="fg.muted" textAlign="center">
             Already have an account?{" "}
             <Link href="/login">
-              <Text as="span" color={{ base: "blue.500", _dark: "blue.300" }} fontWeight="medium">
+              <Text as="span" color={{ base: "brand.500", _dark: "brand.300" }} fontWeight="medium">
                 Sign in
               </Text>
             </Link>

@@ -1,8 +1,8 @@
 "use client";
 
-import { Box, Heading, Text, VStack, HStack } from "@chakra-ui/react";
+import { Box, Heading, HStack, Text, VStack } from "@chakra-ui/react";
 import Link from "next/link";
-import { LuPlus, LuSwords } from "react-icons/lu";
+import { LuPlay, LuSwords } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
 import type { TournamentSummary } from "@/lib/repositories/tournament-repository";
@@ -17,102 +17,13 @@ export function HomeDashboard({
   const completedCount = tournaments.length - ongoing.length;
 
   return (
-    <Box p={{ base: 4, md: 8 }} maxW="900px" mx="auto" w="full">
-      {ongoing.length > 0 ? (
-        <VStack gap={6} align="stretch">
-          <HStack
-            justify="space-between"
-            align="center"
-            flexWrap="wrap"
-            gap={3}
-          >
-            <Box>
-              <Heading size={{ base: "lg", md: "xl" }}>
-                Continue playing
-              </Heading>
-              <Text fontSize="sm" color="fg.muted" mt={1}>
-                Pick up one of your ongoing tournaments.
-              </Text>
-            </Box>
-            <HStack gap={2}>
-              <Link href="/belt/new">
-                <Button variant="outline" colorPalette="yellow">
-                  <HStack gap={2}>
-                    <LuSwords />
-                    <Text>Hold the Belt</Text>
-                  </HStack>
-                </Button>
-              </Link>
-              <Link href="/tournaments/new">
-                <Button colorPalette="blue">
-                  <HStack gap={2}>
-                    <LuPlus />
-                    <Text>New Tournament</Text>
-                  </HStack>
-                </Button>
-              </Link>
-            </HStack>
-          </HStack>
-
-          <VStack gap={3} align="stretch">
-            {ongoing.map((t) => (
-              <TournamentCard key={t.id} tournament={t} />
-            ))}
-          </VStack>
-
-          <Box textAlign="center" pt={2}>
-            <Link href="/tournaments">
-              <Button variant="ghost" colorPalette="blue">
-                View all tournaments
-                {completedCount > 0 ? ` (${tournaments.length})` : ""} →
-              </Button>
-            </Link>
-          </Box>
-        </VStack>
-      ) : (
-        <EmptyHero hasCompleted={completedCount > 0} />
-      )}
-    </Box>
-  );
-}
-
-function EmptyHero({ hasCompleted }: { hasCompleted: boolean }) {
-  return (
-    <Box
-      minH="calc(100vh - 200px)"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-    >
-      <VStack gap={6} textAlign="center" maxW="lg">
-        <Box
-          fontSize={{ base: "5xl", md: "6xl" }}
-          role="img"
-          aria-label="cricket"
-        >
-          🏏
-        </Box>
-        <VStack gap={2}>
-          <Heading size={{ base: "lg", md: "xl" }}>
-            Start your first tournament
-          </Heading>
-          <Text color="fg.muted" fontSize={{ base: "md", md: "lg" }} maxW="md">
-            Create a cricket tournament, add your teams, and track every match,
-            toss, and the final standings — all in one place.
-          </Text>
-        </VStack>
-
-        <VStack gap={3}>
-          <Link href="/tournaments/new">
-            <Button size="lg" colorPalette="blue">
-              <HStack gap={2}>
-                <LuPlus />
-                <Text>New Tournament</Text>
-              </HStack>
-            </Button>
-          </Link>
-          <Link href="/belt/new">
-            <Button size="lg" variant="outline" colorPalette="yellow">
+    <Box p={{ base: 4, md: 8 }} maxW="600px" mx="auto" w="full">
+      <VStack gap={6} align="stretch">
+        {/* The front door: play now, or the belt format. */}
+        <VStack gap={3} align="stretch">
+          <StartPlaying />
+          <Link href="/belt/new" style={{ textDecoration: "none" }}>
+            <Button variant="outline" colorPalette="brand" w="full" size="lg">
               <HStack gap={2}>
                 <LuSwords />
                 <Text>Hold the Belt</Text>
@@ -121,14 +32,89 @@ function EmptyHero({ hasCompleted }: { hasCompleted: boolean }) {
           </Link>
         </VStack>
 
-        {hasCompleted && (
-          <Link href="/tournaments">
-            <Button variant="ghost" colorPalette="blue">
-              View past tournaments →
+        {ongoing.length > 0 && (
+          <VStack gap={3} align="stretch">
+            <SectionLabel>Continue</SectionLabel>
+            {ongoing.map((t) => (
+              <TournamentCard key={t.id} tournament={t} />
+            ))}
+          </VStack>
+        )}
+
+        {completedCount > 0 && (
+          <Link href="/tournaments" style={{ textDecoration: "none" }}>
+            <Button variant="ghost" colorPalette="brand" w="full">
+              View history ({tournaments.length}) →
             </Button>
           </Link>
         )}
+
+        {tournaments.length === 0 && (
+          <Box textAlign="center" color="fg.muted" pt={2}>
+            <Text fontSize="sm">
+              Tap <Text as="span" color="fg.default" fontWeight="medium">Start playing</Text>{" "}
+              — pick who&apos;s here, choose a format, and go.
+            </Text>
+          </Box>
+        )}
       </VStack>
     </Box>
+  );
+}
+
+/** The primary action — a solid maroon hero that opens the setup flow. */
+function StartPlaying() {
+  return (
+    <Link href="/tournaments/new" style={{ textDecoration: "none" }}>
+      <Box
+        bg="brand.500"
+        color="white"
+        borderRadius="2xl"
+        p={5}
+        display="flex"
+        alignItems="center"
+        gap={4}
+        cursor="pointer"
+        transition="transform 0.1s, background 0.15s"
+        _hover={{ bg: "brand.600" }}
+        _active={{ transform: "scale(0.99)" }}
+        boxShadow="0 12px 24px -14px var(--colors-brand-500)"
+      >
+        <Box
+          w="48px"
+          h="48px"
+          borderRadius="xl"
+          bg="whiteAlpha.300"
+          display="grid"
+          placeItems="center"
+          flexShrink={0}
+        >
+          <LuPlay size={22} fill="white" strokeWidth={0} />
+        </Box>
+        <Box>
+          <Heading size="md" fontFamily="heading" lineHeight="1.1">
+            Start playing
+          </Heading>
+          <Text fontSize="sm" opacity={0.85} mt={0.5}>
+            Set up a game and score it live
+          </Text>
+        </Box>
+      </Box>
+    </Link>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Text
+      fontFamily="mono"
+      fontSize="xs"
+      fontWeight="medium"
+      letterSpacing="0.1em"
+      textTransform="uppercase"
+      color="fg.subtle"
+    >
+      {children}
+    </Text>
   );
 }
