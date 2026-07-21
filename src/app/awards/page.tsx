@@ -1,17 +1,6 @@
-import { LuMedal } from "react-icons/lu";
-import { requireUser } from "@/lib/session";
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function AwardsPage() {
-  await requireUser();
-
-  return (
-    <ComingSoon
-      icon={LuMedal}
-      title="Awards"
-      description="Standout performances — MVPs, best batting and bowling sides, biggest wins and nail-biters — collected across your tournaments."
-    />
-  );
+// Awards now live inside the Cabinet (trophies + awards, one page).
+export default function AwardsPage() {
+  redirect("/trophies");
 }

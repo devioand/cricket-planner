@@ -44,6 +44,8 @@ export interface TournamentSummary {
   teamCount: number;
   maxOvers: number;
   maxWickets: number;
+  /** Planned start (ISO) for a scheduled-but-not-started game, else null. */
+  scheduledStart: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -61,6 +63,8 @@ export interface CreateTournamentInput {
   playoffFormat: PlayoffFormat;
   maxOvers: number;
   maxWickets: number;
+  /** Set to park the game in "Upcoming" instead of starting it now (ISO). */
+  scheduledStart?: string | null;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -193,7 +197,7 @@ export async function listTournaments(
   const { rows } = await pool.query(
     `select t.id, t.name, t.algorithm, t.status, t.playoff_format,
             t.winner, t.trophy, t.max_overs, t.max_wickets,
-            t.created_at, t.updated_at,
+            t.scheduled_start, t.created_at, t.updated_at,
             (select count(*) from public.teams te where te.tournament_id = t.id) as team_count
        from public.tournaments t
       where t.user_id = $1
@@ -212,6 +216,7 @@ export async function listTournaments(
     teamCount: num(r.team_count),
     maxOvers: num(r.max_overs),
     maxWickets: num(r.max_wickets),
+    scheduledStart: isoOrUndef(r.scheduled_start) ?? null,
     createdAt: new Date(r.created_at as string).toISOString(),
     updatedAt: new Date(r.updated_at as string).toISOString(),
   }));
@@ -324,8 +329,8 @@ export async function createTournament(
   const { rows } = await pool.query(
     `insert into public.tournaments
        (user_id, name, algorithm, playoff_format, max_overs, max_wickets,
-        is_generated, phase, status)
-     values ($1, $2, $3, $4, $5, $6, false, 'setup', 'setup')
+        is_generated, phase, status, scheduled_start)
+     values ($1, $2, $3, $4, $5, $6, false, 'setup', 'setup', $7)
      returning id`,
     [
       userId,
@@ -334,6 +339,7 @@ export async function createTournament(
       input.playoffFormat,
       input.maxOvers,
       input.maxWickets,
+      input.scheduledStart ?? null,
     ],
   );
   return String(rows[0].id);

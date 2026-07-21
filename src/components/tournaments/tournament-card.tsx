@@ -94,7 +94,17 @@ export function TournamentCard({
               color="fg.muted"
               fontSize="sm"
             >
-              <Text>{ALGORITHM_LABELS[t.algorithm] ?? t.algorithm}</Text>
+              {/* Format chip — each row says what it is. */}
+              <Text
+                fontFamily="mono"
+                fontSize="xs"
+                fontWeight="medium"
+                letterSpacing="0.06em"
+                textTransform="uppercase"
+                color="brand.fg"
+              >
+                {ALGORITHM_LABELS[t.algorithm] ?? t.algorithm}
+              </Text>
               <Text>•</Text>
               <Text>
                 {t.teamCount} {t.teamCount === 1 ? "team" : "teams"}

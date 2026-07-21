@@ -12,6 +12,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
+import { LuMedal } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { TrophyBadge } from "@/components/trophies/trophy-badge";
 import { useClub } from "@/lib/clubs/use-club";
@@ -24,6 +25,14 @@ export interface CabinetTrophy {
   /** ISO date the tournament was completed. */
   wonAt: string;
   config: TrophyConfig;
+}
+
+/** A derived, cross-competition honour (e.g. most titles). */
+export interface CabinetAward {
+  key: string;
+  title: string;
+  subtitle: string;
+  who: string;
 }
 
 /**
@@ -54,15 +63,26 @@ function formatDate(iso: string): string {
   });
 }
 
-export function TrophyCabinet({ trophies }: { trophies: CabinetTrophy[] }) {
+export function TrophyCabinet({
+  trophies,
+  awards = [],
+}: {
+  trophies: CabinetTrophy[];
+  awards?: CabinetAward[];
+}) {
   const { club } = useClub();
   const [open, setOpen] = useState<CabinetTrophy | null>(null);
 
   return (
     <VStack align="stretch" gap={5}>
       <VStack align="stretch" gap={1}>
-        <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="bold" lineHeight="1.15">
-          {club?.name ?? "Trophy Cabinet"}
+        <Text
+          fontFamily="heading"
+          fontSize={{ base: "2xl", md: "3xl" }}
+          fontWeight="bold"
+          lineHeight="1.15"
+        >
+          {club?.name ?? "Cabinet"}
         </Text>
         <Text fontSize="sm" color="fg.muted">
           {trophies.length > 0
@@ -79,7 +99,7 @@ export function TrophyCabinet({ trophies }: { trophies: CabinetTrophy[] }) {
             textTransform="uppercase"
             color={CASE_MUTED}
           >
-            Trophy Cabinet
+            Silverware
           </Text>
           <Text fontSize="lg" color="#D8B273" fontWeight="semibold">
             {trophies.length}
@@ -95,8 +115,66 @@ export function TrophyCabinet({ trophies }: { trophies: CabinetTrophy[] }) {
         )}
       </Box>
 
+      {awards.length > 0 && (
+        <VStack align="stretch" gap={2.5}>
+          <Text
+            fontFamily="mono"
+            fontSize="xs"
+            letterSpacing="0.12em"
+            textTransform="uppercase"
+            color="fg.subtle"
+          >
+            Awards
+          </Text>
+          {awards.map((a) => (
+            <AwardRow key={a.key} award={a} />
+          ))}
+        </VStack>
+      )}
+
       <TrophyDetail trophy={open} onClose={() => setOpen(null)} />
     </VStack>
+  );
+}
+
+function AwardRow({ award }: { award: CabinetAward }) {
+  return (
+    <HStack
+      gap={3}
+      borderWidth="1px"
+      borderColor="border.default"
+      borderRadius="xl"
+      p={3}
+    >
+      <Box
+        flexShrink={0}
+        w="34px"
+        h="34px"
+        borderRadius="lg"
+        display="grid"
+        placeItems="center"
+        bg={{ base: "gold.50", _dark: "gold.900" }}
+        color={{ base: "gold.600", _dark: "gold.300" }}
+      >
+        <LuMedal size={17} />
+      </Box>
+      <Box flex="1" minW={0}>
+        <Text fontWeight="semibold" fontSize="sm">
+          {award.title}
+        </Text>
+        <Text fontSize="xs" color="fg.muted">
+          {award.subtitle}
+        </Text>
+      </Box>
+      <Text
+        fontFamily="heading"
+        fontWeight="bold"
+        fontSize="sm"
+        whiteSpace="nowrap"
+      >
+        {award.who}
+      </Text>
+    </HStack>
   );
 }
 

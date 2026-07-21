@@ -12,9 +12,28 @@ export function HomeDashboard({
 }: {
   tournaments: TournamentSummary[];
 }) {
-  // "Ongoing" = anything not finished (still being set up or in progress).
-  const ongoing = tournaments.filter((t) => t.status !== "completed");
-  const completedCount = tournaments.length - ongoing.length;
+  // Upcoming = scheduled for a future day, not started. Continue = everything
+  // else you're mid-way through. Completed drops to History.
+  const now = Date.now();
+  const upcoming = tournaments
+    .filter(
+      (t) =>
+        t.status !== "completed" &&
+        t.scheduledStart &&
+        new Date(t.scheduledStart).getTime() > now,
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.scheduledStart as string).getTime() -
+        new Date(b.scheduledStart as string).getTime(),
+    );
+  const upcomingIds = new Set(upcoming.map((t) => t.id));
+  const ongoing = tournaments.filter(
+    (t) => t.status !== "completed" && !upcomingIds.has(t.id),
+  );
+  const completedCount = tournaments.filter(
+    (t) => t.status === "completed",
+  ).length;
 
   return (
     <Box p={{ base: 4, md: 8 }} maxW="600px" mx="auto" w="full">
@@ -31,6 +50,15 @@ export function HomeDashboard({
             </Button>
           </Link>
         </VStack>
+
+        {upcoming.length > 0 && (
+          <VStack gap={3} align="stretch">
+            <SectionLabel>Upcoming</SectionLabel>
+            {upcoming.map((t) => (
+              <UpcomingCard key={t.id} tournament={t} />
+            ))}
+          </VStack>
+        )}
 
         {ongoing.length > 0 && (
           <VStack gap={3} align="stretch">
@@ -101,6 +129,63 @@ function StartPlaying() {
         </Box>
       </Box>
     </Link>
+  );
+}
+
+/** A scheduled game waiting for its day — date on the left, Start on the right. */
+function UpcomingCard({ tournament: t }: { tournament: TournamentSummary }) {
+  const when = new Date(t.scheduledStart as string);
+  const day = when.getDate();
+  const weekday = when.toLocaleDateString(undefined, { weekday: "short" });
+  const time = when.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const href = `/tournament/round-robin/${t.id}/matches`;
+
+  return (
+    <HStack
+      gap={3}
+      borderWidth="1px"
+      borderColor="card.border"
+      bg="card.bg"
+      borderRadius="xl"
+      p={3}
+    >
+      <VStack gap={0} flexShrink={0} w="46px" textAlign="center">
+        <Text
+          fontFamily="heading"
+          fontWeight="bold"
+          fontSize="xl"
+          lineHeight="1"
+          color="brand.fg"
+        >
+          {day}
+        </Text>
+        <Text
+          fontFamily="mono"
+          fontSize="9px"
+          letterSpacing="0.08em"
+          textTransform="uppercase"
+          color="fg.subtle"
+        >
+          {weekday}
+        </Text>
+      </VStack>
+      <Box flex="1" minW={0}>
+        <Text fontWeight="semibold" fontSize="sm" color="fg.default" truncate>
+          {t.name}
+        </Text>
+        <Text fontSize="xs" color="fg.muted" truncate>
+          {t.teamCount} {t.teamCount === 1 ? "team" : "teams"} · {time}
+        </Text>
+      </Box>
+      <Link href={href} style={{ textDecoration: "none" }}>
+        <Button variant="outline" colorPalette="brand" size="sm">
+          Start
+        </Button>
+      </Link>
+    </HStack>
   );
 }
 

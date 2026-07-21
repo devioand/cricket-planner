@@ -74,6 +74,9 @@ export function CreationWizard() {
   const [maxOvers, setMaxOvers] = useState(20);
   const [maxWickets, setMaxWickets] = useState(10);
   const [trophy, setTrophy] = useState<TrophyConfig>(DEFAULT_TROPHY);
+  // Empty = play now. A datetime-local value parks the game in Upcoming.
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState("");
   const [creating, setCreating] = useState(false);
 
   const format = FORMATS.find((f) => f.id === formatId) ?? FORMATS[0];
@@ -150,7 +153,8 @@ export function CreationWizard() {
           maxWickets >= 1 &&
           teamCount >= 2 &&
           teamCount <= MAX_TEAMS &&
-          teamsComplete
+          teamsComplete &&
+          (!scheduleMode || scheduledAt !== "")
         );
       default:
         return true;
@@ -168,12 +172,15 @@ export function CreationWizard() {
     if (creating) return;
     setCreating(true);
     try {
+      const scheduledStart =
+        scheduleMode && scheduledAt ? new Date(scheduledAt).toISOString() : null;
       const { id } = await createTournamentAction({
         name: name.trim(),
         algorithm,
         playoffFormat: "world-cup",
         maxOvers,
         maxWickets,
+        scheduledStart,
       });
       const store = new TournamentStore({
         id,
@@ -192,7 +199,14 @@ export function CreationWizard() {
       if (!res.success) throw new Error(res.errors?.[0] ?? "Generate failed");
       // Stamp who turned out so the picker leads with regulars next time.
       clubStore.markPlayed(attendees);
-      router.push(`/tournament/round-robin/${id}/matches`);
+      if (scheduledStart) {
+        // Mirror the schedule into local state (kept on the next Sync), then
+        // send them home where it waits in Upcoming — don't open scoring yet.
+        store.setSchedule(scheduledStart, undefined);
+        router.push("/");
+      } else {
+        router.push(`/tournament/round-robin/${id}/matches`);
+      }
     } catch (err) {
       console.error("Failed to create tournament:", err);
       setCreating(false);
@@ -278,6 +292,10 @@ export function CreationWizard() {
               onWickets={setMaxWickets}
               trophy={trophy}
               onTrophy={setTrophy}
+              scheduleMode={scheduleMode}
+              onScheduleMode={setScheduleMode}
+              scheduledAt={scheduledAt}
+              onScheduledAt={setScheduledAt}
               onSubmit={() => stepValid && goNext()}
             />
           </StepShell>
@@ -286,7 +304,9 @@ export function CreationWizard() {
 
       <WizardFooter
         showBack={step > 0}
-        isLast={isLast}
+        nextLabel={
+          isLast ? (scheduleMode ? "Schedule" : "Start playing") : "Next"
+        }
         canProceed={stepValid}
         busy={creating}
         onBack={goBack}
@@ -440,6 +460,10 @@ function FinishStep({
   onWickets,
   trophy,
   onTrophy,
+  scheduleMode,
+  onScheduleMode,
+  scheduledAt,
+  onScheduledAt,
   onSubmit,
 }: {
   name: string;
@@ -450,6 +474,10 @@ function FinishStep({
   onWickets: (n: number) => void;
   trophy: TrophyConfig;
   onTrophy: (t: TrophyConfig) => void;
+  scheduleMode: boolean;
+  onScheduleMode: (v: boolean) => void;
+  scheduledAt: string;
+  onScheduledAt: (v: string) => void;
   onSubmit: () => void;
 }) {
   return (
@@ -477,6 +505,41 @@ function FinishStep({
             boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
           }}
         />
+      </Box>
+
+      {/* Play now, or park it in Upcoming for a chosen day. */}
+      <Box>
+        <Text fontSize="sm" fontWeight="medium" mb={2} color="fg.default">
+          When?
+        </Text>
+        <HStack gap={2} align="stretch">
+          <WhenOption
+            label="Play now"
+            selected={!scheduleMode}
+            onClick={() => onScheduleMode(false)}
+          />
+          <WhenOption
+            label="Schedule"
+            selected={scheduleMode}
+            onClick={() => onScheduleMode(true)}
+          />
+        </HStack>
+        {scheduleMode && (
+          <Input
+            type="datetime-local"
+            mt={2}
+            value={scheduledAt}
+            onChange={(e) => onScheduledAt(e.target.value)}
+            size="lg"
+            bg="input.bg"
+            borderColor="input.border"
+            color="fg.default"
+            _focus={{
+              borderColor: "input.focusBorder",
+              boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
+            }}
+          />
+        )}
       </Box>
       <HStack gap={3} align="start">
         <Box flex="1">
@@ -510,16 +573,49 @@ function FinishStep({
   );
 }
 
+function WhenOption({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Box
+      as="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      flex="1"
+      minW={0}
+      py={3}
+      borderRadius="lg"
+      borderWidth={selected ? 2 : 1}
+      colorPalette="brand"
+      borderColor={selected ? "colorPalette.500" : "border.default"}
+      bg={selected ? { base: "brand.50", _dark: "brand.950" } : "card.bg"}
+      cursor="pointer"
+      transition="all 0.15s"
+      textAlign="center"
+    >
+      <Text fontSize="sm" fontWeight="medium" color="fg.default">
+        {label}
+      </Text>
+    </Box>
+  );
+}
+
 function WizardFooter({
   showBack,
-  isLast,
+  nextLabel,
   canProceed,
   busy,
   onBack,
   onNext,
 }: {
   showBack: boolean;
-  isLast: boolean;
+  nextLabel: string;
   canProceed: boolean;
   busy: boolean;
   onBack: () => void;
@@ -552,7 +648,7 @@ function WizardFooter({
           </Button>
         )}
         <Button onClick={onNext} disabled={!canProceed} loading={busy} flex="1">
-          {isLast ? "Start playing" : "Next"}
+          {nextLabel}
         </Button>
       </HStack>
     </Box>

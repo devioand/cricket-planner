@@ -59,16 +59,18 @@ export function TournamentsList({
         {/* Header */}
         <HStack justify="space-between" align="center" flexWrap="wrap" gap={3}>
           <Box>
-            <Heading size={{ base: "lg", md: "xl" }}>My Tournaments</Heading>
+            <Heading size={{ base: "lg", md: "xl" }} fontFamily="heading">
+              History
+            </Heading>
             <Text fontSize="sm" color="fg.muted" mt={1}>
-              Resume an ongoing tournament or revisit a completed one.
+              Everything you&apos;ve played.
             </Text>
           </Box>
           <Link href="/tournaments/new">
             <Button colorPalette="brand">
               <HStack gap={2}>
                 <LuPlus />
-                <Text>New Tournament</Text>
+                <Text>Start playing</Text>
               </HStack>
             </Button>
           </Link>
@@ -85,17 +87,17 @@ export function TournamentsList({
             <Text fontSize="4xl" mb={3}>
               🏏
             </Text>
-            <Heading size="md" mb={2}>
-              No tournaments yet
+            <Heading size="md" mb={2} fontFamily="heading">
+              Nothing played yet
             </Heading>
             <Text color="fg.muted" mb={6}>
-              Create your first tournament to get started.
+              Your games will show up here once you&apos;ve played one.
             </Text>
             <Link href="/tournaments/new">
               <Button colorPalette="brand" size="lg">
                 <HStack gap={2}>
                   <LuPlus />
-                  <Text>Create a Tournament</Text>
+                  <Text>Start playing</Text>
                 </HStack>
               </Button>
             </Link>
