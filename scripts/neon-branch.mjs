@@ -50,9 +50,26 @@ function endpointId(url) {
   return host.split(".")[0].replace(/-pooler$/, "");
 }
 
+/** List projects — handles both personal and org-scoped API keys. */
+async function listProjects() {
+  try {
+    return (await api("/projects")).projects;
+  } catch (e) {
+    if (!/org_id is required/i.test(e.message)) throw e;
+    const body = await api("/users/me/organizations");
+    const orgs = body.organizations ?? body ?? [];
+    const all = [];
+    for (const o of orgs) {
+      const { projects } = await api(`/projects?org_id=${o.id}`);
+      all.push(...projects);
+    }
+    return all;
+  }
+}
+
 async function discover() {
   const epId = endpointId(prodUrl);
-  const { projects } = await api("/projects");
+  const projects = await listProjects();
   for (const p of projects) {
     const { endpoints } = await api(`/projects/${p.id}/endpoints`);
     const ep = endpoints.find((e) => e.id === epId);
