@@ -10,13 +10,25 @@ import {
   HStack,
   IconButton,
   Input,
+  Menu,
   Portal,
   Text,
   VStack,
   Wrap,
   WrapItem,
 } from "@chakra-ui/react";
-import { LuCheck, LuPencil, LuPlus, LuTrash2, LuUsers } from "react-icons/lu";
+import {
+  LuChevronDown,
+  LuEllipsisVertical,
+  LuInfo,
+  LuLayers,
+  LuPencil,
+  LuPlus,
+  LuTrash2,
+  LuTrophy,
+  LuUsers,
+  LuCheck,
+} from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { MAX_PLAYER_NAME_LENGTH } from "@/lib/clubs/types";
 import type {
@@ -159,16 +171,34 @@ function ClubBody({ active, clubs }: { active: ClubWithPlayers; clubs: ClubSumma
               : `${active.players.length} ${active.players.length === 1 ? "player" : "players"}`}
           </Text>
         </Box>
-        <IconButton
-          aria-label="Rename club"
-          size="sm"
-          variant="ghost"
-          colorPalette="gray"
-          onClick={() => setRenamingClub(true)}
-        >
-          <LuPencil />
-        </IconButton>
+        <Menu.Root>
+          <Menu.Trigger asChild>
+            <IconButton aria-label="Club options" size="sm" variant="ghost" colorPalette="gray">
+              <LuEllipsisVertical />
+            </IconButton>
+          </Menu.Trigger>
+          <Portal>
+            <Menu.Positioner>
+              <Menu.Content minW="180px">
+                <Menu.Item value="rename" onClick={() => setRenamingClub(true)}>
+                  <LuPencil />
+                  <Box flex="1">Rename club</Box>
+                </Menu.Item>
+                <Menu.Item
+                  value="delete"
+                  color={{ base: "red.600", _dark: "red.300" }}
+                  onClick={() => setDeleting(true)}
+                >
+                  <LuTrash2 />
+                  <Box flex="1">Delete club</Box>
+                </Menu.Item>
+              </Menu.Content>
+            </Menu.Positioner>
+          </Portal>
+        </Menu.Root>
       </HStack>
+
+      <HowClubsWork />
 
       {/* Quick add */}
       <Box>
@@ -224,19 +254,6 @@ function ClubBody({ active, clubs }: { active: ClubWithPlayers; clubs: ClubSumma
           ))}
         </VStack>
       )}
-
-      {/* Delete this club */}
-      <Box textAlign="center" pt={2}>
-        <Box
-          as="button"
-          onClick={() => setDeleting(true)}
-          fontSize="xs"
-          color="fg.subtle"
-          _hover={{ color: "red.500" }}
-        >
-          Delete {active.name}
-        </Box>
-      </Box>
 
       <NameDialog
         title="Rename club"
@@ -354,6 +371,86 @@ function EmptyPlayers({ deviceCount, onImport }: { deviceCount: number; onImport
   );
 }
 
+function ClubExplainer() {
+  const points = [
+    {
+      icon: LuUsers,
+      title: "Save your players once",
+      body: "Add everyone you play with — next time you just tap who showed up instead of typing names.",
+    },
+    {
+      icon: LuTrophy,
+      title: "Trophies & records pile up",
+      body: "Every win, champion and rivalry collects under the club, so your group's history is in one place.",
+    },
+    {
+      icon: LuLayers,
+      title: "Have more than one",
+      body: "A club per crew — office team, neighbourhood crew — each with its own players and trophies.",
+    },
+  ];
+  return (
+    <VStack align="stretch" gap={3.5}>
+      {points.map((p) => (
+        <HStack key={p.title} gap={3} align="start">
+          <Box color="brand.fg" mt={0.5} flexShrink={0}>
+            <p.icon size={18} />
+          </Box>
+          <Box minW={0}>
+            <Text fontSize="sm" fontWeight="semibold" color="fg.default">
+              {p.title}
+            </Text>
+            <Text fontSize="xs" color="fg.muted" lineHeight="1.5">
+              {p.body}
+            </Text>
+          </Box>
+        </HStack>
+      ))}
+      <Text fontSize="xs" color="fg.subtle">
+        Name it after your group — like <Text as="span" fontStyle="italic">Solo Premier League</Text> or{" "}
+        <Text as="span" fontStyle="italic">Office Cricket</Text>.
+      </Text>
+    </VStack>
+  );
+}
+
+/** Collapsible "how it works" — available for newcomers, out of the way for
+ *  everyone else. */
+function HowClubsWork() {
+  const [open, setOpen] = useState(false);
+  return (
+    <Box borderWidth="1px" borderColor="border.default" borderRadius="xl" overflow="hidden">
+      <Box
+        as="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        w="full"
+        px={4}
+        py={3}
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        _hover={{ bg: "bg.subtle" }}
+      >
+        <HStack gap={2} color="fg.muted">
+          <LuInfo size={16} />
+          <Text fontSize="sm" fontWeight="medium" color="fg.default">
+            How do clubs work?
+          </Text>
+        </HStack>
+        <Box color="fg.muted" transform={open ? "rotate(180deg)" : "none"} transition="transform 0.15s">
+          <LuChevronDown size={16} />
+        </Box>
+      </Box>
+      {open && (
+        <Box px={4} pb={4}>
+          <ClubExplainer />
+        </Box>
+      )}
+    </Box>
+  );
+}
+
 function CreateFirstClub() {
   const router = useRouter();
   const [busy, startTransition] = useTransition();
@@ -366,15 +463,20 @@ function CreateFirstClub() {
     });
   };
   return (
-    <VStack align="stretch" gap={5} py={6}>
+    <VStack align="stretch" gap={5} py={2}>
       <VStack align="stretch" gap={1}>
         <Text fontFamily="heading" fontSize={{ base: "2xl", md: "3xl" }} fontWeight="bold">
-          Name your club
+          Start your club
         </Text>
         <Text fontSize="sm" color="fg.muted">
-          A club is just the group you play with — your Saturday crew. It keeps your players and your trophies in one place.
+          A club is just the group you play with — your regular crew.
         </Text>
       </VStack>
+
+      <Box borderWidth="1px" borderColor="border.default" borderRadius="xl" p={4}>
+        <ClubExplainer />
+      </Box>
+
       <Input
         placeholder="e.g. Solo Premier League"
         value={name}
