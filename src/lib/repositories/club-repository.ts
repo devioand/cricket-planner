@@ -1,15 +1,27 @@
 // Clubs + saved players, persisted per user account in Neon. Every function is
 // scoped to a userId so a user can only ever touch their own clubs/players.
 
-import { pool } from "@/lib/db";
+import { pool, withTransaction } from "@/lib/db";
 
 export interface ClubPlayer {
+  /** Membership id (a club_players row) — used to remove them from THIS club. */
   id: string;
+  /** The shared person identity (a people row) — used to rename them
+   *  everywhere, since one person can belong to several clubs. */
+  personId: string;
   name: string;
-  /** Set when a real account claims this player; null otherwise. */
-  userId: string | null;
   lastPlayedAt: string | null;
   createdAt: string;
+}
+
+/** One human in the account's roster, with the clubs they belong to. */
+export interface RosterPerson {
+  /** people.id */
+  id: string;
+  name: string;
+  /** Names of the clubs this person is currently in (may be empty). */
+  clubs: string[];
+  lastPlayedAt: string | null;
 }
 
 export interface ClubSummary {
@@ -59,10 +71,11 @@ export async function getClubWithPlayers(
   if (rows.length === 0) return null;
   const c = rows[0];
   const { rows: pRows } = await pool.query(
-    `select id, name, user_id, last_played_at, created_at
-       from public.club_players
-      where club_id = $1
-      order by last_played_at desc nulls last, lower(name) asc`,
+    `select cp.id, cp.person_id, pe.name, cp.last_played_at, cp.created_at
+       from public.club_players cp
+       join public.people pe on pe.id = cp.person_id
+      where cp.club_id = $1
+      order by cp.last_played_at desc nulls last, lower(pe.name) asc`,
     [clubId],
   );
   return {
@@ -73,12 +86,42 @@ export async function getClubWithPlayers(
     updatedAt: iso(c.updated_at) as string,
     players: pRows.map((p) => ({
       id: String(p.id),
+      personId: String(p.person_id),
       name: String(p.name),
-      userId: p.user_id ? String(p.user_id) : null,
       lastPlayedAt: iso(p.last_played_at),
       createdAt: iso(p.created_at) as string,
     })),
   };
+}
+
+/**
+ * The account's whole roster — one row per person (already de-duplicated, since
+ * a person is a single identity), with the clubs they belong to and when they
+ * last played. Most-recently-played first. Powers the club-agnostic setup picker
+ * and the "you already have them" suggestions when adding to a club.
+ */
+export async function listRoster(userId: string): Promise<RosterPerson[]> {
+  const { rows } = await pool.query(
+    `select pe.id, pe.name,
+            coalesce(
+              array_agg(c.name order by c.name) filter (where c.id is not null),
+              '{}'
+            ) as clubs,
+            max(cp.last_played_at) as last_played_at
+       from public.people pe
+       left join public.club_players cp on cp.person_id = pe.id
+       left join public.clubs c on c.id = cp.club_id
+      where pe.user_id = $1
+      group by pe.id, pe.name
+      order by max(cp.last_played_at) desc nulls last, lower(pe.name) asc`,
+    [userId],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    name: String(r.name),
+    clubs: (r.clubs as string[]) ?? [],
+    lastPlayedAt: iso(r.last_played_at),
+  }));
 }
 
 /**
@@ -127,40 +170,61 @@ export async function touchClub(userId: string, id: string): Promise<void> {
 
 type AddResult = { ok: true; id: string } | { ok: false; error: "duplicate" | "not_found" };
 
-/** Add a player to a club the user owns. Names are unique per club. */
+/**
+ * Add a person to a club the user owns, by name. The person is a shared identity
+ * across the account: if someone with this name already exists they are REUSED
+ * (linked to this club) rather than duplicated; otherwise a new person is
+ * created. Fails with "duplicate" only when that person is already in THIS club.
+ */
 export async function addPlayer(
   userId: string,
   clubId: string,
   name: string,
 ): Promise<AddResult> {
+  const trimmed = name.trim();
   const owns = await pool.query(
     `select 1 from public.clubs where id = $1 and user_id = $2`,
     [clubId, userId],
   );
   if (owns.rowCount === 0) return { ok: false, error: "not_found" };
-  try {
-    const { rows } = await pool.query(
-      `insert into public.club_players (club_id, name) values ($1, $2) returning id`,
-      [clubId, name.trim()],
+
+  return withTransaction(async (client) => {
+    // Find-or-create the person (one identity per name per account).
+    await client.query(
+      `insert into public.people (user_id, name) values ($1, $2)
+         on conflict (user_id, lower(name)) do nothing`,
+      [userId, trimmed],
     );
-    return { ok: true, id: String(rows[0].id) };
-  } catch (e) {
-    if ((e as { code?: string }).code === "23505") return { ok: false, error: "duplicate" };
-    throw e;
-  }
+    const { rows: pRows } = await client.query(
+      `select id from public.people where user_id = $1 and lower(name) = lower($2)`,
+      [userId, trimmed],
+    );
+    const personId = String(pRows[0].id);
+    // Link them to the club. Already a member → duplicate.
+    const { rows: mRows } = await client.query(
+      `insert into public.club_players (club_id, person_id) values ($1, $2)
+         on conflict (club_id, person_id) do nothing
+         returning id`,
+      [clubId, personId],
+    );
+    if (mRows.length === 0) return { ok: false, error: "duplicate" as const };
+    return { ok: true as const, id: String(mRows[0].id) };
+  });
 }
 
+/**
+ * Rename a person the user owns. Because a person is one shared identity, this
+ * renames them in EVERY club they belong to. `personId` is a people.id.
+ */
 export async function renamePlayer(
   userId: string,
-  playerId: string,
+  personId: string,
   name: string,
 ): Promise<{ ok: boolean; error?: "duplicate" }> {
   try {
     const res = await pool.query(
-      `update public.club_players p set name = $1
-         from public.clubs c
-        where p.id = $2 and p.club_id = c.id and c.user_id = $3`,
-      [name.trim(), playerId, userId],
+      `update public.people set name = $1 where id = $2 and user_id = $3`,
+      [name.trim(), personId, userId],
     );
     return { ok: (res.rowCount ?? 0) > 0 };
   } catch (e) {
@@ -169,16 +233,21 @@ export async function renamePlayer(
   }
 }
 
-export async function removePlayer(userId: string, playerId: string): Promise<void> {
+/**
+ * Remove a person from a club — deletes the membership only. The person stays in
+ * your roster and in any other clubs they belong to. `membershipId` is a
+ * club_players.id.
+ */
+export async function removePlayer(userId: string, membershipId: string): Promise<void> {
   await pool.query(
-    `delete from public.club_players p
+    `delete from public.club_players cp
        using public.clubs c
-      where p.id = $1 and p.club_id = c.id and c.user_id = $2`,
-    [playerId, userId],
+      where cp.id = $1 and cp.club_id = c.id and c.user_id = $2`,
+    [membershipId, userId],
   );
 }
 
-/** Stamp last_played_at on the club players whose names turned out. */
+/** Stamp last_played_at on the club's memberships whose people turned out. */
 export async function markPlayed(
   userId: string,
   clubId: string,
@@ -186,10 +255,11 @@ export async function markPlayed(
 ): Promise<void> {
   if (names.length === 0) return;
   await pool.query(
-    `update public.club_players p set last_played_at = now()
-       from public.clubs c
-      where p.club_id = c.id and c.user_id = $1 and c.id = $2
-        and lower(p.name) = any($3::text[])`,
+    `update public.club_players cp set last_played_at = now()
+       from public.clubs c, public.people pe
+      where cp.club_id = c.id and c.user_id = $1 and c.id = $2
+        and cp.person_id = pe.id
+        and lower(pe.name) = any($3::text[])`,
     [userId, clubId, names.map((n) => n.trim().toLowerCase())],
   );
 }

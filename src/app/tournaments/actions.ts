@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/session";
+import { listClubs } from "@/lib/repositories/club-repository";
 import {
   createTournament,
   deleteTournament,
@@ -9,10 +10,18 @@ import {
 } from "@/lib/repositories/tournament-repository";
 
 /** Create an empty tournament and return its id (client then routes to setup). */
-export async function createTournamentAction(input: CreateTournamentInput) {
+export async function createTournamentAction(
+  input: CreateTournamentInput,
+  clubId?: string | null,
+) {
   const user = await requireUser();
-  const id = await createTournament(user.id, input);
+  // Only stamp a club the user actually owns — never trust the client id blindly.
+  const clubs = await listClubs(user.id);
+  const ownedClubId =
+    clubId && clubs.some((c) => c.id === clubId) ? clubId : null;
+  const id = await createTournament(user.id, input, ownedClubId);
   revalidatePath("/tournaments");
+  revalidatePath("/");
   return { id };
 }
 

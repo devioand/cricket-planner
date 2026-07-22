@@ -27,6 +27,7 @@ import {
   LuTrash2,
   LuTrophy,
   LuUsers,
+  LuUserPlus,
   LuCheck,
 } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import type {
   ClubPlayer,
   ClubSummary,
   ClubWithPlayers,
+  RosterPerson,
 } from "@/lib/repositories/club-repository";
 import * as actions from "@/app/club/actions";
 
@@ -43,15 +45,25 @@ const DEVICE_KEY = "cricket-planner:club";
 export function ClubManager({
   active,
   clubs,
+  roster,
 }: {
   active: ClubWithPlayers | null;
   clubs: ClubSummary[];
+  roster: RosterPerson[];
 }) {
   if (!active) return <CreateFirstClub />;
-  return <ClubBody active={active} clubs={clubs} />;
+  return <ClubBody active={active} clubs={clubs} roster={roster} />;
 }
 
-function ClubBody({ active, clubs }: { active: ClubWithPlayers; clubs: ClubSummary[] }) {
+function ClubBody({
+  active,
+  clubs,
+  roster,
+}: {
+  active: ClubWithPlayers;
+  clubs: ClubSummary[];
+  roster: RosterPerson[];
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const run = (fn: () => Promise<unknown>) =>
@@ -80,8 +92,8 @@ function ClubBody({ active, clubs }: { active: ClubWithPlayers; clubs: ClubSumma
     }
   }, []);
 
-  const addPlayer = () => {
-    const name = draft.trim();
+  const addPlayer = (explicit?: string) => {
+    const name = (explicit ?? draft).trim();
     if (!name) return;
     if (name.length > MAX_PLAYER_NAME_LENGTH) {
       setError(`Keep it to ${MAX_PLAYER_NAME_LENGTH} characters`);
@@ -97,6 +109,16 @@ function ClubBody({ active, clubs }: { active: ClubWithPlayers; clubs: ClubSumma
       router.refresh();
     });
   };
+
+  // People you already saved (in other clubs) matching what you're typing and
+  // not in this club yet — tap to reuse the same person instead of duplicating.
+  const inThisClub = new Set(active.players.map((p) => p.personId));
+  const q = draft.trim().toLowerCase();
+  const suggestions = q
+    ? roster
+        .filter((person) => !inThisClub.has(person.id) && person.name.toLowerCase().includes(q))
+        .slice(0, 4)
+    : [];
 
   return (
     <VStack align="stretch" gap={6} opacity={isPending ? 0.7 : 1} transition="opacity 0.15s">
@@ -228,13 +250,55 @@ function ClubBody({ active, clubs }: { active: ClubWithPlayers; clubs: ClubSumma
               boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
             }}
           />
-          <Button colorPalette="brand" size="lg" h="48px" px={6} onClick={addPlayer} disabled={!draft.trim()}>
+          <Button colorPalette="brand" size="lg" h="48px" px={6} onClick={() => addPlayer()} disabled={!draft.trim()}>
             Add
           </Button>
         </HStack>
         <Text fontSize="xs" color={error ? "red.500" : "fg.muted"} mt={1.5}>
           {error ?? "Press Enter to add another — no account needed."}
         </Text>
+
+        {suggestions.length > 0 && (
+          <VStack align="stretch" gap={1} mt={2.5}>
+            {suggestions.map((person) => (
+              <Box
+                as="button"
+                key={person.id}
+                onClick={() => addPlayer(person.name)}
+                textAlign="left"
+                w="full"
+                minH="44px"
+                px={3}
+                py={2}
+                borderRadius="lg"
+                borderWidth="1px"
+                borderColor="card.border"
+                bg="card.bg"
+                display="flex"
+                alignItems="center"
+                gap={2.5}
+                _hover={{ borderColor: "brand.300", bg: "bg.subtle" }}
+              >
+                <Box color="brand.fg" flexShrink={0}>
+                  <LuUserPlus size={16} />
+                </Box>
+                <Box minW={0} flex="1">
+                  <Text fontSize="sm" fontWeight="medium" truncate>
+                    {person.name}
+                  </Text>
+                  {person.clubs.length > 0 && (
+                    <Text fontSize="xs" color="fg.muted" truncate>
+                      already in {person.clubs.join(", ")}
+                    </Text>
+                  )}
+                </Box>
+                <Text fontSize="xs" color="brand.fg" fontWeight="semibold" flexShrink={0}>
+                  Add
+                </Text>
+              </Box>
+            ))}
+          </VStack>
+        )}
       </Box>
 
       {active.players.length === 0 ? (
@@ -291,8 +355,9 @@ function ClubBody({ active, clubs }: { active: ClubWithPlayers; clubs: ClubSumma
         onClose={() => setEditing(null)}
         onSubmit={async (name) => {
           if (!editing) return { ok: false };
-          const res = await actions.renamePlayerAction(editing.id, name);
-          return res.ok ? { ok: true } : { ok: false, error: "That name is already used in this club" };
+          // Renames the person everywhere (all their clubs), not just here.
+          const res = await actions.renamePlayerAction(editing.personId, name);
+          return res.ok ? { ok: true } : { ok: false, error: "You already have someone with that name" };
         }}
       />
 

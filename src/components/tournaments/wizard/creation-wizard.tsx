@@ -7,10 +7,14 @@ import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 import { createTournamentAction } from "@/app/tournaments/actions";
 import { markPlayedAction } from "@/app/club/actions";
+import { LuShare2 } from "react-icons/lu";
+import { FixtureShareDialog } from "@/components/tournaments/fixture-share-dialog";
 import { TournamentStore } from "@/lib/local/tournament-store";
 import { initialState } from "@/contexts/tournament-context/engine";
+import { EMPTY_FORM, type FormData } from "@/lib/predictions";
 import type {
   PlayoffConfig,
+  TournamentState,
   TournamentType,
   TrophyConfig,
 } from "@/contexts/tournament-context/types";
@@ -25,10 +29,13 @@ import { PlayersStep, type PickerPlayer } from "./players-step";
 import { FormatStep, FORMATS, type FormatSpec } from "./format-step";
 import { NumberField } from "./number-field";
 import {
-  resolvePlayoffSelection,
-  templatesFor,
-  type PlayoffTemplate,
-} from "./playoff-designer";
+  PlayoffStep,
+  choiceToSelection,
+  playoffChoices,
+  defaultPlayoffChoice,
+  type PlayoffChoice,
+} from "./playoff-step";
+import { buildPreviewState, FixturePreview } from "./fixture-preview";
 
 const DEFAULT_TROPHY: TrophyConfig = { shape: "classic", metal: "gold" };
 
@@ -54,21 +61,25 @@ const MAX_ATTENDEES = 30;
 /** Round-robin match count for a team count. */
 const rr = (t: number) => (t * (t - 1)) / 2;
 
-function defaultQualifiers(teamCount: number): number {
-  if (teamCount >= 4) return 4;
-  return Math.max(2, teamCount);
-}
-
-type StepName = "Players" | "Format" | "Sides" | "Teams" | "Finish";
+type StepName =
+  | "Players"
+  | "Format"
+  | "Sides"
+  | "Teams"
+  | "Playoffs"
+  | "Details"
+  | "Fixture";
 
 export function CreationWizard({
   recentNames = [],
   clubPlayers = [],
   clubId: initialClubId = null,
+  formData = EMPTY_FORM,
 }: {
   recentNames?: string[];
   clubPlayers?: PickerPlayer[];
   clubId?: string | null;
+  formData?: FormData;
 }) {
   const router = useRouter();
 
@@ -84,6 +95,8 @@ export function CreationWizard({
   const [maxOvers, setMaxOvers] = useState(20);
   const [maxWickets, setMaxWickets] = useState(10);
   const [trophy, setTrophy] = useState<TrophyConfig>(DEFAULT_TROPHY);
+  const [playoffChoice, setPlayoffChoice] = useState<PlayoffChoice>("world-cup");
+  const [customConfig, setCustomConfig] = useState<PlayoffConfig>(DEFAULT_CUSTOM);
   // Empty = play now. A datetime-local value parks the game in Upcoming.
   const [scheduleMode, setScheduleMode] = useState(false);
   const [scheduledAt, setScheduledAt] = useState("");
@@ -98,32 +111,37 @@ export function CreationWizard({
   const teamCount = sides === 1 ? attendees.length : built.caps.length;
   const teamsComplete = sides === 1 ? attendees.length >= 2 : built.complete;
 
-  // Steps are dynamic: solo skips the team-building screen entirely.
+  // Steps are dynamic: solo skips the team-building screen; playoffs only make
+  // sense with 3+ teams (2 teams is a single decider).
   const steps: StepName[] = [
     "Players",
     "Format",
     "Sides",
     ...(sides > 1 ? (["Teams"] as StepName[]) : []),
-    "Finish",
+    ...(teamCount >= 3 ? (["Playoffs"] as StepName[]) : []),
+    "Details",
+    "Fixture",
   ];
   const stepName = steps[Math.min(step, steps.length - 1)];
   const isLast = step >= steps.length - 1;
 
-  // Playoffs default sensibly (no dedicated step) — a world-cup knockout off the
-  // round-robin table, sized to the field.
-  const effQualifiers = Math.min(
-    Math.max(2, defaultQualifiers(teamCount)),
-    teamCount,
-  );
-  const availableTemplates = templatesFor(effQualifiers);
-  const effTemplate: PlayoffTemplate = availableTemplates.includes("world-cup")
-    ? "world-cup"
-    : availableTemplates[0] ?? "final";
-  const selection = resolvePlayoffSelection(
-    effQualifiers,
-    effTemplate,
-    DEFAULT_CUSTOM,
-    teamCount,
+  // Playoffs sit on top of the round-robin table. Clamp the saved choice to what
+  // the current field size supports, then resolve it for the engine.
+  const effChoice: PlayoffChoice = playoffChoices(teamCount).includes(playoffChoice)
+    ? playoffChoice
+    : defaultPlayoffChoice(teamCount);
+  const selection = choiceToSelection(effChoice, customConfig, teamCount);
+
+  // A live, side-effect-free preview of the exact fixtures this will create —
+  // shown (and shareable) on the final step before anything is persisted.
+  const scheduledStartISO =
+    scheduleMode && scheduledAt ? new Date(scheduledAt).toISOString() : undefined;
+  const previewState = buildPreviewState(
+    teams,
+    maxOvers,
+    maxWickets,
+    selection,
+    scheduledStartISO,
   );
 
   const handleAttendeesChange = (next: string[]) => {
@@ -146,6 +164,15 @@ export function CreationWizard({
     return t >= 2 && t <= MAX_TEAMS;
   };
 
+  const finishReady =
+    name.trim().length > 0 &&
+    maxOvers >= 1 &&
+    maxWickets >= 1 &&
+    teamCount >= 2 &&
+    teamCount <= MAX_TEAMS &&
+    teamsComplete &&
+    (!scheduleMode || scheduledAt !== "");
+
   const stepValid = (() => {
     switch (stepName) {
       case "Players":
@@ -156,16 +183,11 @@ export function CreationWizard({
         return sizeEnabled(sides);
       case "Teams":
         return built.complete;
-      case "Finish":
-        return (
-          name.trim().length > 0 &&
-          maxOvers >= 1 &&
-          maxWickets >= 1 &&
-          teamCount >= 2 &&
-          teamCount <= MAX_TEAMS &&
-          teamsComplete &&
-          (!scheduleMode || scheduledAt !== "")
-        );
+      case "Playoffs":
+        return selection.valid;
+      case "Details":
+      case "Fixture":
+        return finishReady;
       default:
         return true;
     }
@@ -184,14 +206,17 @@ export function CreationWizard({
     try {
       const scheduledStart =
         scheduleMode && scheduledAt ? new Date(scheduledAt).toISOString() : null;
-      const { id } = await createTournamentAction({
-        name: name.trim(),
-        algorithm,
-        playoffFormat: "world-cup",
-        maxOvers,
-        maxWickets,
-        scheduledStart,
-      });
+      const { id } = await createTournamentAction(
+        {
+          name: name.trim(),
+          algorithm,
+          playoffFormat: selection.format,
+          maxOvers,
+          maxWickets,
+          scheduledStart,
+        },
+        clubId,
+      );
       const store = new TournamentStore({
         id,
         name: name.trim(),
@@ -289,12 +314,29 @@ export function CreationWizard({
           </StepShell>
         )}
 
-        {stepName === "Finish" && (
+        {stepName === "Playoffs" && (
+          <StepShell
+            title="How is the champion decided?"
+            hint="Off the round-robin table — pick a knockout, or build your own."
+          >
+            <PlayoffStep
+              teamCount={teamCount}
+              choice={effChoice}
+              onChoice={setPlayoffChoice}
+              customConfig={customConfig}
+              onCustomConfig={setCustomConfig}
+            />
+          </StepShell>
+        )}
+
+        {stepName === "Details" && (
           <StepShell
             title="Name it and pick the prize"
             hint={`${teamCount} ${
               sides === 1 ? "players" : "teams"
-            } · round-robin${teamCount >= 3 ? " + playoffs" : ""}`}
+            } · round-robin${
+              teamCount >= 3 && effChoice !== "none" ? " + playoffs" : ""
+            }`}
           >
             <FinishStep
               name={name}
@@ -311,6 +353,23 @@ export function CreationWizard({
               scheduledAt={scheduledAt}
               onScheduledAt={setScheduledAt}
               onSubmit={() => stepValid && goNext()}
+            />
+          </StepShell>
+        )}
+
+        {stepName === "Fixture" && (
+          <StepShell
+            title={name.trim() || "Your fixture"}
+            hint={`${teamCount} ${
+              sides === 1 ? "players" : "teams"
+            } · round-robin${
+              teamCount >= 3 && effChoice !== "none" ? " + playoffs" : ""
+            } · ${maxOvers} overs, ${maxWickets} wkts`}
+          >
+            <FixtureStep
+              previewState={previewState}
+              name={name}
+              formData={formData}
             />
           </StepShell>
         )}
@@ -611,6 +670,38 @@ function FinishStep({
         </Text>
         <TrophyDesigner config={trophy} onChange={onTrophy} />
       </Box>
+    </VStack>
+  );
+}
+
+/** Final review: the exact fixture this will create, with a share action. */
+function FixtureStep({
+  previewState,
+  name,
+  formData,
+}: {
+  previewState: TournamentState;
+  name: string;
+  formData: FormData;
+}) {
+  const [shareOpen, setShareOpen] = useState(false);
+  return (
+    <VStack align="stretch" gap={4}>
+      <FixturePreview state={previewState} formData={formData} />
+      <Button
+        variant="outline"
+        colorPalette="brand"
+        size="lg"
+        onClick={() => setShareOpen(true)}
+      >
+        <LuShare2 /> Share fixture
+      </Button>
+      <FixtureShareDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        name={name.trim() || "Fixture"}
+        state={previewState}
+      />
     </VStack>
   );
 }

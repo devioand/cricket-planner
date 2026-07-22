@@ -7,12 +7,13 @@ import type {
 } from "@/contexts/tournament-context/types";
 import {
   ACCENT,
-  ACCENT_SOFT,
   CARD,
   CARD_BG,
   CARD_BORDER,
   CARD_WIDTH,
   FONT,
+  GOLD,
+  GOLD_SOFT,
   INK,
   MUTED,
   TEXT,
@@ -131,7 +132,7 @@ export const FixtureCard = forwardRef<HTMLDivElement, FixtureCardProps>(
             color: ACCENT,
           }}
         >
-          🏏 FIXTURE DRAFT
+          FIXTURE DRAFT
         </div>
 
         {/* Title */}
@@ -186,7 +187,7 @@ export const FixtureCard = forwardRef<HTMLDivElement, FixtureCardProps>(
         {/* Playoffs */}
         {playoffSpecs.length > 0 && (
           <>
-            <SectionLabel>🏆 PLAYOFFS · {playoffSummary(state)}</SectionLabel>
+            <SectionLabel>PLAYOFFS · {playoffSummary(state)}</SectionLabel>
             <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 22 }}>
               {playoffSpecs.map((spec) => (
                 <MatchCardRow
@@ -216,8 +217,8 @@ export const FixtureCard = forwardRef<HTMLDivElement, FixtureCardProps>(
             fontWeight: 600,
           }}
         >
-          <span>🎯 {state.maxOvers} overs · {state.maxWickets} wkts</span>
-          <span>🏏 Cricket Planner</span>
+          <span>{state.maxOvers} overs · {state.maxWickets} wkts</span>
+          <span>Cricket Planner</span>
         </div>
       </div>
     );
@@ -258,9 +259,9 @@ function MatchCardRow({
     <div
       style={{
         background: isFinal
-          ? `linear-gradient(100deg, rgba(${ACCENT_SOFT},0.16), rgba(${ACCENT_SOFT},0.05))`
+          ? `linear-gradient(100deg, rgba(${GOLD_SOFT},0.16), rgba(${GOLD_SOFT},0.05))`
           : CARD,
-        border: `1px solid ${isFinal ? `rgba(${ACCENT_SOFT},0.45)` : CARD_BORDER}`,
+        border: `1px solid ${isFinal ? `rgba(${GOLD_SOFT},0.5)` : CARD_BORDER}`,
         borderRadius: 22,
         padding: "22px 30px 26px",
       }}
@@ -272,11 +273,11 @@ function MatchCardRow({
           fontSize: 20,
           fontWeight: 700,
           letterSpacing: 3,
-          color: isFinal ? ACCENT : MUTED,
+          color: isFinal ? GOLD : MUTED,
           marginBottom: 14,
         }}
       >
-        {isFinal ? `👑 ${tag}` : tag}
+        {tag}
       </div>
 
       {/* Team A · VS · Team B */}

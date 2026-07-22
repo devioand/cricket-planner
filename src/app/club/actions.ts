@@ -62,16 +62,18 @@ export async function addPlayerAction(clubId: string, name: string) {
   return res;
 }
 
-export async function renamePlayerAction(playerId: string, name: string) {
+/** Rename a person — applies across every club they belong to. */
+export async function renamePlayerAction(personId: string, name: string) {
   const user = await requireUser();
-  const res = await repo.renamePlayer(user.id, playerId, name);
+  const res = await repo.renamePlayer(user.id, personId, name);
   revalidatePath("/club");
   return res;
 }
 
-export async function removePlayerAction(playerId: string) {
+/** Remove a person from a club (membership only — they stay in your roster). */
+export async function removePlayerAction(membershipId: string) {
   const user = await requireUser();
-  await repo.removePlayer(user.id, playerId);
+  await repo.removePlayer(user.id, membershipId);
   revalidatePath("/club");
   return { ok: true as const };
 }
