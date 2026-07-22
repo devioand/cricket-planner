@@ -11,7 +11,12 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "migrate:dev": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.development.local scripts/migrate.mjs",
-    "migrate:prod": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.production.local scripts/migrate.mjs"
+    "migrate:prod": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.production.local scripts/migrate.mjs",
+    "migrate:dev:status": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.development.local scripts/migrate.mjs --status",
+    "migrate:prod:status": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.production.local scripts/migrate.mjs --status",
+    "db:branches": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.production.local scripts/neon-branch.mjs list",
+    "db:dev:create": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.production.local scripts/neon-branch.mjs create-dev",
+    "db:dev:reset": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.production.local scripts/neon-branch.mjs reset-dev"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.25.0",
