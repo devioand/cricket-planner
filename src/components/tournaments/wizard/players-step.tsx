@@ -1,30 +1,59 @@
 "use client";
 
-// "Who's playing?" — pick who turned up from the club, as tappable cards.
-// Adding a name saves it to the club (so it's there next time) and selects it.
+// "Who's playing?" — pick who turned up from the club (now DB-backed), as
+// tappable cards. Adding a name saves it to the club and selects it. If the
+// user has no club yet, one is created lazily on the first add.
 
 import { useState } from "react";
 import { Box, Grid, HStack, Input, Text, VStack } from "@chakra-ui/react";
 import { LuCheck, LuPlus, LuUserPlus } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
-import { clubStore, ClubStore } from "@/lib/clubs/club-store";
-import { useClub } from "@/lib/clubs/use-club";
 import { MAX_PLAYER_NAME_LENGTH } from "@/lib/clubs/types";
+import { addPlayerAction, createClubAction } from "@/app/club/actions";
+
+export interface PickerPlayer {
+  id: string;
+  name: string;
+}
 
 interface PlayersStepProps {
+  /** Players from the active club (DB). */
+  players: PickerPlayer[];
+  /** Active club id, or null if the user has no club yet. */
+  clubId: string | null;
+  /** Called with a club id once one is created lazily, so the wizard can use
+   *  it for markPlayed on finish. */
+  onClubId: (id: string) => void;
   selected: string[];
   onChange: (next: string[]) => void;
   max: number;
 }
 
-export function PlayersStep({ selected, onChange, max }: PlayersStepProps) {
-  const { club, hydrated } = useClub();
+export function PlayersStep({
+  players,
+  clubId,
+  onClubId,
+  selected,
+  onChange,
+  max,
+}: PlayersStepProps) {
   const [adding, setAdding] = useState(false);
   const [nameInput, setNameInput] = useState("");
+  // Players added during this flow, shown immediately (optimistic) while they
+  // persist in the background.
+  const [localAdded, setLocalAdded] = useState<string[]>([]);
 
-  if (!hydrated) return null;
+  // Merge DB players + this-session adds, de-duped case-insensitively.
+  const seen = new Set<string>();
+  const roster: string[] = [];
+  for (const n of [...players.map((p) => p.name), ...localAdded]) {
+    const k = n.toLowerCase();
+    if (!seen.has(k)) {
+      seen.add(k);
+      roster.push(n);
+    }
+  }
 
-  const players = club ? ClubStore.byRecency(club.players) : [];
   const picked = new Set(selected.map((s) => s.toLowerCase()));
   const atCapacity = selected.length >= max;
 
@@ -40,16 +69,29 @@ export function PlayersStep({ selected, onChange, max }: PlayersStepProps) {
   const commitAdd = () => {
     const name = nameInput.trim();
     if (!name) return;
-    clubStore.ensure();
-    clubStore.addPlayer(name); // no-op if the name already exists
-    if (!picked.has(name.toLowerCase()) && !atCapacity) {
-      onChange([...selected, name]);
-    }
+    const key = name.toLowerCase();
+    // Optimistically show + select.
+    if (!seen.has(key)) setLocalAdded((a) => [...a, name]);
+    if (!picked.has(key) && !atCapacity) onChange([...selected, name]);
     setNameInput("");
     setAdding(false);
+    // Persist: create a club on the fly if needed, then add the player.
+    void (async () => {
+      try {
+        let cid = clubId;
+        if (!cid) {
+          const res = await createClubAction("My Club");
+          cid = res.id;
+          onClubId(cid);
+        }
+        await addPlayerAction(cid, name);
+      } catch {
+        // A failed persist still leaves them selected for this game.
+      }
+    })();
   };
 
-  const empty = players.length === 0;
+  const empty = roster.length === 0;
 
   return (
     <VStack align="stretch" gap={4}>
@@ -61,13 +103,7 @@ export function PlayersStep({ selected, onChange, max }: PlayersStepProps) {
           selected
         </Text>
         {selected.length > 0 && (
-          <Box
-            as="button"
-            onClick={() => onChange([])}
-            color="brand.fg"
-            fontSize="xs"
-            fontWeight="semibold"
-          >
+          <Box as="button" onClick={() => onChange([])} color="brand.fg" fontSize="xs" fontWeight="semibold">
             Clear
           </Box>
         )}
@@ -87,23 +123,22 @@ export function PlayersStep({ selected, onChange, max }: PlayersStepProps) {
         >
           <LuUserPlus size={22} />
           <Text fontSize="sm" textAlign="center">
-            No players saved yet. Add the people you play with — you&apos;ll just
-            tap them next time.
+            No players saved yet. Add the people you play with — you&apos;ll just tap them next time.
           </Text>
         </VStack>
       )}
 
       {!empty && (
         <Grid templateColumns={{ base: "repeat(2, 1fr)", sm: "repeat(3, 1fr)" }} gap={2.5}>
-          {players.map((p) => {
-            const isPicked = picked.has(p.name.toLowerCase());
+          {roster.map((name) => {
+            const isPicked = picked.has(name.toLowerCase());
             return (
               <PlayerCard
-                key={p.id}
-                name={p.name}
+                key={name}
+                name={name}
                 picked={isPicked}
                 disabled={!isPicked && atCapacity}
-                onClick={() => toggle(p.name)}
+                onClick={() => toggle(name)}
               />
             );
           })}
@@ -155,10 +190,7 @@ export function PlayersStep({ selected, onChange, max }: PlayersStepProps) {
             borderColor="input.border"
             color="fg.default"
             _placeholder={{ color: "fg.placeholder" }}
-            _focus={{
-              borderColor: "input.focusBorder",
-              boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
-            }}
+            _focus={{ borderColor: "input.focusBorder", boxShadow: "0 0 0 1px var(--colors-input-focus-border)" }}
           />
           <Button onClick={commitAdd} disabled={!nameInput.trim()} minW="80px">
             Add
@@ -222,15 +254,7 @@ function PlayerCard({
       >
         {name.slice(0, 1).toUpperCase()}
       </Box>
-      <Text
-        fontSize="sm"
-        fontWeight="medium"
-        color="fg.default"
-        textAlign="left"
-        lineClamp={1}
-        flex="1"
-        minW={0}
-      >
+      <Text fontSize="sm" fontWeight="medium" color="fg.default" textAlign="left" lineClamp={1} flex="1" minW={0}>
         {name}
       </Text>
       {picked && (

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   Box,
   Card,
@@ -12,35 +13,60 @@ import {
   Portal,
   Text,
   VStack,
+  Wrap,
+  WrapItem,
 } from "@chakra-ui/react";
-import { LuPencil, LuTrash2, LuUsers } from "react-icons/lu";
+import { LuCheck, LuPencil, LuPlus, LuTrash2, LuUsers } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
-import { clubStore, ClubStore } from "@/lib/clubs/club-store";
-import { useClub } from "@/lib/clubs/use-club";
-import { MAX_PLAYER_NAME_LENGTH, type ClubPlayer } from "@/lib/clubs/types";
+import { MAX_PLAYER_NAME_LENGTH } from "@/lib/clubs/types";
+import type {
+  ClubPlayer,
+  ClubSummary,
+  ClubWithPlayers,
+} from "@/lib/repositories/club-repository";
+import * as actions from "@/app/club/actions";
 
-/**
- * The club screen — name the club and keep the player list. Players are just
- * names: nobody needs an account to be here, which is what keeps adding a
- * newcomer a five-second job at the ground.
- */
-export function ClubManager() {
-  const { club, hydrated } = useClub();
+const DEVICE_KEY = "cricket-planner:club";
+
+export function ClubManager({
+  active,
+  clubs,
+}: {
+  active: ClubWithPlayers | null;
+  clubs: ClubSummary[];
+}) {
+  if (!active) return <CreateFirstClub />;
+  return <ClubBody active={active} clubs={clubs} />;
+}
+
+function ClubBody({ active, clubs }: { active: ClubWithPlayers; clubs: ClubSummary[] }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const run = (fn: () => Promise<unknown>) =>
+    startTransition(async () => {
+      await fn();
+      router.refresh();
+    });
+
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<ClubPlayer | null>(null);
   const [renamingClub, setRenamingClub] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [devicePlayers, setDevicePlayers] = useState<string[]>([]);
 
-  // Hold the paint until localStorage has been read.
-  if (!hydrated) {
-    return <Box minH="50vh" aria-busy="true" />;
-  }
-
-  if (!club) {
-    return <CreateClub onCreate={(name) => clubStore.create(name)} />;
-  }
-
-  const players = ClubStore.byRecency(club.players);
+  // Offer a one-time import of players saved on this device (pre-DB clubs).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DEVICE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { club?: { players?: { name: string }[] } };
+      setDevicePlayers((parsed.club?.players ?? []).map((p) => p.name).filter(Boolean));
+    } catch {
+      // ignore an unreadable blob
+    }
+  }, []);
 
   const addPlayer = () => {
     const name = draft.trim();
@@ -49,43 +75,102 @@ export function ClubManager() {
       setError(`Keep it to ${MAX_PLAYER_NAME_LENGTH} characters`);
       return;
     }
-    if (!clubStore.addPlayer(name)) {
-      setError(`${name} is already in the club`);
-      return;
-    }
-    // Keep focus and clear, so a run of names can be typed without reaching
-    // for the mouse — adding six people should be six Enters.
-    setDraft("");
+    setDraft(""); // clear immediately so names can be typed in a run
     setError(null);
+    startTransition(async () => {
+      const res = await actions.addPlayerAction(active.id, name);
+      if (!res.ok) {
+        setError(res.error === "duplicate" ? `${name} is already in the club` : "Couldn't add");
+      }
+      router.refresh();
+    });
   };
 
   return (
-    <VStack align="stretch" gap={6}>
-      <VStack align="stretch" gap={1}>
-        <HStack justify="space-between" align="start" gap={3}>
-          <Box minW={0}>
-            <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="bold" lineHeight="1.15">
-              {club.name}
-            </Text>
-            <Text fontSize="sm" color="fg.muted" mt={1}>
-              {players.length === 0
-                ? "No players yet"
-                : `${players.length} ${players.length === 1 ? "player" : "players"}`}
+    <VStack align="stretch" gap={6} opacity={isPending ? 0.7 : 1} transition="opacity 0.15s">
+      {/* Club switcher — every club as a chip, plus New. */}
+      <Wrap gap={2}>
+        {clubs.map((c) => {
+          const on = c.id === active.id;
+          return (
+            <WrapItem key={c.id}>
+              <Box
+                as="button"
+                onClick={() => !on && run(() => actions.setActiveClubAction(c.id))}
+                aria-pressed={on}
+                h="36px"
+                px={3.5}
+                borderRadius="full"
+                borderWidth="1px"
+                display="flex"
+                alignItems="center"
+                gap={1.5}
+                bg={on ? "brand.500" : "card.bg"}
+                color={on ? "white" : "fg.default"}
+                borderColor={on ? "brand.500" : "card.border"}
+                _hover={on ? {} : { borderColor: "brand.300" }}
+              >
+                {on && <LuCheck size={14} />}
+                <Text fontSize="sm" fontWeight="medium">
+                  {c.name}
+                </Text>
+              </Box>
+            </WrapItem>
+          );
+        })}
+        <WrapItem>
+          <Box
+            as="button"
+            onClick={() => setCreating(true)}
+            h="36px"
+            px={3.5}
+            borderRadius="full"
+            borderWidth="1px"
+            borderStyle="dashed"
+            borderColor="border.default"
+            color="brand.fg"
+            display="flex"
+            alignItems="center"
+            gap={1}
+            _hover={{ borderColor: "brand.400" }}
+          >
+            <LuPlus size={14} />
+            <Text fontSize="sm" fontWeight="medium">
+              New club
             </Text>
           </Box>
-          <IconButton
-            aria-label="Rename club"
-            size="sm"
-            variant="ghost"
-            colorPalette="gray"
-            onClick={() => setRenamingClub(true)}
-          >
-            <LuPencil />
-          </IconButton>
-        </HStack>
-      </VStack>
+        </WrapItem>
+      </Wrap>
 
-      {/* Quick add — the fast path. */}
+      {/* Header */}
+      <HStack justify="space-between" align="start" gap={3}>
+        <Box minW={0}>
+          <Text
+            fontFamily="heading"
+            fontSize={{ base: "2xl", md: "3xl" }}
+            fontWeight="bold"
+            lineHeight="1.15"
+          >
+            {active.name}
+          </Text>
+          <Text fontSize="sm" color="fg.muted" mt={1}>
+            {active.players.length === 0
+              ? "No players yet"
+              : `${active.players.length} ${active.players.length === 1 ? "player" : "players"}`}
+          </Text>
+        </Box>
+        <IconButton
+          aria-label="Rename club"
+          size="sm"
+          variant="ghost"
+          colorPalette="gray"
+          onClick={() => setRenamingClub(true)}
+        >
+          <LuPencil />
+        </IconButton>
+      </HStack>
+
+      {/* Quick add */}
       <Box>
         <Text fontSize="sm" fontWeight="medium" mb={2}>
           Add a player
@@ -113,14 +198,7 @@ export function ClubManager() {
               boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
             }}
           />
-          <Button
-            colorPalette="brand"
-            size="lg"
-            h="48px"
-            px={6}
-            onClick={addPlayer}
-            disabled={!draft.trim()}
-          >
+          <Button colorPalette="brand" size="lg" h="48px" px={6} onClick={addPlayer} disabled={!draft.trim()}>
             Add
           </Button>
         </HStack>
@@ -129,44 +207,83 @@ export function ClubManager() {
         </Text>
       </Box>
 
-      {players.length === 0 ? (
-        <EmptyPlayers />
+      {active.players.length === 0 ? (
+        <EmptyPlayers
+          deviceCount={devicePlayers.length}
+          onImport={() => run(() => actions.importPlayersAction(active.id, devicePlayers))}
+        />
       ) : (
         <VStack align="stretch" gap={2}>
-          {players.map((p) => (
+          {active.players.map((p) => (
             <PlayerRow
               key={p.id}
               player={p}
               onEdit={() => setEditing(p)}
-              onDelete={() => clubStore.removePlayer(p.id)}
+              onDelete={() => run(() => actions.removePlayerAction(p.id))}
             />
           ))}
         </VStack>
       )}
 
-      <RenameDialog
+      {/* Delete this club */}
+      <Box textAlign="center" pt={2}>
+        <Box
+          as="button"
+          onClick={() => setDeleting(true)}
+          fontSize="xs"
+          color="fg.subtle"
+          _hover={{ color: "red.500" }}
+        >
+          Delete {active.name}
+        </Box>
+      </Box>
+
+      <NameDialog
         title="Rename club"
         label="Club name"
-        initial={club.name}
+        initial={active.name}
         maxLength={40}
         open={renamingClub}
         onClose={() => setRenamingClub(false)}
-        onSubmit={(name) => {
-          clubStore.rename(name);
-          return true;
+        onSubmit={async (name) => {
+          await actions.renameClubAction(active.id, name);
+          return { ok: true };
         }}
       />
 
-      <RenameDialog
+      <NameDialog
+        title="New club"
+        label="Club name"
+        initial=""
+        submitLabel="Create"
+        maxLength={40}
+        open={creating}
+        onClose={() => setCreating(false)}
+        onSubmit={async (name) => {
+          await actions.createClubAction(name);
+          return { ok: true };
+        }}
+      />
+
+      <NameDialog
         title="Edit player"
         label="Player name"
         initial={editing?.name ?? ""}
         maxLength={MAX_PLAYER_NAME_LENGTH}
         open={!!editing}
         onClose={() => setEditing(null)}
-        onSubmit={(name) =>
-          editing ? clubStore.renamePlayer(editing.id, name) : false
-        }
+        onSubmit={async (name) => {
+          if (!editing) return { ok: false };
+          const res = await actions.renamePlayerAction(editing.id, name);
+          return res.ok ? { ok: true } : { ok: false, error: "That name is already used in this club" };
+        }}
+      />
+
+      <ConfirmDelete
+        open={deleting}
+        clubName={active.name}
+        onClose={() => setDeleting(false)}
+        onConfirm={() => actions.deleteClubAction(active.id)}
       />
     </VStack>
   );
@@ -206,22 +323,10 @@ function PlayerRow({
             )}
           </VStack>
           <HStack gap={1}>
-            <IconButton
-              aria-label={`Edit ${player.name}`}
-              size="sm"
-              variant="ghost"
-              colorPalette="brand"
-              onClick={onEdit}
-            >
+            <IconButton aria-label={`Edit ${player.name}`} size="sm" variant="ghost" colorPalette="brand" onClick={onEdit}>
               <LuPencil />
             </IconButton>
-            <IconButton
-              aria-label={`Remove ${player.name}`}
-              size="sm"
-              variant="ghost"
-              colorPalette="red"
-              onClick={onDelete}
-            >
+            <IconButton aria-label={`Remove ${player.name}`} size="sm" variant="ghost" colorPalette="red" onClick={onDelete}>
               <LuTrash2 />
             </IconButton>
           </HStack>
@@ -231,39 +336,43 @@ function PlayerRow({
   );
 }
 
-function EmptyPlayers() {
+function EmptyPlayers({ deviceCount, onImport }: { deviceCount: number; onImport: () => void }) {
   return (
-    <VStack
-      gap={2}
-      py={10}
-      textAlign="center"
-      borderRadius="xl"
-      borderWidth="1px"
-      borderStyle="dashed"
-      borderColor="border.default"
-    >
+    <VStack gap={3} py={10} textAlign="center" borderRadius="xl" borderWidth="1px" borderStyle="dashed" borderColor="border.default">
       <Box fontSize="3xl" color="fg.muted" opacity={0.6}>
         <LuUsers />
       </Box>
       <Text fontSize="sm" color="fg.muted" maxW="280px">
-        Add everyone you play with. You only type each name once — after that
-        you just tap them.
+        Add everyone you play with. You only type each name once — after that you just tap them.
       </Text>
+      {deviceCount > 0 && (
+        <Button variant="outline" colorPalette="brand" size="sm" onClick={onImport}>
+          Import {deviceCount} from this device
+        </Button>
+      )}
     </VStack>
   );
 }
 
-function CreateClub({ onCreate }: { onCreate: (name: string) => void }) {
+function CreateFirstClub() {
+  const router = useRouter();
+  const [busy, startTransition] = useTransition();
   const [name, setName] = useState("");
+  const onCreate = (n: string) => {
+    if (!n.trim()) return;
+    startTransition(async () => {
+      await actions.createClubAction(n);
+      router.refresh();
+    });
+  };
   return (
     <VStack align="stretch" gap={5} py={6}>
       <VStack align="stretch" gap={1}>
-        <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="bold">
+        <Text fontFamily="heading" fontSize={{ base: "2xl", md: "3xl" }} fontWeight="bold">
           Name your club
         </Text>
         <Text fontSize="sm" color="fg.muted">
-          A club is just the group you play with — your Saturday crew. It keeps
-          your players and your trophies in one place.
+          A club is just the group you play with — your Saturday crew. It keeps your players and your trophies in one place.
         </Text>
       </VStack>
       <Input
@@ -279,30 +388,21 @@ function CreateClub({ onCreate }: { onCreate: (name: string) => void }) {
         bg="input.bg"
         borderColor="input.border"
         _placeholder={{ color: "fg.placeholder" }}
-        _focus={{
-          borderColor: "input.focusBorder",
-          boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
-        }}
+        _focus={{ borderColor: "input.focusBorder", boxShadow: "0 0 0 1px var(--colors-input-focus-border)" }}
       />
-      <Button
-        colorPalette="brand"
-        size="lg"
-        h="48px"
-        w="full"
-        disabled={!name.trim()}
-        onClick={() => onCreate(name)}
-      >
+      <Button colorPalette="brand" size="lg" h="48px" w="full" loading={busy} disabled={!name.trim()} onClick={() => onCreate(name)}>
         Create club
       </Button>
     </VStack>
   );
 }
 
-function RenameDialog({
+function NameDialog({
   title,
   label,
   initial,
   maxLength,
+  submitLabel = "Save",
   open,
   onClose,
   onSubmit,
@@ -311,59 +411,51 @@ function RenameDialog({
   label: string;
   initial: string;
   maxLength: number;
+  submitLabel?: string;
   open: boolean;
   onClose: () => void;
-  /** Return false to signal the name was rejected (e.g. duplicate). */
-  onSubmit: (name: string) => boolean;
+  onSubmit: (name: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const [value, setValue] = useState(initial);
   const [touched, setTouched] = useState(false);
-  const [rejected, setRejected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const router = useRouter();
 
-  // Re-seed when a different subject is opened.
   const current = touched ? value : initial;
 
   const close = () => {
     setTouched(false);
-    setRejected(false);
+    setError(null);
     onClose();
   };
 
-  const submit = () => {
+  const submit = async () => {
     const name = current.trim();
-    if (!name || name.length > maxLength) return;
-    if (!onSubmit(name)) {
-      setRejected(true);
+    if (!name || name.length > maxLength || busy) return;
+    setBusy(true);
+    const res = await onSubmit(name);
+    setBusy(false);
+    if (!res.ok) {
+      setError(res.error ?? "That name can't be used");
       return;
     }
     close();
+    router.refresh();
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={(e) => !e.open && close()}>
+    <Dialog.Root open={open} onOpenChange={(e) => !e.open && !busy && close()}>
       <Portal>
         <Dialog.Backdrop bg="blackAlpha.400" backdropFilter="blur(4px)" />
         <Dialog.Positioner>
-          <Dialog.Content
-            maxW="380px"
-            bg="dialog.bg"
-            borderRadius="xl"
-            p={4}
-            boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-          >
+          <Dialog.Content maxW="380px" bg="dialog.bg" borderRadius="xl" p={4} boxShadow="0 25px 50px -12px rgba(0,0,0,0.25)">
             <Dialog.Header px={2} pb={3}>
               <Text fontSize="lg" fontWeight="500" w="full" textAlign="center">
                 {title}
               </Text>
               <Dialog.CloseTrigger asChild>
-                <CloseButton
-                  position="absolute"
-                  top={4}
-                  right={4}
-                  size="sm"
-                  color="fg.muted"
-                  _hover={{ color: "fg.default", bg: "bg.subtle" }}
-                />
+                <CloseButton position="absolute" top={4} right={4} zIndex={2} size="sm" color="fg.muted" _hover={{ color: "fg.default", bg: "bg.subtle" }} />
               </Dialog.CloseTrigger>
             </Dialog.Header>
             <Dialog.Body p={2}>
@@ -377,7 +469,7 @@ function RenameDialog({
                     onChange={(e) => {
                       setTouched(true);
                       setValue(e.target.value);
-                      setRejected(false);
+                      setError(null);
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") submit();
@@ -387,35 +479,73 @@ function RenameDialog({
                     autoFocus
                     bg="input.bg"
                     borderColor="input.border"
-                    _focus={{
-                      borderColor: "input.focusBorder",
-                      boxShadow: "0 0 0 1px var(--colors-input-focus-border)",
-                    }}
+                    _focus={{ borderColor: "input.focusBorder", boxShadow: "0 0 0 1px var(--colors-input-focus-border)" }}
                   />
-                  {rejected && (
+                  {error && (
                     <Text fontSize="xs" color="red.500" mt={1}>
-                      That name is already used in this club
+                      {error}
                     </Text>
                   )}
                 </Box>
                 <HStack gap={3} w="full">
-                  <Button
-                    variant="outline"
-                    flex="1"
-                    h="44px"
-                    colorPalette="gray"
-                    onClick={close}
-                  >
+                  <Button variant="outline" flex="1" h="44px" colorPalette="gray" onClick={close} disabled={busy}>
+                    Cancel
+                  </Button>
+                  <Button colorPalette="brand" flex="1" h="44px" onClick={submit} loading={busy} disabled={!current.trim()}>
+                    {submitLabel}
+                  </Button>
+                </HStack>
+              </VStack>
+            </Dialog.Body>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
+  );
+}
+
+function ConfirmDelete({
+  open,
+  clubName,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean;
+  clubName: string;
+  onClose: () => void;
+  onConfirm: () => Promise<unknown>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const router = useRouter();
+  return (
+    <Dialog.Root open={open} onOpenChange={(e) => !e.open && !busy && onClose()}>
+      <Portal>
+        <Dialog.Backdrop bg="blackAlpha.400" backdropFilter="blur(4px)" />
+        <Dialog.Positioner>
+          <Dialog.Content maxW="380px" bg="dialog.bg" borderRadius="xl" p={4}>
+            <Dialog.Body p={2}>
+              <VStack gap={4} w="full">
+                <Text textAlign="center" color="fg.default">
+                  Delete <Text as="span" fontWeight="semibold">{clubName}</Text>? Its players and history stay, but the club and its roster are removed.
+                </Text>
+                <HStack gap={3} w="full">
+                  <Button variant="outline" flex="1" h="44px" colorPalette="gray" onClick={onClose} disabled={busy}>
                     Cancel
                   </Button>
                   <Button
-                    colorPalette="brand"
+                    colorPalette="red"
                     flex="1"
                     h="44px"
-                    onClick={submit}
-                    disabled={!current.trim()}
+                    loading={busy}
+                    onClick={async () => {
+                      setBusy(true);
+                      await onConfirm();
+                      setBusy(false);
+                      onClose();
+                      router.refresh();
+                    }}
                   >
-                    Save
+                    Delete
                   </Button>
                 </HStack>
               </VStack>

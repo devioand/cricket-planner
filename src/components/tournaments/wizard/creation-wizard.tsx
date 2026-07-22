@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 import { createTournamentAction } from "@/app/tournaments/actions";
-import { clubStore } from "@/lib/clubs/club-store";
+import { markPlayedAction } from "@/app/club/actions";
 import { TournamentStore } from "@/lib/local/tournament-store";
 import { initialState } from "@/contexts/tournament-context/engine";
 import type {
@@ -21,7 +21,7 @@ import {
   pruneAssignment,
   type Assignment,
 } from "./team-builder";
-import { PlayersStep } from "./players-step";
+import { PlayersStep, type PickerPlayer } from "./players-step";
 import { FormatStep, FORMATS, type FormatSpec } from "./format-step";
 import { NumberField } from "./number-field";
 import {
@@ -63,13 +63,19 @@ type StepName = "Players" | "Format" | "Sides" | "Teams" | "Finish";
 
 export function CreationWizard({
   recentNames = [],
+  clubPlayers = [],
+  clubId: initialClubId = null,
 }: {
   recentNames?: string[];
+  clubPlayers?: PickerPlayer[];
+  clubId?: string | null;
 }) {
   const router = useRouter();
 
   const [step, setStep] = useState(0);
   const [attendees, setAttendees] = useState<string[]>([]);
+  // Active club id — may be created lazily by the Players step's add-player.
+  const [clubId, setClubId] = useState<string | null>(initialClubId);
   const [formatId, setFormatId] = useState<string>("round-robin");
   const [sides, setSides] = useState<1 | 2 | 3>(1);
   const [extraMode, setExtraMode] = useState<"bigger" | "sitout">("bigger");
@@ -202,7 +208,7 @@ export function CreationWizard({
       });
       if (!res.success) throw new Error(res.errors?.[0] ?? "Generate failed");
       // Stamp who turned out so the picker leads with regulars next time.
-      clubStore.markPlayed(attendees);
+      if (clubId) await markPlayedAction(clubId, attendees);
       if (scheduledStart) {
         // Mirror the schedule into local state (kept on the next Sync), then
         // send them home where it waits in Upcoming — don't open scoring yet.
@@ -235,6 +241,9 @@ export function CreationWizard({
             hint="Tap who turned up. Add anyone new — they're saved for next time."
           >
             <PlayersStep
+              players={clubPlayers}
+              clubId={clubId}
+              onClubId={setClubId}
               selected={attendees}
               onChange={handleAttendeesChange}
               max={MAX_ATTENDEES}

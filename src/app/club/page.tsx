@@ -1,19 +1,17 @@
 import { Box } from "@chakra-ui/react";
-import { requireUser } from "@/lib/session";
+import { getActiveClub } from "@/lib/clubs/active-club";
 import { ClubManager } from "@/components/clubs/club-manager";
 
 export const dynamic = "force-dynamic";
 
-/**
- * The club lives in localStorage (like a tournament in progress), so the page
- * only gates on auth and hands off to a client component.
- */
+/** Clubs now live in Neon (per account). Fetch the user's clubs + the active
+ *  one on the server and hand off to the client manager. */
 export default async function ClubPage() {
-  await requireUser();
+  const { active, clubs } = await getActiveClub();
 
   return (
     <Box p={{ base: 4, md: 8 }} maxW="600px" mx="auto" w="full">
-      <ClubManager />
+      <ClubManager active={active} clubs={clubs} />
     </Box>
   );
 }

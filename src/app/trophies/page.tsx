@@ -1,6 +1,6 @@
 import { Box } from "@chakra-ui/react";
-import { requireUser } from "@/lib/session";
 import { listTournaments } from "@/lib/repositories/tournament-repository";
+import { getActiveClub } from "@/lib/clubs/active-club";
 import {
   TrophyCabinet,
   type CabinetAward,
@@ -14,8 +14,8 @@ export const dynamic = "force-dynamic";
 const DEFAULT_TROPHY: TrophyConfig = { shape: "classic", metal: "gold" };
 
 export default async function CabinetPage() {
-  const user = await requireUser();
-  const tournaments = await listTournaments(user.id);
+  const { userId, active } = await getActiveClub();
+  const tournaments = await listTournaments(userId);
 
   // A trophy is earned once a tournament is completed and has a champion.
   const trophies: CabinetTrophy[] = tournaments
@@ -47,7 +47,7 @@ export default async function CabinetPage() {
 
   return (
     <Box p={{ base: 4, md: 8 }} maxW="600px" mx="auto" w="full">
-      <TrophyCabinet trophies={trophies} awards={awards} />
+      <TrophyCabinet trophies={trophies} awards={awards} clubName={active?.name} />
     </Box>
   );
 }

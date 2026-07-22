@@ -15,7 +15,6 @@ import {
 import { LuMedal } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { TrophyBadge } from "@/components/trophies/trophy-badge";
-import { useClub } from "@/lib/clubs/use-club";
 import type { TrophyConfig } from "@/contexts/tournament-context/types";
 
 export interface CabinetTrophy {
@@ -67,11 +66,12 @@ function shortDate(iso: string): string {
 export function TrophyCabinet({
   trophies,
   awards = [],
+  clubName,
 }: {
   trophies: CabinetTrophy[];
   awards?: CabinetAward[];
+  clubName?: string | null;
 }) {
-  const { club } = useClub();
   const [open, setOpen] = useState<CabinetTrophy | null>(null);
 
   const champions = new Set(trophies.map((t) => t.winner)).size;
@@ -88,7 +88,7 @@ export function TrophyCabinet({
           lineHeight="1.1"
           letterSpacing="-0.01em"
         >
-          {club?.name ?? "Cabinet"}
+          {clubName ?? "Cabinet"}
         </Text>
         <Text fontSize="sm" color="fg.muted">
           {trophies.length > 0
