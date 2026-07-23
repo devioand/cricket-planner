@@ -26,6 +26,7 @@ import { LuDownload, LuShare2 } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 import type { TournamentState } from "@/contexts/tournament-context/types";
+import { EMPTY_FORM, type FormData } from "@/lib/predictions";
 import { FixtureCard } from "@/components/tournaments/fixture-card";
 import {
   downloadDataUrl,
@@ -40,12 +41,15 @@ export function FixtureShareDialog({
   onClose,
   name,
   state,
+  formData = EMPTY_FORM,
   topSlot,
 }: {
   open: boolean;
   onClose: () => void;
   name: string;
   state: TournamentState;
+  /** Real form/H2H history for win predictions; omit for no odds on the card. */
+  formData?: FormData;
   topSlot?: ReactNode;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -82,6 +86,7 @@ export function FixtureShareDialog({
     state.scheduledEnd,
     state.teams,
     state.matches,
+    formData,
   ]);
 
   const filename = `${slugify(name)}-fixtures.png`;
@@ -212,7 +217,12 @@ export function FixtureShareDialog({
 
       {/* Off-screen full-size render target for the PNG capture. */}
       <Box position="fixed" top={0} left="-99999px" pointerEvents="none" aria-hidden>
-        <FixtureCard ref={cardRef} tournamentName={name} state={state} />
+        <FixtureCard
+          ref={cardRef}
+          tournamentName={name}
+          state={state}
+          formData={formData}
+        />
       </Box>
     </Dialog.Root>
   );

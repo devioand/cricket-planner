@@ -5,6 +5,7 @@ import type {
   TournamentState,
   PlayoffSlot,
 } from "@/contexts/tournament-context/types";
+import { EMPTY_FORM, predictWin, type FormData } from "@/lib/predictions";
 import {
   ACCENT,
   CARD,
@@ -34,6 +35,9 @@ export const FIXTURE_CARD_WIDTH = CARD_WIDTH;
 export interface FixtureCardProps {
   tournamentName: string;
   state: TournamentState;
+  /** Real head-to-head/form history, so the card can show win predictions.
+   *  Defaults to no history → the card renders the matchups without odds. */
+  formData?: FormData;
 }
 
 interface WindowParts {
@@ -72,16 +76,10 @@ function windowParts(startISO?: string, endISO?: string): WindowParts | null {
   return { date, time: `${t(start)} – ${t(end)}`, duration };
 }
 
-function ordinal(n: number): string {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
-}
-
 /** Human description of a playoff slot for the pre-tournament draft. Avoids the
- *  jargon "seed" — spells out the points-table position instead. */
+ *  jargon "seed" — a seed slot reads as its rank in the points table. */
 function describeSlot(slot: PlayoffSlot, labelById: Map<string, string>): string {
-  if (slot.kind === "seed") return `${ordinal(slot.seed)} on points table`;
+  if (slot.kind === "seed") return `Table #${slot.seed}`;
   const l = labelById.get(slot.matchId) ?? "TBD";
   return slot.kind === "winnerOf" ? `Winner · ${l}` : `Loser · ${l}`;
 }
@@ -101,7 +99,7 @@ function playoffSummary(state: TournamentState): string | null {
 }
 
 export const FixtureCard = forwardRef<HTMLDivElement, FixtureCardProps>(
-  function FixtureCard({ tournamentName, state }, ref) {
+  function FixtureCard({ tournamentName, state, formData = EMPTY_FORM }, ref) {
     const win = windowParts(state.scheduledStart, state.scheduledEnd);
 
     const groupMatches = state.matches
@@ -169,15 +167,16 @@ export const FixtureCard = forwardRef<HTMLDivElement, FixtureCardProps>(
         {groupMatches.length > 0 && (
           <>
             <SectionLabel>
-              GROUP STAGE · {groupMatches.length} MATCHES
+              GROUP STAGE · {groupMatches.length} GAMES
             </SectionLabel>
             <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 22 }}>
               {groupMatches.map((m, i) => (
                 <MatchCardRow
                   key={m.id}
-                  tag={`MATCH ${String(i + 1).padStart(2, "0")}`}
+                  tag={`GAME ${String(i + 1).padStart(2, "0")}`}
                   left={m.team1}
                   right={m.team2}
+                  prob={predictWin(m.team1, m.team2, formData)}
                 />
               ))}
             </div>
@@ -241,20 +240,24 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** A single fixture rendered as an exciting VS card. */
+/** A single fixture rendered as an exciting VS card. Group games carry a real
+ *  win prediction (`prob`, 0..1 for the left team); playoff rows pass none. */
 function MatchCardRow({
   tag,
   left,
   right,
   isFinal,
   muted,
+  prob,
 }: {
   tag: string;
   left: string;
   right: string;
   isFinal?: boolean;
   muted?: boolean;
+  prob?: number | null;
 }) {
+  const p1 = prob === null || prob === undefined ? null : Math.round(prob * 100);
   return (
     <div
       style={{
@@ -323,6 +326,50 @@ function MatchCardRow({
           {right}
         </div>
       </div>
+
+      {/* Real win prediction — a split bar, then each team's chance below its
+          own side, colour-matched to its slice. */}
+      {p1 !== null && (
+        <div style={{ marginTop: 22 }}>
+          <div
+            style={{
+              height: 16,
+              borderRadius: 999,
+              overflow: "hidden",
+              display: "flex",
+              background: "rgba(255,255,255,0.08)",
+            }}
+          >
+            <div style={{ width: `${p1}%`, background: ACCENT }} />
+            <div style={{ flex: 1, background: "rgba(255,255,255,0.22)" }} />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              marginTop: 12,
+            }}
+          >
+            <span style={{ fontSize: 30, fontWeight: 800, color: ACCENT }}>
+              {p1}%
+            </span>
+            <span
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                letterSpacing: 2,
+                color: MUTED,
+              }}
+            >
+              WINNING PREDICTION
+            </span>
+            <span style={{ fontSize: 30, fontWeight: 800, color: TEXT }}>
+              {100 - p1}%
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

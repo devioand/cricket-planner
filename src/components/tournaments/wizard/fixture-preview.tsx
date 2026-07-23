@@ -7,8 +7,17 @@
 // tokens (unlike the shareable FixtureCard, which is a fixed-style image), and
 // shows REAL, data-backed win predictions where enough history exists.
 
-import { Box, HStack, Text, VStack } from "@chakra-ui/react";
-import { LuTrophy } from "react-icons/lu";
+import { useState } from "react";
+import {
+  Box,
+  CloseButton,
+  Dialog,
+  HStack,
+  Portal,
+  Text,
+  VStack,
+} from "@chakra-ui/react";
+import { LuInfo, LuTrophy } from "react-icons/lu";
 import * as engine from "@/contexts/tournament-context/engine";
 import type {
   PlayoffSlot,
@@ -37,15 +46,10 @@ export function buildPreviewState(
   return res.success ? res.state : s;
 }
 
-function ordinal(n: number): string {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
-}
-
-/** Plain-language description of a playoff slot (no "seed" jargon). */
+/** Plain-language description of a playoff slot (no "seed" jargon). The seed
+ *  slots read as a rank in the group table — "Table #1", "Table #2", … */
 function describeSlot(slot: PlayoffSlot, labelById: Map<string, string>): string {
-  if (slot.kind === "seed") return `${ordinal(slot.seed)} on the table`;
+  if (slot.kind === "seed") return `Table #${slot.seed}`;
   const l = labelById.get(slot.matchId) ?? "TBD";
   return slot.kind === "winnerOf" ? `Winner · ${l}` : `Loser · ${l}`;
 }
@@ -132,8 +136,10 @@ function SectionLabel({
   );
 }
 
-/** A single fixture: label on top, the matchup, then a real win prediction (or
- *  an honest note when there isn't enough history to predict). */
+/** A single fixture: a centered label on top, the matchup, then a real,
+ *  data-backed win prediction. Each team's chance sits directly under its own
+ *  name and shares that side's colour, so there's no doubt which number is
+ *  whose. Falls back to an honest note when there isn't enough history. */
 function MatchCard({
   label,
   left,
@@ -150,6 +156,7 @@ function MatchCard({
   note?: string;
 }) {
   const p1 = prob === null ? null : Math.round(prob * 100);
+  const p2 = p1 === null ? null : 100 - p1;
   return (
     <Box
       borderWidth="1px"
@@ -159,45 +166,33 @@ function MatchCard({
       borderColor={isFinal ? { base: "gold.300", _dark: "gold.700" } : "card.border"}
       bg={isFinal ? { base: "gold.50", _dark: "whiteAlpha.50" } : "card.bg"}
     >
-      {/* Label + predicted tag */}
-      <HStack justify="space-between" align="center" mb={3}>
-        <HStack gap={1.5}>
-          {isFinal && (
-            <Box color={{ base: "gold.600", _dark: "gold.400" }} display="flex">
-              <LuTrophy size={13} />
-            </Box>
-          )}
-          <Text
-            fontSize="xs"
-            fontWeight="bold"
-            letterSpacing="0.06em"
-            textTransform="uppercase"
-            color={isFinal ? { base: "gold.700", _dark: "gold.300" } : "fg.default"}
-          >
-            {label}
-          </Text>
-        </HStack>
-        {p1 !== null && (
-          <Text
-            fontSize="2xs"
-            fontWeight="semibold"
-            letterSpacing="0.08em"
-            textTransform="uppercase"
-            color="fg.muted"
-          >
-            Predicted
-          </Text>
+      {/* Label centered on top (trophy for the final) */}
+      <HStack justify="center" gap={1.5} mb={3}>
+        {isFinal && (
+          <Box color={{ base: "gold.600", _dark: "gold.400" }} display="flex">
+            <LuTrophy size={13} />
+          </Box>
         )}
+        <Text
+          fontSize="xs"
+          fontWeight="bold"
+          letterSpacing="0.08em"
+          textTransform="uppercase"
+          color={isFinal ? { base: "gold.700", _dark: "gold.300" } : "fg.muted"}
+        >
+          {label}
+        </Text>
       </HStack>
 
-      {/* Matchup */}
-      <HStack gap={3} align="center">
+      {/* Matchup — each name hugs its own side of a centered VS, so it lines up
+          with that side's percentage below. */}
+      <HStack gap={2.5} align="center">
         <Text
+          flex="1"
+          textAlign="left"
           fontSize="md"
           fontWeight="bold"
           color="fg.default"
-          flex="1"
-          textAlign="right"
           lineHeight="1.2"
           truncate
         >
@@ -217,10 +212,11 @@ function MatchCard({
           VS
         </Box>
         <Text
+          flex="1"
+          textAlign="right"
           fontSize="md"
           fontWeight="bold"
           color="fg.default"
-          flex="1"
           lineHeight="1.2"
           truncate
         >
@@ -228,36 +224,155 @@ function MatchCard({
         </Text>
       </HStack>
 
-      {/* Real win prediction, or an honest no-data note */}
+      {/* Win prediction: one split bar, then each team's chance directly under
+          its name and colour-matched to its slice of the bar. */}
       {p1 !== null ? (
-        <Box mt={3.5}>
+        <Box mt={3}>
           <Box
-            h="7px"
+            h="8px"
             borderRadius="full"
             overflow="hidden"
             display="flex"
             bg={{ base: "gray.200", _dark: "gray.700" }}
           >
-            <Box w={`${p1}%`} bg="brand.500" transition="width 0.2s" />
+            <Box w={`${p1}%`} bg="brand.solid" transition="width 0.2s" />
+            <Box flex="1" bg={{ base: "gray.400", _dark: "gray.500" }} />
           </Box>
-          <HStack justify="space-between" mt={1.5}>
+          <HStack justify="space-between" mt={2} align="baseline" gap={2}>
             <Text
-              fontSize="2xs"
+              fontSize="sm"
               fontWeight="bold"
               color={{ base: "brand.600", _dark: "brand.300" }}
             >
               {p1}%
             </Text>
-            <Text fontSize="2xs" fontWeight="bold" color="fg.muted">
-              {100 - p1}%
+            <HStack flexShrink={0} gap={1} align="center">
+              <Text
+                fontSize="2xs"
+                fontWeight="semibold"
+                letterSpacing="0.08em"
+                textTransform="uppercase"
+                color="fg.muted"
+                whiteSpace="nowrap"
+              >
+                Winning prediction
+              </Text>
+              <PredictionInfo />
+            </HStack>
+            <Text
+              fontSize="sm"
+              fontWeight="bold"
+              color={{ base: "gray.700", _dark: "gray.300" }}
+            >
+              {p2}%
             </Text>
           </HStack>
         </Box>
       ) : note ? (
-        <Text mt={3} fontSize="xs" color="fg.muted">
+        <Text mt={3} fontSize="xs" color="fg.muted" textAlign="center">
           {note}
         </Text>
       ) : null}
+    </Box>
+  );
+}
+
+/** The little "how is this worked out?" affordance next to a prediction. Taps
+ *  open a plain-language explanation of the real algorithm — no hover tooltip,
+ *  since this is used on a phone. */
+function PredictionInfo() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Box
+        as="button"
+        onClick={() => setOpen(true)}
+        aria-label="How is the winning prediction worked out?"
+        display="flex"
+        flexShrink={0}
+        color="fg.muted"
+        _hover={{ color: "fg.default" }}
+      >
+        <LuInfo size={13} />
+      </Box>
+      <Dialog.Root
+        open={open}
+        onOpenChange={(e) => setOpen(e.open)}
+        scrollBehavior="inside"
+        placement="center"
+      >
+        <Portal>
+          <Dialog.Backdrop bg="dialog.backdrop" backdropFilter="blur(4px)" />
+          <Dialog.Positioner>
+            <Dialog.Content maxW="400px" mx={4} bg="dialog.bg" borderRadius="xl">
+              <Dialog.Header pb={2}>
+                <Dialog.Title fontSize="md" fontWeight="600">
+                  How the winning prediction works
+                </Dialog.Title>
+                <Dialog.CloseTrigger asChild>
+                  <CloseButton
+                    position="absolute"
+                    top={4}
+                    right={4}
+                    size="sm"
+                    color="fg.muted"
+                    _hover={{ color: "fg.default", bg: "bg.subtle" }}
+                  />
+                </Dialog.CloseTrigger>
+              </Dialog.Header>
+              <Dialog.Body pb={5}>
+                <VStack align="stretch" gap={3}>
+                  <Text fontSize="sm" color="fg.muted">
+                    The percentages come from both teams&apos; real results in
+                    past completed tournaments — never made-up numbers.
+                  </Text>
+                  <VStack align="stretch" gap={2}>
+                    <InfoRow title="Recent form">
+                      Each team&apos;s win rate, nudged a little by its net run
+                      rate.
+                    </InfoRow>
+                    <InfoRow title="Head-to-head">
+                      How often these two have beaten each other. The more
+                      they&apos;ve played, the more it counts.
+                    </InfoRow>
+                  </VStack>
+                  <Text fontSize="xs" color="fg.muted">
+                    We blend the two and keep every prediction between 15% and
+                    85%, so a handful of games never turns into a near-certainty.
+                    When there isn&apos;t enough history, we show no number
+                    instead of inventing one.
+                  </Text>
+                </VStack>
+              </Dialog.Body>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
+    </>
+  );
+}
+
+function InfoRow({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Box
+      borderWidth="1px"
+      borderColor="card.border"
+      borderRadius="lg"
+      px={3}
+      py={2.5}
+    >
+      <Text fontSize="sm" fontWeight="bold" color="fg.default" mb={0.5}>
+        {title}
+      </Text>
+      <Text fontSize="xs" color="fg.muted">
+        {children}
+      </Text>
     </Box>
   );
 }

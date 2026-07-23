@@ -701,6 +701,7 @@ function FixtureStep({
         onClose={() => setShareOpen(false)}
         name={name.trim() || "Fixture"}
         state={previewState}
+        formData={formData}
       />
     </VStack>
   );
