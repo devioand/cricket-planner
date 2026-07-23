@@ -6,7 +6,7 @@ import { pool } from "./db";
  * Better Auth server instance.
  *
  * Authentication is email + password only (no social providers, no email
- * verification for now). Sessions and users are stored in the same Supabase
+ * verification for now). Sessions and users are stored in the same Neon
  * Postgres database via the shared `pg` pool.
  *
  * `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` are read from the environment.

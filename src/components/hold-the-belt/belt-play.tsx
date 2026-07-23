@@ -146,7 +146,7 @@ function BeltPlayInner({ store }: { store: BeltStore }) {
               </Button>
               <Button
                 onClick={() => store.recordWinner(view.challenger!)}
-                colorPalette="blue"
+                colorPalette="brand"
                 variant="outline"
                 size="lg"
                 w="full"
@@ -176,7 +176,7 @@ function BeltPlayInner({ store }: { store: BeltStore }) {
               {view.queue.map((p, i) => (
                 <Badge
                   key={p}
-                  colorPalette={i === 0 ? "blue" : "gray"}
+                  colorPalette={i === 0 ? "brand" : "gray"}
                   variant={i === 0 ? "solid" : "subtle"}
                   size="lg"
                 >
@@ -260,7 +260,7 @@ function ChallengerCard({ name }: { name: string }) {
       bg="card.bg"
     >
       <VStack gap={1}>
-        <Badge colorPalette="blue" variant="subtle" size="sm">
+        <Badge colorPalette="brand" variant="subtle" size="sm">
           <LuSwords /> Challenger
         </Badge>
         <Heading size="lg" textAlign="center" lineHeight="1.1">
@@ -374,7 +374,7 @@ function BeltChampion({
             onClick={() => {
               store.reset();
             }}
-            colorPalette="blue"
+            colorPalette="brand"
             size="lg"
             w="full"
           >
@@ -547,7 +547,7 @@ function BeltMissing() {
           It may have been played on another device — sessions are stored on the
           device that created them.
         </Text>
-        <Button onClick={() => router.push("/belt/new")} colorPalette="blue">
+        <Button onClick={() => router.push("/belt/new")} colorPalette="brand">
           Start a new belt
         </Button>
       </VStack>

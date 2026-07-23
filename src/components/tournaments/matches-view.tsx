@@ -41,7 +41,7 @@ export function MatchesView() {
             been synced yet — open it on the device where you created it.
           </Text>
           <Link href="/tournaments">
-            <Button colorPalette="blue" size="lg">
+            <Button colorPalette="brand" size="lg">
               ← Back to tournaments
             </Button>
           </Link>

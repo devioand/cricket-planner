@@ -20,7 +20,7 @@ export function StandingsView() {
           <Heading
             size={{ base: "lg", md: "xl" }}
             color="colorPalette.600"
-            colorPalette="blue"
+            colorPalette="brand"
             mb={2}
           >
             🏆 Tournament Standings
@@ -53,7 +53,7 @@ export function StandingsView() {
             matches to see the standings.
           </Text>
           <Link href="/tournaments">
-            <Button colorPalette="blue" size="lg">
+            <Button colorPalette="brand" size="lg">
               ← Back to tournaments
             </Button>
           </Link>

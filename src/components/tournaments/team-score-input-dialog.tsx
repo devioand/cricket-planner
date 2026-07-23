@@ -263,7 +263,7 @@ export function TeamScoreInputDialog({
 
                 {/* Submit */}
                 <Button
-                  colorPalette="blue"
+                  colorPalette="brand"
                   onClick={handleSubmit}
                   disabled={!(score.runs && score.wickets && score.overs)}
                   size="lg"

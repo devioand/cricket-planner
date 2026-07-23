@@ -243,7 +243,7 @@ function StandingsRow({ team, position, qualifiers }: StandingsRowProps) {
       {/* Points */}
       <Table.Cell textAlign="center">
         <Badge
-          colorPalette="blue"
+          colorPalette="brand"
           variant="solid"
           fontSize={{ base: "xs", md: "sm" }}
           px={{ base: 2, md: 3 }}

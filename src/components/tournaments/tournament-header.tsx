@@ -147,7 +147,7 @@ export function TournamentHeader({ name }: { name: string }) {
                     borderRadius="md"
                     fontSize="sm"
                     fontWeight={active ? "semibold" : "medium"}
-                    colorPalette="blue"
+                    colorPalette="brand"
                     bg={active ? "colorPalette.500" : "transparent"}
                     color={active ? "white" : "fg.muted"}
                     transition="all 0.15s"
@@ -231,7 +231,7 @@ function SyncState({
     return (
       <Button
         size="xs"
-        colorPalette="blue"
+        colorPalette="brand"
         onClick={onSync}
         loading={syncing}
         disabled={busy}

@@ -2,6 +2,7 @@ import type { Pool, PoolClient } from "pg";
 import { cache } from "react";
 import { pool, withTransaction } from "@/lib/db";
 import { buildValues } from "./sql";
+import type { FormData } from "@/lib/predictions";
 import type {
   TournamentState,
   Match,
@@ -44,6 +45,8 @@ export interface TournamentSummary {
   teamCount: number;
   maxOvers: number;
   maxWickets: number;
+  /** Planned start (ISO) for a scheduled-but-not-started game, else null. */
+  scheduledStart: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -61,6 +64,8 @@ export interface CreateTournamentInput {
   playoffFormat: PlayoffFormat;
   maxOvers: number;
   maxWickets: number;
+  /** Set to park the game in "Upcoming" instead of starting it now (ISO). */
+  scheduledStart?: string | null;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -189,16 +194,21 @@ function rowToMatch(r: Row, innings: Row[]): Match {
 
 export async function listTournaments(
   userId: string,
+  clubId?: string | null,
 ): Promise<TournamentSummary[]> {
+  // When a club is active, scope to it — but keep legacy/orphan rows (null
+  // club_id) visible so nothing ever disappears from view. With no active club
+  // ($2 null), every tournament the user owns is returned.
   const { rows } = await pool.query(
     `select t.id, t.name, t.algorithm, t.status, t.playoff_format,
             t.winner, t.trophy, t.max_overs, t.max_wickets,
-            t.created_at, t.updated_at,
+            t.scheduled_start, t.created_at, t.updated_at,
             (select count(*) from public.teams te where te.tournament_id = t.id) as team_count
        from public.tournaments t
       where t.user_id = $1
+        and ($2::uuid is null or t.club_id = $2 or t.club_id is null)
       order by t.updated_at desc`,
-    [userId],
+    [userId, clubId ?? null],
   );
 
   return rows.map((r) => ({
@@ -212,9 +222,70 @@ export async function listTournaments(
     teamCount: num(r.team_count),
     maxOvers: num(r.max_overs),
     maxWickets: num(r.max_wickets),
+    scheduledStart: isoOrUndef(r.scheduled_start) ?? null,
     createdAt: new Date(r.created_at as string).toISOString(),
     updatedAt: new Date(r.updated_at as string).toISOString(),
   }));
+}
+
+/**
+ * Real pre-match form for a set of team/player names: each side's overall record
+ * (from the user's COMPLETED tournaments) plus head-to-head. Feeds the
+ * prediction model. Matching is by name, case-insensitive. Empty result for a
+ * name simply means "no history" — the model then declines to predict.
+ */
+export async function getPlayerFormData(
+  userId: string,
+  names: string[],
+): Promise<FormData> {
+  const lowered = [
+    ...new Set(names.map((n) => n.trim().toLowerCase()).filter(Boolean)),
+  ];
+  if (lowered.length === 0) return { form: {}, h2h: {} };
+
+  const [formRes, h2hRes] = await Promise.all([
+    pool.query(
+      `select lower(ts.team_name) as name,
+              sum(ts.matches_played)::int as played,
+              sum(ts.wins)::int as wins,
+              coalesce(avg(ts.net_run_rate), 0)::float as nrr
+         from public.team_stats ts
+         join public.tournaments t on t.id = ts.tournament_id
+        where t.user_id = $1 and t.status = 'completed'
+          and lower(ts.team_name) = any($2::text[])
+        group by lower(ts.team_name)`,
+      [userId, lowered],
+    ),
+    pool.query(
+      `select lower(m.result_winner) as winner, lower(m.result_loser) as loser
+         from public.matches m
+         join public.tournaments t on t.id = m.tournament_id
+        where t.user_id = $1 and t.status = 'completed'
+          and m.result_winner is not null and m.result_winner <> ''
+          and m.result_loser is not null and m.result_loser <> ''
+          and lower(m.result_winner) = any($2::text[])
+          and lower(m.result_loser) = any($2::text[])`,
+      [userId, lowered],
+    ),
+  ]);
+
+  const form: FormData["form"] = {};
+  for (const r of formRes.rows) {
+    form[String(r.name)] = {
+      played: Number(r.played),
+      wins: Number(r.wins),
+      nrr: Number(r.nrr) || 0,
+    };
+  }
+
+  const h2h: FormData["h2h"] = {};
+  for (const r of h2hRes.rows) {
+    const w = String(r.winner);
+    const l = String(r.loser);
+    (h2h[w] ??= {})[l] = (h2h[w][l] ?? 0) + 1;
+  }
+
+  return { form, h2h };
 }
 
 /** Anything that can run a query — the shared pool or a transaction client. */
@@ -316,24 +387,27 @@ export const getTournament = cache(
 export async function createTournament(
   userId: string,
   input: CreateTournamentInput,
+  clubId?: string | null,
 ): Promise<string> {
   // Note: playoff_config is intentionally NOT written here — the playoff
   // structure is chosen later in the setup wizard and persisted on the first
-  // Sync (see writeState). Keeping this insert to the original columns also lets
-  // tournament creation work before the 0002 migration is applied.
+  // Sync (see writeState). club_id is stamped once at birth: a game's club never
+  // changes, so writeState leaves it alone.
   const { rows } = await pool.query(
     `insert into public.tournaments
-       (user_id, name, algorithm, playoff_format, max_overs, max_wickets,
-        is_generated, phase, status)
-     values ($1, $2, $3, $4, $5, $6, false, 'setup', 'setup')
+       (user_id, club_id, name, algorithm, playoff_format, max_overs,
+        max_wickets, is_generated, phase, status, scheduled_start)
+     values ($1, $2, $3, $4, $5, $6, $7, false, 'setup', 'setup', $8)
      returning id`,
     [
       userId,
+      clubId ?? null,
       input.name,
       input.algorithm,
       input.playoffFormat,
       input.maxOvers,
       input.maxWickets,
+      input.scheduledStart ?? null,
     ],
   );
   return String(rows[0].id);

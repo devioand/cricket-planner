@@ -172,7 +172,7 @@ export function ShareStatsDialog({
                 {/* Actions */}
                 <VStack align="stretch" gap={2.5}>
                   <Button
-                    colorPalette="blue"
+                    colorPalette="brand"
                     size="lg"
                     onClick={handleShare}
                     disabled={!dataUrl || rendering}

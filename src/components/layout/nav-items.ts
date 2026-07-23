@@ -1,6 +1,6 @@
 import { usePathname } from "next/navigation";
 import type { IconType } from "react-icons";
-import { LuListOrdered, LuMedal, LuSwords, LuTrophy } from "react-icons/lu";
+import { LuHistory, LuHouse, LuTrophy, LuUsers } from "react-icons/lu";
 import { useSession } from "@/lib/auth-client";
 
 export interface NavItem {
@@ -13,11 +13,13 @@ export interface NavItem {
  * The primary navigation. Shared by the desktop top nav (header) and the
  * mobile bottom tab bar so the two never drift apart.
  */
+// Four tabs: Home is the launchpad, History is everything played, Cabinet holds
+// trophies + awards, Club holds players/rivalries (old Leaderboard folds in).
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Tournaments", href: "/tournaments", icon: LuSwords },
-  { label: "Trophies", href: "/trophies", icon: LuTrophy },
-  { label: "Awards", href: "/awards", icon: LuMedal },
-  { label: "Leaderboard", href: "/leaderboard", icon: LuListOrdered },
+  { label: "Home", href: "/", icon: LuHouse },
+  { label: "History", href: "/tournaments", icon: LuHistory },
+  { label: "Cabinet", href: "/trophies", icon: LuTrophy },
+  { label: "Club", href: "/club", icon: LuUsers },
 ];
 
 /** A tab is active on its own route and any nested route beneath it. */

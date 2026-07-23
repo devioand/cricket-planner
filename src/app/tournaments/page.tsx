@@ -5,6 +5,7 @@ import { TournamentsList } from "@/components/tournaments/tournaments-list";
 export const dynamic = "force-dynamic";
 
 export default async function TournamentsPage() {
+  // Club-agnostic for now: History lists every club's games.
   const user = await requireUser();
   const tournaments = await listTournaments(user.id);
 

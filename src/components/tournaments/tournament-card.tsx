@@ -25,7 +25,7 @@ const ALGORITHM_LABELS: Record<string, string> = {
 const STATUS_META: Record<TournamentStatus, { label: string; color: string }> =
   {
     setup: { label: "Setup", color: "gray" },
-    in_progress: { label: "In Progress", color: "blue" },
+    in_progress: { label: "In Progress", color: "brand" },
     completed: { label: "Completed", color: "green" },
   };
 
@@ -59,7 +59,7 @@ export function TournamentCard({
       cursor="pointer"
       transition="all 0.2s"
       _hover={{
-        borderColor: "blue.300",
+        borderColor: "brand.300",
         shadow: "md",
         transform: "translateY(-1px)",
       }}
@@ -94,7 +94,17 @@ export function TournamentCard({
               color="fg.muted"
               fontSize="sm"
             >
-              <Text>{ALGORITHM_LABELS[t.algorithm] ?? t.algorithm}</Text>
+              {/* Format chip — each row says what it is. */}
+              <Text
+                fontFamily="mono"
+                fontSize="xs"
+                fontWeight="medium"
+                letterSpacing="0.06em"
+                textTransform="uppercase"
+                color="brand.fg"
+              >
+                {ALGORITHM_LABELS[t.algorithm] ?? t.algorithm}
+              </Text>
               <Text>•</Text>
               <Text>
                 {t.teamCount} {t.teamCount === 1 ? "team" : "teams"}

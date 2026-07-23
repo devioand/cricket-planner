@@ -6,11 +6,18 @@ import {
   HStack,
   IconButton,
   Input,
+  Menu,
+  Portal,
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { LuPlus, LuTrash2, LuTriangleAlert } from "react-icons/lu";
-import { Button } from "@/components/ui/button";
+import {
+  LuChevronDown,
+  LuPlus,
+  LuTrash2,
+  LuTriangleAlert,
+  LuTrophy,
+} from "react-icons/lu";
 import type {
   PlayoffConfig,
   PlayoffMatchSpec,
@@ -36,11 +43,20 @@ function nextMatchId(matches: PlayoffMatchSpec[]): string {
   return `PO-${String(max + 1).padStart(3, "0")}`;
 }
 
-const SLOT_KINDS: { kind: PlayoffSlot["kind"]; label: string }[] = [
-  { kind: "seed", label: "Seed" },
-  { kind: "winnerOf", label: "Winner of" },
-  { kind: "loserOf", label: "Loser of" },
-];
+/** 1 -> "1st", 2 -> "2nd", … so a seed reads as a finishing place. */
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
+/** Plain-language label for a slot, e.g. "1st place" or "Winner of Final". */
+function slotLabel(slot: PlayoffSlot, others: PlayoffMatchSpec[]): string {
+  if (slot.kind === "seed") return `${ordinal(slot.seed)} place`;
+  const ref = others.find((m) => m.id === slot.matchId);
+  const name = ref?.label || slot.matchId;
+  return `${slot.kind === "winnerOf" ? "Winner of" : "Loser of"} ${name}`;
+}
 
 export function CustomPlayoffBuilder({
   teamCount,
@@ -166,39 +182,105 @@ export function CustomPlayoffBuilder({
                   </IconButton>
                 </HStack>
 
-                <SlotEditor
-                  label="Side 1"
-                  slot={match.slot1}
-                  qualifiers={qualifiers}
-                  others={matches.filter((m) => m.id !== match.id)}
-                  onChange={(slot) => setSlot(match.id, "slot1", slot)}
-                />
-                <SlotEditor
-                  label="Side 2"
-                  slot={match.slot2}
-                  qualifiers={qualifiers}
-                  others={matches.filter((m) => m.id !== match.id)}
-                  onChange={(slot) => setSlot(match.id, "slot2", slot)}
-                />
+                <HStack gap={2.5} align="center">
+                  <Box flex="1" minW={0}>
+                    <SidePicker
+                      ariaLabel="Side 1"
+                      slot={match.slot1}
+                      qualifiers={qualifiers}
+                      others={matches.filter((m) => m.id !== match.id)}
+                      onChange={(slot) => setSlot(match.id, "slot1", slot)}
+                    />
+                  </Box>
+                  <Text
+                    fontSize="2xs"
+                    fontWeight="bold"
+                    letterSpacing="0.08em"
+                    textTransform="uppercase"
+                    color="fg.muted"
+                    flexShrink={0}
+                  >
+                    vs
+                  </Text>
+                  <Box flex="1" minW={0}>
+                    <SidePicker
+                      ariaLabel="Side 2"
+                      slot={match.slot2}
+                      qualifiers={qualifiers}
+                      others={matches.filter((m) => m.id !== match.id)}
+                      onChange={(slot) => setSlot(match.id, "slot2", slot)}
+                    />
+                  </Box>
+                </HStack>
 
-                <Chip
-                  active={!!match.isFinal}
+                <Box
+                  as="button"
                   onClick={() => setFinal(match.id)}
-                  colorPalette="yellow"
+                  aria-pressed={!!match.isFinal}
+                  alignSelf="flex-start"
+                  display="flex"
+                  alignItems="center"
+                  gap={1.5}
+                  px={3}
+                  py={1.5}
+                  borderRadius="md"
+                  borderWidth={1}
+                  fontSize="sm"
+                  fontWeight="medium"
+                  cursor="pointer"
+                  transition="all 0.12s"
+                  borderColor={
+                    match.isFinal
+                      ? { base: "gold.400", _dark: "gold.500" }
+                      : "border.default"
+                  }
+                  bg={
+                    match.isFinal
+                      ? { base: "gold.400", _dark: "gold.500" }
+                      : "card.bg"
+                  }
+                  color={match.isFinal ? "gold.950" : "fg.muted"}
+                  _hover={
+                    match.isFinal ? {} : { borderColor: "gold.400", color: "fg.default" }
+                  }
                 >
-                  {match.isFinal ? "🏆 Decides the champion" : "Mark as final"}
-                </Chip>
+                  <LuTrophy size={13} />
+                  <Text as="span">
+                    {match.isFinal ? "Decides the champion" : "Mark as final"}
+                  </Text>
+                </Box>
               </VStack>
             </Card.Body>
           </Card.Root>
         ))}
 
-        <Button onClick={addMatch} variant="outline" colorPalette="orange" w="full">
-          <HStack gap={2}>
-            <LuPlus />
-            <Text>Add playoff match</Text>
-          </HStack>
-        </Button>
+        <Box
+          as="button"
+          onClick={addMatch}
+          w="full"
+          minH="44px"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          gap={2}
+          borderRadius="lg"
+          borderWidth="1px"
+          borderStyle="dashed"
+          borderColor={{ base: "brand.300", _dark: "brand.700" }}
+          bg={{ base: "brand.50", _dark: "brand.950" }}
+          color="brand.fg"
+          fontSize="sm"
+          fontWeight="semibold"
+          cursor="pointer"
+          transition="all 0.15s"
+          _hover={{
+            borderColor: "brand.400",
+            bg: { base: "brand.100", _dark: "brand.900" },
+          }}
+        >
+          <LuPlus size={16} />
+          <Text as="span">Add playoff match</Text>
+        </Box>
       </VStack>
 
       {/* Validation */}
@@ -244,86 +326,100 @@ function clearRef(slot: PlayoffSlot, removedId: string): PlayoffSlot {
   return slot;
 }
 
-interface SlotEditorProps {
-  label: string;
+interface SidePickerProps {
+  ariaLabel: string;
   slot: PlayoffSlot;
   qualifiers: number;
   others: PlayoffMatchSpec[];
   onChange: (slot: PlayoffSlot) => void;
 }
 
-function SlotEditor({
-  label,
+/** One side of a match as a single plain-language picker: tap to choose a table
+ *  place, or the winner/loser of another match — all from one menu. */
+function SidePicker({
+  ariaLabel,
   slot,
   qualifiers,
   others,
   onChange,
-}: SlotEditorProps) {
-  const pickKind = (kind: PlayoffSlot["kind"]) => {
-    if (kind === slot.kind) return;
-    if (kind === "seed") onChange({ kind: "seed", seed: 1 });
-    else {
-      const first = others[0]?.id;
-      onChange(
-        first
-          ? ({ kind, matchId: first } as PlayoffSlot)
-          : { kind: "seed", seed: 1 },
-      );
-    }
-  };
-
+}: SidePickerProps) {
+  const seeds = Array.from({ length: qualifiers }, (_, i) => i + 1);
   return (
-    <Box>
-      <Text fontSize="xs" color="fg.muted" mb={1.5}>
-        {label}
-      </Text>
-      <HStack gap={1.5} flexWrap="wrap" mb={2}>
-        {SLOT_KINDS.map(({ kind, label: kindLabel }) => (
-          <Chip
-            key={kind}
-            active={slot.kind === kind}
-            onClick={() => pickKind(kind)}
-            size="xs"
-          >
-            {kindLabel}
-          </Chip>
-        ))}
-      </HStack>
-
-      {slot.kind === "seed" ? (
-        <HStack gap={1.5} flexWrap="wrap">
-          {Array.from({ length: qualifiers }, (_, i) => i + 1).map((seed) => (
-            <Chip
-              key={seed}
-              size="xs"
-              active={slot.seed === seed}
-              onClick={() => onChange({ kind: "seed", seed })}
-            >
-              #{seed}
-            </Chip>
-          ))}
-        </HStack>
-      ) : others.length === 0 ? (
-        <Text fontSize="xs" color="fg.muted" fontStyle="italic">
-          Add another match to reference its result.
-        </Text>
-      ) : (
-        <HStack gap={1.5} flexWrap="wrap">
-          {others.map((m) => (
-            <Chip
-              key={m.id}
-              size="xs"
-              active={slot.matchId === m.id}
-              onClick={() =>
-                onChange({ kind: slot.kind, matchId: m.id } as PlayoffSlot)
-              }
-            >
-              {m.label || m.id}
-            </Chip>
-          ))}
-        </HStack>
-      )}
-    </Box>
+    <Menu.Root positioning={{ placement: "bottom-start" }}>
+      <Menu.Trigger asChild>
+        <Box
+          as="button"
+          aria-label={ariaLabel}
+          w="full"
+          minH="40px"
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          gap={1.5}
+          px={3}
+          py={2}
+          borderRadius="md"
+          borderWidth={1}
+          borderColor="input.border"
+          bg="input.bg"
+          color="fg.default"
+          cursor="pointer"
+          transition="all 0.12s"
+          _hover={{ borderColor: "brand.300" }}
+        >
+          <Text fontSize="sm" fontWeight="medium" truncate>
+            {slotLabel(slot, others)}
+          </Text>
+          <Box color="fg.muted" flexShrink={0} display="flex">
+            <LuChevronDown size={14} />
+          </Box>
+        </Box>
+      </Menu.Trigger>
+      <Portal>
+        <Menu.Positioner>
+          <Menu.Content minW="210px" maxH="280px" overflowY="auto">
+            <Menu.ItemGroup>
+              <Menu.ItemGroupLabel>From the table</Menu.ItemGroupLabel>
+              {seeds.map((s) => (
+                <Menu.Item
+                  key={`seed-${s}`}
+                  value={`seed-${s}`}
+                  onClick={() => onChange({ kind: "seed", seed: s })}
+                >
+                  {ordinal(s)} place
+                </Menu.Item>
+              ))}
+            </Menu.ItemGroup>
+            {others.length > 0 && (
+              <>
+                <Menu.Separator />
+                <Menu.ItemGroup>
+                  <Menu.ItemGroupLabel>From another match</Menu.ItemGroupLabel>
+                  {others.map((m) => (
+                    <Menu.Item
+                      key={`win-${m.id}`}
+                      value={`win-${m.id}`}
+                      onClick={() => onChange({ kind: "winnerOf", matchId: m.id })}
+                    >
+                      Winner of {m.label || m.id}
+                    </Menu.Item>
+                  ))}
+                  {others.map((m) => (
+                    <Menu.Item
+                      key={`lose-${m.id}`}
+                      value={`lose-${m.id}`}
+                      onClick={() => onChange({ kind: "loserOf", matchId: m.id })}
+                    >
+                      Loser of {m.label || m.id}
+                    </Menu.Item>
+                  ))}
+                </Menu.ItemGroup>
+              </>
+            )}
+          </Menu.Content>
+        </Menu.Positioner>
+      </Portal>
+    </Menu.Root>
   );
 }
 
@@ -340,7 +436,7 @@ function Chip({
   onClick,
   children,
   size = "sm",
-  colorPalette = "blue",
+  colorPalette = "brand",
 }: ChipProps) {
   return (
     <Box

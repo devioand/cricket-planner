@@ -44,7 +44,7 @@ export default function DoubleEliminationTournament() {
             working hard to bring you the best double elimination experience.
           </Text>
         </VStack>
-        <Button onClick={() => router.push("/")} colorPalette="blue" size="lg">
+        <Button onClick={() => router.push("/")} colorPalette="brand" size="lg">
           ← Back to Algorithm Selection
         </Button>
       </VStack>

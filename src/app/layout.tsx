@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Rubik } from "next/font/google";
+import { Archivo, Rubik } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import { Provider } from "@/components/ui/provider";
 import { Header } from "@/components/layout/header";
@@ -9,6 +9,13 @@ import { Toaster } from "@/components/ui/toaster";
 const rubik = Rubik({
   variable: "--font-rubik",
   subsets: ["latin"],
+});
+
+// Sporty grotesque for headings & scores. Heavy weights carry the matchday feel.
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -22,14 +29,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html className={`${rubik.variable}`} lang="en" suppressHydrationWarning>
+    <html
+      className={`${rubik.variable} ${archivo.variable}`}
+      lang="en"
+      suppressHydrationWarning
+    >
       <body>
         {/* Thin progress bar shown during route/page navigations. */}
         <NextTopLoader
-          color="#3b82f6"
+          color="#9E2B44"
           height={3}
           showSpinner={false}
-          shadow="0 0 10px #3b82f6, 0 0 5px #3b82f6"
+          shadow="0 0 10px #9E2B44, 0 0 5px #9E2B44"
         />
         <Provider>
           <Toaster />

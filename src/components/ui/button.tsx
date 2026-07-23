@@ -11,7 +11,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         base: "sm",
         md: "md",
       },
-      colorPalette = "blue",
+      colorPalette = "brand",
       ...rest
     } = props;
 

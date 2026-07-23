@@ -69,13 +69,13 @@ export function TrophyDesigner({ config, onChange }: TrophyDesignerProps) {
                         py={3}
                         borderRadius="lg"
                         borderWidth={selected ? 2 : 1}
-                        colorPalette="blue"
+                        colorPalette="brand"
                         borderColor={
                           selected ? "colorPalette.500" : "border.default"
                         }
                         bg={
                           selected
-                            ? { base: "blue.50", _dark: "blue.950" }
+                            ? { base: "brand.50", _dark: "brand.950" }
                             : "card.bg"
                         }
                         cursor="pointer"
@@ -127,7 +127,7 @@ export function TrophyDesigner({ config, onChange }: TrophyDesignerProps) {
                 py={2}
                 borderRadius="lg"
                 borderWidth={selected ? 2 : 1}
-                colorPalette="blue"
+                colorPalette="brand"
                 borderColor={selected ? "colorPalette.500" : "border.default"}
                 bg="card.bg"
                 cursor="pointer"

@@ -18,7 +18,7 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
       case "in-progress-need-toss":
         return {
           text: "Match in progress - Toss required",
-          colorPalette: "blue",
+          colorPalette: "brand",
         };
 
       case "in-progress": {
@@ -43,7 +43,7 @@ export function MatchStatus({ match, matchState }: MatchStatusProps) {
               : "elected to bowl first";
           return {
             text: `🪙 ${match.toss?.tossWinner} won the toss and ${decision}`,
-            colorPalette: "blue",
+            colorPalette: "brand",
           };
         }
 
