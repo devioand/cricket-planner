@@ -330,14 +330,18 @@ export function updateSingleInnings(
   const match = state.matches.find((m) => m.id === matchId);
   if (!match) return state;
 
+  // Cricket-notation overs (e.g. 18.4 = 18 overs + 4 balls) isn't decimal —
+  // the run rate must divide by true overs (balls / 6), not the notation
+  // value itself, or it understates the rate.
+  const ballsFaced = oversToBalls(score.overs);
   const innings: InningsScore = {
     teamName: isTeam1 ? match.team1 : match.team2,
     runs: score.runs,
     wickets: score.wickets,
     overs: score.overs,
-    ballsFaced: oversToBalls(score.overs),
+    ballsFaced,
     isAllOut: score.wickets >= 10,
-    runRate: calculateRunRate(score.runs, score.overs),
+    runRate: calculateRunRate(score.runs, ballsFaced / 6),
   };
 
   const matches = state.matches.map((m) => {

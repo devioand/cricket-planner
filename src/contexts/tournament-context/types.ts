@@ -204,12 +204,15 @@ export interface CricketTeamStats {
   // Batting statistics
   totalRunsScored: number;
   totalBallsFaced: number;
-  totalOversPlayed: number; // Actual overs played by team
+  // True decimal overs for NRR (balls / 6 — NOT cricket notation), with the
+  // all-out-team full-quota rule already applied.
+  totalOversPlayed: number;
 
   // Bowling/Fielding statistics
   totalRunsConceded: number;
   totalBallsBowled: number;
-  totalOversBowled: number; // Actual overs bowled against team
+  // True decimal overs bowled for NRR (see totalOversPlayed).
+  totalOversBowled: number;
 
   // Calculated rates
   battingRunRate: number; // Runs scored per over

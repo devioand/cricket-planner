@@ -11,6 +11,7 @@ import {
   completeMatch,
   completeMatchAsNoResult,
   simulateMatchResult,
+  updateSingleInnings,
   startMatch,
   setMatchToss,
   isTournamentComplete,
@@ -191,6 +192,23 @@ describe("Tournament Engine", () => {
       expect(toss?.tossWinner).toBe(first.team1);
       expect(toss?.decision).toBe("bat");
       expect(toss?.tossLoser).toBe(first.team2);
+    });
+
+    it("computes a live innings run rate from true overs, not cricket notation", () => {
+      // 18.4 (18 overs + 4 balls = 112 balls = 18.667 true overs) must not
+      // be divided into directly — that's the classic NRR/run-rate mistake.
+      const state = setup();
+      const first = state.matches.find((m) => !m.isPlayoff)!;
+      const next = updateSingleInnings(state, first.id, true, {
+        runs: 150,
+        wickets: 6,
+        overs: 18.4,
+      });
+      const innings = next.matches.find((m) => m.id === first.id)?.result
+        ?.team1Innings;
+      expect(innings?.ballsFaced).toBe(112);
+      expect(innings?.runRate).toBeCloseTo(150 / (112 / 6), 3);
+      expect(innings?.runRate).not.toBeCloseTo(150 / 18.4, 2);
     });
   });
 

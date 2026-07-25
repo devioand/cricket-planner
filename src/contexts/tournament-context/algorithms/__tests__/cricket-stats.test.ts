@@ -132,7 +132,9 @@ describe("Cricket Stats Module", () => {
       expect(result.team2Innings?.runs).toBe(140);
       expect(result.team2Innings?.wickets).toBe(8);
       expect(result.team2Innings?.overs).toBe(19.2);
-      expect(result.team2Innings?.runRate).toBeCloseTo(7.29, 2);
+      // 19.2 is cricket notation (19 overs + 2 balls = 19.333 true overs),
+      // so the run rate is 140/19.333, not 140/19.2.
+      expect(result.team2Innings?.runRate).toBeCloseTo(7.24, 2);
     });
 
     it("should create correct match result for team2 win", () => {
@@ -550,9 +552,10 @@ describe("Cricket Stats Module", () => {
 
     it("should calculate NRR correctly for South Africa vs India match", () => {
       // Match 1: South Africa vs India
-      // SA: 254/6 in 47.2 overs, India: 253/5 in 50 overs
+      // SA: 254/6 in 47.2 overs (cricket notation: 47 overs + 2 balls =
+      // 47.333 true decimal overs), India: 253/5 in 50 overs
       const match = createMatch("SA-IND", "South Africa", "India");
-      const saInnings = createInnings("South Africa", 254, 6, 47.333, false); // 47.2 overs
+      const saInnings = createInnings("South Africa", 254, 6, 47.2, false);
       const indInnings = createInnings("India", 253, 5, 50, false);
 
       const matchResult: CricketMatchResult = {
@@ -597,7 +600,7 @@ describe("Cricket Stats Module", () => {
       // SA: 199/9 in 50 overs, Sri Lanka: 110 all out in 35.2 overs
       const match = createMatch("SA-SL", "South Africa", "Sri Lanka");
       const saInnings = createInnings("South Africa", 199, 9, 50, false);
-      const slInnings = createInnings("Sri Lanka", 110, 10, 35.333, true); // All out
+      const slInnings = createInnings("Sri Lanka", 110, 10, 35.2, true); // All out
 
       const matchResult: CricketMatchResult = {
         winner: "South Africa",
@@ -671,7 +674,7 @@ describe("Cricket Stats Module", () => {
 
       // Match 1: SA vs India - SA: 254/6 (47.2), India: 253/5 (50)
       const match1 = createMatch("SA-IND", "South Africa", "India");
-      const saInnings1 = createInnings("South Africa", 254, 6, 47.333, false);
+      const saInnings1 = createInnings("South Africa", 254, 6, 47.2, false);
       const indInnings1 = createInnings("India", 253, 5, 50, false);
 
       const result1: CricketMatchResult = {
@@ -688,7 +691,7 @@ describe("Cricket Stats Module", () => {
       // Match 2: SA vs Sri Lanka - SA: 199/9 (50), Sri Lanka: 110 all out (35.2)
       const match2 = createMatch("SA-SL", "South Africa", "Sri Lanka");
       const saInnings2 = createInnings("South Africa", 199, 9, 50, false);
-      const slInnings2 = createInnings("Sri Lanka", 110, 10, 35.333, true);
+      const slInnings2 = createInnings("Sri Lanka", 110, 10, 35.2, true);
 
       const result2: CricketMatchResult = {
         winner: "South Africa",
@@ -837,16 +840,52 @@ describe("Cricket Stats Module", () => {
       let teamAStats = initializeTeamStats("Team A");
       teamAStats = updateTeamStatsAfterMatch(teamAStats, match, matchResult);
 
-      // Verify calculations work for reduced overs matches
+      // Verify calculations work for reduced overs matches. Team B's "9.5"
+      // is cricket notation (9 overs + 5 balls = 59 balls = 9.833 true overs)
+      // — NRR must use the true decimal, not the notation value.
       expect(teamAStats.totalRunsScored).toBe(80);
       expect(teamAStats.totalOversPlayed).toBe(10);
       expect(teamAStats.totalRunsConceded).toBe(85);
-      expect(teamAStats.totalOversBowled).toBeCloseTo(9.5, 1);
+      expect(teamAStats.totalOversBowled).toBeCloseTo(9.833, 3);
 
       // Run rates should be calculated correctly
       expect(teamAStats.battingRunRate).toBeCloseTo(8.0, 1); // 80/10
-      expect(teamAStats.bowlingRunRate).toBeCloseTo(8.95, 2); // 85/9.5
-      expect(teamAStats.netRunRate).toBeCloseTo(-0.947, 2); // 8.0 - 8.95
+      expect(teamAStats.bowlingRunRate).toBeCloseTo(8.644, 3); // 85/9.833
+      expect(teamAStats.netRunRate).toBeCloseTo(-0.644, 3); // 8.0 - 8.644
+    });
+
+    it("never divides by raw cricket-notation overs (regression: notation != decimal)", () => {
+      // 18.4 overs (cricket notation) is 18 overs + 4 balls = 112 balls =
+      // 18.667 true overs. A naive `runs / 18.4` (treating the notation as
+      // decimal) is the single most common NRR mistake — this pins down
+      // that the engine never does that.
+      const match = createMatch("NOTATION", "Team A", "Team B", 20);
+      const teamAInnings = createInnings("Team A", 150, 6, 18.4, false);
+      const teamBInnings = createInnings("Team B", 140, 5, 20, false);
+
+      const matchResult: CricketMatchResult = {
+        winner: "Team A",
+        loser: "Team B",
+        team1Innings: teamAInnings,
+        team2Innings: teamBInnings,
+        marginType: "runs",
+        margin: 10,
+        matchType: "completed",
+      };
+
+      const stats = updateTeamStatsAfterMatch(
+        initializeTeamStats("Team A"),
+        match,
+        matchResult,
+      );
+
+      const naiveWrongRate = 150 / 18.4; // = 8.152 — must NOT be the result
+      const trueOvers = 112 / 6; // 18.667
+      const correctRate = 150 / trueOvers; // = 8.036
+
+      expect(stats.totalOversPlayed).toBeCloseTo(trueOvers, 3);
+      expect(stats.battingRunRate).toBeCloseTo(correctRate, 3);
+      expect(stats.battingRunRate).not.toBeCloseTo(naiveWrongRate, 2);
     });
   });
 
