@@ -5,10 +5,13 @@ import {
   setMaxOvers,
   setMaxWickets,
   setPlayoffFormat,
+  setAlgorithm,
+  setSeriesBestOf,
   generateMatches,
   completeMatch,
   completeMatchAsNoResult,
   simulateMatchResult,
+  updateSingleInnings,
   startMatch,
   setMatchToss,
   isTournamentComplete,
@@ -190,6 +193,23 @@ describe("Tournament Engine", () => {
       expect(toss?.decision).toBe("bat");
       expect(toss?.tossLoser).toBe(first.team2);
     });
+
+    it("computes a live innings run rate from true overs, not cricket notation", () => {
+      // 18.4 (18 overs + 4 balls = 112 balls = 18.667 true overs) must not
+      // be divided into directly — that's the classic NRR/run-rate mistake.
+      const state = setup();
+      const first = state.matches.find((m) => !m.isPlayoff)!;
+      const next = updateSingleInnings(state, first.id, true, {
+        runs: 150,
+        wickets: 6,
+        overs: 18.4,
+      });
+      const innings = next.matches.find((m) => m.id === first.id)?.result
+        ?.team1Innings;
+      expect(innings?.ballsFaced).toBe(112);
+      expect(innings?.runRate).toBeCloseTo(150 / (112 / 6), 3);
+      expect(innings?.runRate).not.toBeCloseTo(150 / 18.4, 2);
+    });
   });
 
   describe("Two-Team Tournament", () => {
@@ -213,6 +233,147 @@ describe("Tournament Engine", () => {
       const done = completeMatch(played, final.id);
       expect(isTournamentComplete(done.state)).toBe(true);
       expect(getTournamentWinner(done.state)).toBe(final.team1);
+    });
+  });
+
+  describe("Series Tournament", () => {
+    const setup = (bestOf: 3 | 5 | 7 = 5) => {
+      let state = withTeams("Team A", "Team B");
+      state = setAlgorithm(state, "series");
+      state = setSeriesBestOf(state, bestOf);
+      return generateMatches(state).state;
+    };
+
+    it("generates bestOf matches between the same two teams", () => {
+      const state = setup(5);
+      expect(state.matches).toHaveLength(5);
+      expect(state.matches.every((m) => !m.isPlayoff)).toBe(true);
+      expect(isTournamentComplete(state)).toBe(false);
+    });
+
+    it("declares the champion the moment a majority is reached, cancelling the rest", () => {
+      let state = setup(5); // first to 3 wins
+
+      for (let i = 0; i < 3; i++) {
+        const next = state.matches.find((m) => m.status === "scheduled")!;
+        state = simulateMatchResult(
+          state,
+          next.id,
+          { runs: 160, wickets: 4, overs: 20 },
+          { runs: 150, wickets: 8, overs: 20 },
+        );
+        state = completeMatch(state, next.id).state;
+      }
+
+      expect(isTournamentComplete(state)).toBe(true);
+      expect(getTournamentWinner(state)).toBe("Team A");
+
+      const completed = state.matches.filter((m) => m.status === "completed");
+      const cancelled = state.matches.filter((m) => m.status === "cancelled");
+      expect(completed).toHaveLength(3);
+      expect(cancelled).toHaveLength(2);
+    });
+
+    it("cancels games already in progress (not just scheduled) once the series is decided", () => {
+      // Mirrors the dev "generate sample results" tool: every remaining match
+      // is started at once, before any of them is finished.
+      let state = setup(5);
+      for (const m of state.matches) {
+        state = simulateMatchResult(
+          state,
+          m.id,
+          { runs: 160, wickets: 4, overs: 20 },
+          { runs: 150, wickets: 8, overs: 20 },
+        );
+      }
+      expect(state.matches.every((m) => m.status === "in-progress")).toBe(true);
+
+      for (let i = 0; i < 3; i++) {
+        state = completeMatch(state, state.matches[i].id).state;
+      }
+
+      expect(getTournamentWinner(state)).toBe("Team A");
+      const byStatus = (s: string) =>
+        state.matches.filter((m) => m.status === s).length;
+      expect(byStatus("completed")).toBe(3);
+      expect(byStatus("cancelled")).toBe(2);
+      expect(byStatus("in-progress")).toBe(0);
+    });
+
+    it("keeps the series open when neither side has a majority yet", () => {
+      let state = setup(5);
+      const first = state.matches.find((m) => m.status === "scheduled")!;
+      state = simulateMatchResult(
+        state,
+        first.id,
+        { runs: 160, wickets: 4, overs: 20 },
+        { runs: 150, wickets: 8, overs: 20 },
+      );
+      state = completeMatch(state, first.id).state;
+
+      expect(isTournamentComplete(state)).toBe(false);
+      expect(state.matches.filter((m) => m.status === "cancelled")).toHaveLength(0);
+    });
+  });
+
+  describe("Tri-series Tournament", () => {
+    const setup = () => {
+      let state = withTeams("Team A", "Team B", "Team C");
+      state = setAlgorithm(state, "tri-series");
+      return generateMatches(state).state;
+    };
+
+    it("generates 6 group matches (each pair twice) plus a final", () => {
+      const state = setup();
+      const group = state.matches.filter((m) => !m.isPlayoff);
+      const playoff = state.matches.filter((m) => m.isPlayoff);
+      expect(group).toHaveLength(6);
+      expect(playoff).toHaveLength(1);
+      expect(playoff[0].isFinal).toBe(true);
+      expect(playoff[0].team1).toBe("TBD");
+      expect(playoff[0].team2).toBe("TBD");
+      expect(state.playoffFormat).toBe("final-only");
+      expect(isTournamentComplete(state)).toBe(false);
+    });
+
+    it("seeds the final from the top 2 once the group stage completes, and crowns a champion", () => {
+      let state = setup();
+      const group = state.matches.filter((m) => !m.isPlayoff);
+
+      // Team A wins every group game; Team B beats Team C every time they meet.
+      for (const m of group) {
+        const involvesA = m.team1 === "Team A" || m.team2 === "Team A";
+        const winner = involvesA ? "Team A" : "Team B";
+        const team1Wins = m.team1 === winner;
+        state = simulateMatchResult(
+          state,
+          m.id,
+          { runs: team1Wins ? 160 : 100, wickets: 4, overs: 20 },
+          { runs: team1Wins ? 100 : 160, wickets: 6, overs: 20 },
+        );
+        state = completeMatch(state, m.id).state;
+      }
+
+      const final = state.matches.find((m) => m.isPlayoff)!;
+      expect(final.team1).not.toBe("TBD");
+      expect(final.team2).not.toBe("TBD");
+      expect([final.team1, final.team2].sort()).toEqual(["Team A", "Team B"]);
+
+      state = simulateMatchResult(
+        state,
+        final.id,
+        { runs: 170, wickets: 3, overs: 20 },
+        { runs: 150, wickets: 8, overs: 20 },
+      );
+      state = completeMatch(state, final.id).state;
+
+      expect(isTournamentComplete(state)).toBe(true);
+      expect(getTournamentWinner(state)).toBe(final.team1);
+    });
+
+    it("rejects anything other than exactly 3 teams", () => {
+      const gen = generateMatches(setAlgorithm(withTeams("Team A", "Team B"), "tri-series"));
+      expect(gen.success).toBe(false);
     });
   });
 

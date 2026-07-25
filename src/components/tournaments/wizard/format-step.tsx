@@ -20,6 +20,8 @@ export interface FormatSpec {
   min: number;
 }
 
+// Available formats first, then the "Soon" ones — so people can find what
+// they can actually play without scanning past placeholders.
 export const FORMATS: FormatSpec[] = [
   {
     id: "round-robin",
@@ -27,6 +29,24 @@ export const FORMATS: FormatSpec[] = [
     name: "Round-robin",
     tag: "everyone plays everyone",
     desc: "Every side plays every other once — points decide the table. Fair, and everyone gets plenty of game time.",
+    available: true,
+    min: 3,
+  },
+  {
+    id: "series",
+    algorithm: "series",
+    name: "Series",
+    tag: "two sides · best of N",
+    desc: "Just two sides, best of 3, 5 or 7. Made for a proper rivalry.",
+    available: true,
+    min: 2,
+  },
+  {
+    id: "tri-series",
+    algorithm: "tri-series",
+    name: "Tri-series",
+    tag: "three sides · double round-robin + final",
+    desc: "Three sides, each pair plays twice, then the top two meet in a final. The classic tri-nation format.",
     available: true,
     min: 3,
   },
@@ -53,14 +73,6 @@ export const FORMATS: FormatSpec[] = [
     desc: "You have to lose twice to go out — a losers' bracket gives everyone a second chance.",
     available: false,
     min: 4,
-  },
-  {
-    id: "series",
-    name: "Series",
-    tag: "two sides · best of N",
-    desc: "Just two sides, best of 3, 5 or 7. Made for a proper rivalry.",
-    available: false,
-    min: 2,
   },
 ];
 

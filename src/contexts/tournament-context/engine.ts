@@ -12,7 +12,9 @@ import type {
   CricketMatchResult,
   PlayoffConfig,
   PlayoffFormat,
+  SeriesBestOf,
   TossDecision,
+  TournamentType,
 } from "./types";
 import {
   initializeTeamStats,
@@ -33,6 +35,15 @@ import {
   resolvePlayoffDependencies,
   resolveSeedSlots,
 } from "./algorithms/playoff-engine";
+import {
+  generateSeriesMatches,
+  getSeriesWinner,
+  validateSeriesTeams,
+} from "./algorithms/series";
+import {
+  generateTriSeriesMatches,
+  validateTriSeriesTeams,
+} from "./algorithms/tri-series";
 
 export const initialState: TournamentState = {
   algorithm: "round-robin",
@@ -45,6 +56,7 @@ export const initialState: TournamentState = {
   phase: "setup",
   playoffFormat: "world-cup",
   playoffConfig: null,
+  seriesBestOf: 3,
 };
 
 // ── Internal helpers (mirror the old reducer) ────────────────────────────────
@@ -116,6 +128,22 @@ export function setPlayoffFormat(
   return { ...state, playoffFormat: format };
 }
 
+export function setAlgorithm(
+  state: TournamentState,
+  algorithm: TournamentType,
+): TournamentState {
+  if (state.algorithm === algorithm) return state;
+  return { ...state, algorithm };
+}
+
+export function setSeriesBestOf(
+  state: TournamentState,
+  bestOf: SeriesBestOf,
+): TournamentState {
+  if (bestOf !== 3 && bestOf !== 5 && bestOf !== 7) return state;
+  return { ...state, seriesBestOf: bestOf };
+}
+
 export function setPlayoffConfig(
   state: TournamentState,
   config: PlayoffConfig | null,
@@ -148,7 +176,12 @@ export function generateMatches(state: TournamentState): {
   success: boolean;
   errors?: string[];
 } {
-  const validation = validateRoundRobinTeams(state.teams);
+  const validation =
+    state.algorithm === "series"
+      ? validateSeriesTeams(state.teams)
+      : state.algorithm === "tri-series"
+        ? validateTriSeriesTeams(state.teams)
+        : validateRoundRobinTeams(state.teams);
   if (!validation.valid) {
     return { state, success: false, errors: validation.errors };
   }
@@ -198,6 +231,37 @@ export function generateMatches(state: TournamentState): {
 
         return {
           state: setMatches({ ...state, playoffConfig: config }, allMatches),
+          success: true,
+        };
+      }
+      case "series": {
+        const matches = generateSeriesMatches({
+          teams: state.teams as [string, string],
+          bestOf: state.seriesBestOf,
+          maxOvers: state.maxOvers,
+          maxWickets: state.maxWickets,
+        });
+        return { state: setMatches(state, matches), success: true };
+      }
+      case "tri-series": {
+        const opts = { maxOvers: state.maxOvers, maxWickets: state.maxWickets };
+        const groupMatches = generateTriSeriesMatches({
+          teams: state.teams as [string, string, string],
+          maxOvers: state.maxOvers,
+          maxWickets: state.maxWickets,
+        });
+
+        // The champion is always decided by a final between the top 2 — not
+        // a wizard choice, so the playoff format/config are forced here
+        // regardless of whatever was previously selected.
+        const config = buildPlayoffConfig("final-only", 3, null)!;
+        const finalMatches = generatePlayoffMatches(config, opts);
+
+        return {
+          state: setMatches(
+            { ...state, playoffFormat: "final-only", playoffConfig: config },
+            [...groupMatches, ...finalMatches],
+          ),
           success: true,
         };
       }
@@ -266,14 +330,18 @@ export function updateSingleInnings(
   const match = state.matches.find((m) => m.id === matchId);
   if (!match) return state;
 
+  // Cricket-notation overs (e.g. 18.4 = 18 overs + 4 balls) isn't decimal —
+  // the run rate must divide by true overs (balls / 6), not the notation
+  // value itself, or it understates the rate.
+  const ballsFaced = oversToBalls(score.overs);
   const innings: InningsScore = {
     teamName: isTeam1 ? match.team1 : match.team2,
     runs: score.runs,
     wickets: score.wickets,
     overs: score.overs,
-    ballsFaced: oversToBalls(score.overs),
+    ballsFaced,
     isAllOut: score.wickets >= 10,
-    runRate: calculateRunRate(score.runs, score.overs),
+    runRate: calculateRunRate(score.runs, ballsFaced / 6),
   };
 
   const matches = state.matches.map((m) => {
@@ -409,13 +477,13 @@ export function completeMatch(
     }
   }
 
-  const newState: TournamentState = {
+  const newState: TournamentState = cancelRemainingSeriesMatches({
     ...state,
     matches: matchesToSet,
     teamStats: finalUpdatedTeamStats,
-  };
+  });
 
-  const nextMatchId = matchesToSet.find((m) => m.status === "scheduled")?.id;
+  const nextMatchId = newState.matches.find((m) => m.status === "scheduled")?.id;
   const finalWinner = getTournamentWinner(newState);
 
   return {
@@ -423,6 +491,28 @@ export function completeMatch(
     nextMatchId,
     complete: finalWinner !== null,
     winner: finalWinner,
+  };
+}
+
+/**
+ * Once a series has been clinched, any game that isn't already completed
+ * would never be finished — mark it cancelled so it drops out of the matches
+ * list and the completed/total progress count. Covers "scheduled" AND
+ * "in-progress" (e.g. the dev sample-results tool starts every remaining
+ * match at once, or a user opens the toss on a later game before finishing
+ * an earlier one). No-op for every other algorithm.
+ */
+function cancelRemainingSeriesMatches(state: TournamentState): TournamentState {
+  if (state.algorithm !== "series" || getTournamentWinner(state) === null) {
+    return state;
+  }
+  return {
+    ...state,
+    matches: state.matches.map((m) =>
+      m.status === "scheduled" || m.status === "in-progress"
+        ? { ...m, status: "cancelled" as const }
+        : m,
+    ),
   };
 }
 
@@ -487,16 +577,16 @@ export function completeMatchAsNoResult(
     matchesToSet = resolveSeedSlots(updatedMatches, config, standings).matches;
   }
 
-  const newState: TournamentState = {
+  const newState: TournamentState = cancelRemainingSeriesMatches({
     ...state,
     matches: matchesToSet,
     teamStats: updatedTeamStats,
-  };
+  });
 
   const finalWinner = getTournamentWinner(newState);
   return {
     state: newState,
-    nextMatchId: matchesToSet.find((m) => m.status === "scheduled")?.id,
+    nextMatchId: newState.matches.find((m) => m.status === "scheduled")?.id,
     complete: finalWinner !== null,
     winner: finalWinner,
   };
@@ -567,6 +657,17 @@ export function generateSampleResults(state: TournamentState): TournamentState {
 // ── Derived ──────────────────────────────────────────────────────────────────
 
 export function getTournamentWinner(state: TournamentState): string | null {
+  // A series has no table and no playoffs — the champion is whoever reaches a
+  // winning majority of games first.
+  if (state.algorithm === "series") {
+    if (state.teams.length !== 2) return null;
+    return getSeriesWinner(
+      state.matches,
+      state.teams as [string, string],
+      state.seriesBestOf,
+    );
+  }
+
   // "none" format has no playoff matches — the champion is the table topper,
   // decided the moment the round-robin completes.
   if (state.playoffFormat === "none") {

@@ -87,7 +87,9 @@ export function displayCricketOvers(overs: number): string {
 }
 
 /**
- * Calculate run rate from runs and overs
+ * Calculate run rate from runs and TRUE DECIMAL overs (balls / 6) — NOT
+ * cricket notation. "18.4 overs" is 18 overs + 4 balls = 18.667 true overs;
+ * dividing by the notation value directly understates the rate.
  */
 export function calculateRunRate(runs: number, overs: number): number {
   if (overs === 0) return 0;
@@ -173,25 +175,31 @@ export function updateTeamStatsAfterMatch(
   updatedStats.totalRunsScored += teamInnings.runs;
   updatedStats.totalBallsFaced += teamInnings.ballsFaced;
 
-  // For overs calculation - use full quota if team was all out
-  const oversForNRR =
-    teamInnings.isAllOut && teamInnings.overs < match.overs
-      ? match.overs // Use full quota for NRR calculation when all out
-      : teamInnings.overs; // Use actual overs when not all out
+  // NRR must be computed from BALLS, not the raw overs notation — "18.4
+  // overs" is 18 overs + 4 balls = 18.667 true overs, not 18.4. Dividing by
+  // the notation value directly (as if it were decimal) understates the
+  // rate. Converting via balls (already tracked correctly above) gives the
+  // real ICC figure. Full quota applies when the team was bowled out before
+  // using all its overs.
+  const matchBalls = oversToBalls(match.overs);
+  const ballsForNRR =
+    teamInnings.isAllOut && teamInnings.ballsFaced < matchBalls
+      ? matchBalls // Full quota for NRR calculation when all out
+      : teamInnings.ballsFaced; // Actual balls faced when not all out
 
-  updatedStats.totalOversPlayed += oversForNRR;
+  updatedStats.totalOversPlayed += ballsForNRR / 6;
 
   // Update bowling statistics
   updatedStats.totalRunsConceded += opponentInnings.runs;
   updatedStats.totalBallsBowled += opponentInnings.ballsFaced;
 
-  // Similar rule for opponent overs
-  const opponentOversForNRR =
-    opponentInnings.isAllOut && opponentInnings.overs < match.overs
-      ? match.overs
-      : opponentInnings.overs;
+  // Same ball-based rule for the overs bowled at the opponent.
+  const opponentBallsForNRR =
+    opponentInnings.isAllOut && opponentInnings.ballsFaced < matchBalls
+      ? matchBalls
+      : opponentInnings.ballsFaced;
 
-  updatedStats.totalOversBowled += opponentOversForNRR;
+  updatedStats.totalOversBowled += opponentBallsForNRR / 6;
 
   // Update highest/lowest scores
   if (
@@ -308,7 +316,7 @@ export function createSampleMatchResult(
     overs: team1Overs,
     ballsFaced: team1Balls,
     isAllOut: team1Wickets >= 10,
-    runRate: calculateRunRate(team1Runs, team1Overs),
+    runRate: calculateRunRate(team1Runs, team1Balls / 6),
   };
 
   const team2Innings: InningsScore = {
@@ -318,7 +326,7 @@ export function createSampleMatchResult(
     overs: team2Overs,
     ballsFaced: team2Balls,
     isAllOut: team2Wickets >= 10,
-    runRate: calculateRunRate(team2Runs, team2Overs),
+    runRate: calculateRunRate(team2Runs, team2Balls / 6),
   };
 
   let winner: string;

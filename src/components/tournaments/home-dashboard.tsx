@@ -167,7 +167,7 @@ function UpcomingCard({ tournament: t }: { tournament: TournamentSummary }) {
           fontSize="9px"
           letterSpacing="0.08em"
           textTransform="uppercase"
-          color="fg.subtle"
+          color="fg.muted"
         >
           {weekday}
         </Text>

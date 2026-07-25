@@ -20,6 +20,8 @@ const ALGORITHM_LABELS: Record<string, string> = {
   "single-elimination": "Single Elimination",
   "double-elimination": "Double Elimination",
   "triple-elimination": "Triple Elimination",
+  series: "Series",
+  "tri-series": "Tri-series",
 };
 
 const STATUS_META: Record<TournamentStatus, { label: string; color: string }> =
