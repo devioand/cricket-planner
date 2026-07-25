@@ -22,6 +22,13 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Club", href: "/club", icon: LuUsers },
 ];
 
+/**
+ * Height of the mobile bottom tab bar, including the iPhone home-bar inset.
+ * Anything else pinned to the bottom of the viewport (wizard footers) offsets
+ * itself by this so it never sits underneath the tab bar.
+ */
+export const BOTTOM_NAV_HEIGHT = "calc(60px + env(safe-area-inset-bottom))";
+
 /** A tab is active on its own route and any nested route beneath it. */
 export function isNavItemActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");

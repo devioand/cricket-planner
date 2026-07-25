@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { LuSwords } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { TeamListEditor } from "@/components/tournaments/wizard/team-list-editor";
+import { BOTTOM_NAV_HEIGHT, useNavVisible } from "@/components/layout/nav-items";
 import { BeltStore } from "@/lib/hold-the-belt/belt-store";
 
 const MIN_PLAYERS = 3;
@@ -21,6 +22,7 @@ const MAX_PLAYERS = 8;
 
 export function BeltSetup() {
   const router = useRouter();
+  const navVisible = useNavVisible();
   const [name, setName] = useState("");
   const [players, setPlayers] = useState<string[]>([]);
   const [target, setTarget] = useState(3);
@@ -114,17 +116,21 @@ export function BeltSetup() {
         </HStack>
       </VStack>
 
-      {/* Sticky start */}
+      {/* Sticky start — clears the mobile tab bar (incl. the home-bar inset). */}
       <Box
         position="fixed"
-        bottom={{ base: "72px", md: 0 }}
+        bottom={{ base: navVisible ? BOTTOM_NAV_HEIGHT : 0, md: 0 }}
         left={0}
         right={0}
         bg="bg.panel"
         borderTopWidth={1}
         borderColor="border.default"
         px={4}
-        py={3}
+        pt={3}
+        pb={{
+          base: navVisible ? 3 : "calc(var(--chakra-spacing-3) + env(safe-area-inset-bottom))",
+          md: 3,
+        }}
         zIndex={10}
       >
         <Box maxW="600px" mx="auto">
