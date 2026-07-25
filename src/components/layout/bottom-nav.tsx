@@ -3,7 +3,12 @@
 import { Box, HStack, Text, VStack } from "@chakra-ui/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { isNavItemActive, NAV_ITEMS, useNavVisible } from "./nav-items";
+import {
+  BOTTOM_NAV_HEIGHT,
+  isNavItemActive,
+  NAV_ITEMS,
+  useNavVisible,
+} from "./nav-items";
 
 /**
  * Phone-first bottom tab bar. Fixed to the bottom of the viewport on small
@@ -16,7 +21,7 @@ export function BottomNav() {
 
   if (!visible) return null;
 
-  const barHeight = "calc(60px + env(safe-area-inset-bottom))";
+  const barHeight = BOTTOM_NAV_HEIGHT;
 
   return (
     <>
@@ -35,6 +40,9 @@ export function BottomNav() {
         left="0"
         right="0"
         zIndex="docked"
+        // Pinned to the token height so the spacer above and anything that
+        // stacks on top of the bar line up with it exactly.
+        minH={barHeight}
         bg="bg.surface"
         borderTopWidth="1px"
         borderTopColor="border.default"

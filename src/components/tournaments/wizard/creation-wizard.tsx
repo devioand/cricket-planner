@@ -9,6 +9,7 @@ import { createTournamentAction } from "@/app/tournaments/actions";
 import { markPlayedAction } from "@/app/club/actions";
 import { LuShare2 } from "react-icons/lu";
 import { FixtureShareDialog } from "@/components/tournaments/fixture-share-dialog";
+import { BOTTOM_NAV_HEIGHT, useNavVisible } from "@/components/layout/nav-items";
 import { TournamentStore } from "@/lib/local/tournament-store";
 import { initialState } from "@/contexts/tournament-context/engine";
 import { EMPTY_FORM, type FormData } from "@/lib/predictions";
@@ -755,17 +756,25 @@ function WizardFooter({
   onBack: () => void;
   onNext: () => void;
 }) {
+  // On phones the primary tab bar owns the very bottom of the viewport, so the
+  // wizard's actions sit directly above it instead of underneath it.
+  const navVisible = useNavVisible();
+
   return (
     <Box
       position="fixed"
-      bottom={0}
+      bottom={{ base: navVisible ? BOTTOM_NAV_HEIGHT : 0, md: 0 }}
       left={0}
       right={0}
       bg="bg.panel"
       borderTopWidth={1}
       borderColor="border.default"
       px={4}
-      py={3}
+      pt={3}
+      pb={{
+        base: navVisible ? 3 : "calc(var(--chakra-spacing-3) + env(safe-area-inset-bottom))",
+        md: 3,
+      }}
       zIndex={10}
     >
       <HStack gap={3} maxW="600px" mx="auto">
