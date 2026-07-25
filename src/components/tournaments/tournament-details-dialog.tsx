@@ -8,8 +8,9 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { LuSettings2, LuTrophy, LuUsers } from "react-icons/lu";
+import { LuSettings2, LuSwords, LuTrophy, LuUsers } from "react-icons/lu";
 import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
+import { gamesToWin } from "@/contexts/tournament-context/algorithms/series";
 import {
   BracketPreview,
   matchCounts,
@@ -34,7 +35,13 @@ export function TournamentDetailsDialog({
   name: string;
 }) {
   const { state } = useLiveTournament();
-  const counts = matchCounts(state.teams.length, state.playoffConfig);
+  const isSeries = state.algorithm === "series";
+  const isTriSeries = state.algorithm === "tri-series";
+  // Tri-series doubles every pairing (6 group games for the fixed 3 sides),
+  // which the generic combinatorial count doesn't know about.
+  const counts = isTriSeries
+    ? { group: 6, playoffs: 1, total: 7 }
+    : matchCounts(state.teams.length, state.playoffConfig);
 
   return (
     <Dialog.Root
@@ -69,11 +76,24 @@ export function TournamentDetailsDialog({
 
             <Dialog.Body pb={5}>
               <VStack align="stretch" gap={3}>
-                <MatchCountBanner
-                  total={counts.total}
-                  group={counts.group}
-                  playoffs={counts.playoffs}
-                />
+                {isSeries ? (
+                  <SummaryCard
+                    icon={<LuSwords size={16} />}
+                    title="Series"
+                    badge={`Best of ${state.seriesBestOf}`}
+                  >
+                    <Text fontSize="sm" color="fg.muted">
+                      First to {gamesToWin(state.seriesBestOf)} wins takes the
+                      series — up to {state.seriesBestOf} games.
+                    </Text>
+                  </SummaryCard>
+                ) : (
+                  <MatchCountBanner
+                    total={counts.total}
+                    group={counts.group}
+                    playoffs={counts.playoffs}
+                  />
+                )}
 
                 <SummaryCard
                   icon={<LuUsers size={16} />}
@@ -90,10 +110,14 @@ export function TournamentDetailsDialog({
                   <VStack align="stretch" gap={3}>
                     <HStack gap={2} align="baseline">
                       <Text fontSize="sm" fontWeight="medium" color="fg.default">
-                        Round Robin
+                        {isSeries ? "Series" : isTriSeries ? "Tri-series" : "Round Robin"}
                       </Text>
                       <Text fontSize="xs" color="fg.muted">
-                        every team plays once
+                        {isSeries
+                          ? "head-to-head"
+                          : isTriSeries
+                            ? "each pair plays twice"
+                            : "every team plays once"}
                       </Text>
                     </HStack>
                     <HStack gap={2.5} align="stretch">
@@ -103,24 +127,26 @@ export function TournamentDetailsDialog({
                   </VStack>
                 </SummaryCard>
 
-                <SummaryCard
-                  icon={<LuTrophy size={16} />}
-                  title="Playoffs"
-                  badge={
-                    state.playoffConfig
-                      ? `Top ${state.playoffConfig.qualifiers}`
-                      : "None"
-                  }
-                >
-                  {state.playoffConfig ? (
-                    <BracketPreview config={state.playoffConfig} />
-                  ) : (
-                    <Text fontSize="sm" color="fg.muted">
-                      No knockout — the team that tops the standings is the
-                      champion.
-                    </Text>
-                  )}
-                </SummaryCard>
+                {!isSeries && (
+                  <SummaryCard
+                    icon={<LuTrophy size={16} />}
+                    title="Playoffs"
+                    badge={
+                      state.playoffConfig
+                        ? `Top ${state.playoffConfig.qualifiers}`
+                        : "None"
+                    }
+                  >
+                    {state.playoffConfig ? (
+                      <BracketPreview config={state.playoffConfig} />
+                    ) : (
+                      <Text fontSize="sm" color="fg.muted">
+                        No knockout — the team that tops the standings is the
+                        champion.
+                      </Text>
+                    )}
+                  </SummaryCard>
+                )}
               </VStack>
             </Dialog.Body>
           </Dialog.Content>

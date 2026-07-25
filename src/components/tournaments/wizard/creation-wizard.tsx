@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 import { createTournamentAction } from "@/app/tournaments/actions";
 import { markPlayedAction } from "@/app/club/actions";
+import { syncTournamentAction } from "@/app/tournament/round-robin/[id]/actions";
 import { LuShare2 } from "react-icons/lu";
 import { FixtureShareDialog } from "@/components/tournaments/fixture-share-dialog";
 import { BOTTOM_NAV_HEIGHT, useNavVisible } from "@/components/layout/nav-items";
@@ -15,6 +16,7 @@ import { initialState } from "@/contexts/tournament-context/engine";
 import { EMPTY_FORM, type FormData } from "@/lib/predictions";
 import type {
   PlayoffConfig,
+  SeriesBestOf,
   TournamentState,
   TournamentType,
   TrophyConfig,
@@ -37,6 +39,7 @@ import {
   type PlayoffChoice,
 } from "./playoff-step";
 import { buildPreviewState, FixturePreview } from "./fixture-preview";
+import { gamesToWin } from "@/contexts/tournament-context/algorithms/series";
 
 const DEFAULT_TROPHY: TrophyConfig = { shape: "classic", metal: "gold" };
 
@@ -68,6 +71,7 @@ type StepName =
   | "Sides"
   | "Teams"
   | "Playoffs"
+  | "BestOf"
   | "Details"
   | "Fixture";
 
@@ -98,6 +102,7 @@ export function CreationWizard({
   const [trophy, setTrophy] = useState<TrophyConfig>(DEFAULT_TROPHY);
   const [playoffChoice, setPlayoffChoice] = useState<PlayoffChoice>("world-cup");
   const [customConfig, setCustomConfig] = useState<PlayoffConfig>(DEFAULT_CUSTOM);
+  const [seriesBestOf, setSeriesBestOf] = useState<SeriesBestOf>(3);
   // Empty = play now. A datetime-local value parks the game in Upcoming.
   const [scheduleMode, setScheduleMode] = useState(false);
   const [scheduledAt, setScheduledAt] = useState("");
@@ -105,6 +110,15 @@ export function CreationWizard({
 
   const format = FORMATS.find((f) => f.id === formatId) ?? FORMATS[0];
   const algorithm: TournamentType = format.algorithm ?? "round-robin";
+  // A series is always exactly two sides, best-of-N — no group table, no
+  // playoffs, so those steps are swapped out below.
+  const isSeries = format.id === "series";
+  // A tri-series is always exactly three sides, double round-robin, and the
+  // champion is always decided by a fixed top-2 final — no playoff choice.
+  const isTriSeries = format.id === "tri-series";
+  // The side size a format pins the team count to (series: 2, tri-series: 3),
+  // or undefined for formats that just need 2+ teams.
+  const requiredTeams = isSeries ? 2 : isTriSeries ? 3 : undefined;
 
   // Turn attendees + a side size into the team-name strings the engine runs on.
   const built = buildTeams(attendees, sides, extraMode, assign);
@@ -112,14 +126,23 @@ export function CreationWizard({
   const teamCount = sides === 1 ? attendees.length : built.caps.length;
   const teamsComplete = sides === 1 ? attendees.length >= 2 : built.complete;
 
-  // Steps are dynamic: solo skips the team-building screen; playoffs only make
-  // sense with 3+ teams (2 teams is a single decider).
+  // Steps are dynamic: solo skips the team-building screen; a series picks its
+  // best-of length instead of playoffs (it's always exactly 2 sides); a
+  // tri-series has no playoff choice at all (always top-2-into-a-final);
+  // playoffs otherwise only make sense with 3+ teams (2 teams is a single
+  // decider).
   const steps: StepName[] = [
     "Players",
     "Format",
     "Sides",
     ...(sides > 1 ? (["Teams"] as StepName[]) : []),
-    ...(teamCount >= 3 ? (["Playoffs"] as StepName[]) : []),
+    ...(isSeries
+      ? (["BestOf"] as StepName[])
+      : isTriSeries
+        ? []
+        : teamCount >= 3
+          ? (["Playoffs"] as StepName[])
+          : []),
     "Details",
     "Fixture",
   ];
@@ -133,6 +156,13 @@ export function CreationWizard({
     : defaultPlayoffChoice(teamCount);
   const selection = choiceToSelection(effChoice, customConfig, teamCount);
 
+  // One-line description of the match format, reused on the last two steps.
+  const formatSummary = isSeries
+    ? `best of ${seriesBestOf}`
+    : isTriSeries
+      ? "double round-robin + final"
+      : `round-robin${teamCount >= 3 && effChoice !== "none" ? " + playoffs" : ""}`;
+
   // A live, side-effect-free preview of the exact fixtures this will create —
   // shown (and shareable) on the final step before anything is persisted.
   const scheduledStartISO =
@@ -143,6 +173,8 @@ export function CreationWizard({
     maxWickets,
     selection,
     scheduledStartISO,
+    algorithm,
+    seriesBestOf,
   );
 
   const handleAttendeesChange = (next: string[]) => {
@@ -160,9 +192,13 @@ export function CreationWizard({
   const handleFormat = (spec: FormatSpec) => setFormatId(spec.id);
 
   const teamsForSize = (size: number) => Math.floor(attendees.length / size);
+  // Series/tri-series pin the team count to an exact number; every other
+  // format just needs 2+.
   const sizeEnabled = (size: number) => {
     const t = teamsForSize(size);
-    return t >= 2 && t <= MAX_TEAMS;
+    return requiredTeams !== undefined
+      ? t === requiredTeams
+      : t >= 2 && t <= MAX_TEAMS;
   };
 
   const finishReady =
@@ -186,6 +222,8 @@ export function CreationWizard({
         return built.complete;
       case "Playoffs":
         return selection.valid;
+      case "BestOf":
+        return true;
       case "Details":
       case "Fixture":
         return finishReady;
@@ -207,11 +245,19 @@ export function CreationWizard({
     try {
       const scheduledStart =
         scheduleMode && scheduledAt ? new Date(scheduledAt).toISOString() : null;
+      // A series has no playoffs; a tri-series always ends in a top-2 final —
+      // persist those rather than whatever stale playoff choice is sitting
+      // in wizard state.
+      const playoffFormat = isSeries
+        ? "none"
+        : isTriSeries
+          ? "final-only"
+          : selection.format;
       const { id } = await createTournamentAction(
         {
           name: name.trim(),
           algorithm,
-          playoffFormat: selection.format,
+          playoffFormat,
           maxOvers,
           maxWickets,
           scheduledStart,
@@ -226,19 +272,34 @@ export function CreationWizard({
       });
       const res = store.generate({
         teams,
+        algorithm,
         maxOvers,
         maxWickets,
-        playoffFormat: selection.format,
-        playoffConfig: selection.config,
+        playoffFormat,
+        playoffConfig: isSeries || isTriSeries ? null : selection.config,
+        seriesBestOf: isSeries ? seriesBestOf : undefined,
         trophy,
       });
       if (!res.success) throw new Error(res.errors?.[0] ?? "Generate failed");
       // Stamp who turned out so the picker leads with regulars next time.
       if (clubId) await markPlayedAction(clubId, attendees);
       if (scheduledStart) {
-        // Mirror the schedule into local state (kept on the next Sync), then
-        // send them home where it waits in Upcoming — don't open scoring yet.
+        // Mirror the schedule into local state, then persist right away so
+        // the Upcoming card on the homepage shows the real team count
+        // instead of 0 — otherwise nothing writes the teams to the DB until
+        // this device opens the tournament again and hits Sync.
         store.setSchedule(scheduledStart, undefined);
+        try {
+          const { updatedAt } = await syncTournamentAction(
+            id,
+            store.getSnapshot().state,
+          );
+          store.markSynced(updatedAt);
+        } catch (err) {
+          // Non-fatal: still saved locally on this device and will sync
+          // next time it's opened.
+          console.error("Failed to sync scheduled tournament:", err);
+        }
         router.push("/");
       } else {
         router.push(`/tournament/round-robin/${id}/matches`);
@@ -289,12 +350,19 @@ export function CreationWizard({
         {stepName === "Sides" && (
           <StepShell
             title="How do you split up?"
-            hint="Solo, or team up. Match counts are exact — they don't change with overs."
+            hint={
+              isSeries
+                ? "A series is head-to-head — pick a side size that splits everyone into exactly 2 teams."
+                : isTriSeries
+                  ? "A tri-series needs exactly 3 sides — pick a side size that splits everyone evenly into 3."
+                  : "Solo, or team up. Match counts are exact — they don't change with overs."
+            }
           >
             <SidesStep
               value={sides}
               onChange={handleSidesChange}
               n={attendees.length}
+              exactTeams={requiredTeams}
             />
           </StepShell>
         )}
@@ -330,14 +398,21 @@ export function CreationWizard({
           </StepShell>
         )}
 
+        {stepName === "BestOf" && (
+          <StepShell
+            title="Best of how many?"
+            hint="The series ends the moment either side can't be caught."
+          >
+            <BestOfStep value={seriesBestOf} onChange={setSeriesBestOf} />
+          </StepShell>
+        )}
+
         {stepName === "Details" && (
           <StepShell
             title="Name it and pick the prize"
             hint={`${teamCount} ${
               sides === 1 ? "players" : "teams"
-            } · round-robin${
-              teamCount >= 3 && effChoice !== "none" ? " + playoffs" : ""
-            }`}
+            } · ${formatSummary}`}
           >
             <FinishStep
               name={name}
@@ -363,9 +438,7 @@ export function CreationWizard({
             title={name.trim() || "Your fixture"}
             hint={`${teamCount} ${
               sides === 1 ? "players" : "teams"
-            } · round-robin${
-              teamCount >= 3 && effChoice !== "none" ? " + playoffs" : ""
-            } · ${maxOvers} overs, ${maxWickets} wkts`}
+            } · ${formatSummary} · ${maxOvers} overs, ${maxWickets} wkts`}
           >
             <FixtureStep
               previewState={previewState}
@@ -447,10 +520,14 @@ function SidesStep({
   value,
   onChange,
   n,
+  exactTeams,
 }: {
   value: 1 | 2 | 3;
   onChange: (v: 1 | 2 | 3) => void;
   n: number;
+  /** When set (series), only a side size that produces exactly this many
+   *  teams is selectable — instead of the usual 2..MAX_TEAMS range. */
+  exactTeams?: number;
 }) {
   const options: { v: 1 | 2 | 3; label: string; sub: string }[] = [
     { v: 1, label: "Solo", sub: "one player a side" },
@@ -461,7 +538,8 @@ function SidesStep({
     <VStack align="stretch" gap={2.5}>
       {options.map((o) => {
         const t = Math.floor(n / o.v);
-        const enabled = t >= 2 && t <= MAX_TEAMS;
+        const enabled =
+          exactTeams !== undefined ? t === exactTeams : t >= 2 && t <= MAX_TEAMS;
         const selected = value === o.v;
         const leftover = n - t * o.v;
         return (
@@ -488,36 +566,92 @@ function SidesStep({
                 {o.label}
               </Text>
               <Text fontSize="xs" color="fg.muted">
-                {enabled ? `${t} ${o.v === 1 ? "players" : "teams"}` : "not enough players"}
+                {enabled
+                  ? `${t} ${o.v === 1 ? "players" : "teams"}`
+                  : exactTeams !== undefined
+                    ? `doesn't split into ${exactTeams}`
+                    : "not enough players"}
               </Text>
             </HStack>
             {enabled ? (
-              <HStack
-                gap={3}
-                mt={2}
-                fontSize="xs"
-                color="fg.muted"
-                fontVariantNumeric="tabular-nums"
-              >
-                <Text>
-                  <Text as="span" fontWeight="semibold" color="fg.default">
-                    {rr(t)}
-                  </Text>{" "}
-                  match{rr(t) === 1 ? "" : "es"}
+              exactTeams !== undefined ? (
+                <Text fontSize="xs" color="fg.muted" mt={1}>
+                  {leftover > 0
+                    ? `${exactTeams} sides · ${leftover} spare`
+                    : `${exactTeams} sides`}
                 </Text>
-                <Text>
-                  everyone plays{" "}
-                  <Text as="span" fontWeight="semibold" color="fg.default">
-                    {t - 1}
+              ) : (
+                <HStack
+                  gap={3}
+                  mt={2}
+                  fontSize="xs"
+                  color="fg.muted"
+                  fontVariantNumeric="tabular-nums"
+                >
+                  <Text>
+                    <Text as="span" fontWeight="semibold" color="fg.default">
+                      {rr(t)}
+                    </Text>{" "}
+                    match{rr(t) === 1 ? "" : "es"}
                   </Text>
-                </Text>
-                {leftover > 0 && <Text>· {leftover} spare</Text>}
-              </HStack>
+                  <Text>
+                    everyone plays{" "}
+                    <Text as="span" fontWeight="semibold" color="fg.default">
+                      {t - 1}
+                    </Text>
+                  </Text>
+                  {leftover > 0 && <Text>· {leftover} spare</Text>}
+                </HStack>
+              )
             ) : (
               <Text fontSize="xs" color="fg.muted" mt={1}>
                 {o.sub}
               </Text>
             )}
+          </Box>
+        );
+      })}
+    </VStack>
+  );
+}
+
+function BestOfStep({
+  value,
+  onChange,
+}: {
+  value: SeriesBestOf;
+  onChange: (v: SeriesBestOf) => void;
+}) {
+  const options: SeriesBestOf[] = [3, 5, 7];
+  return (
+    <VStack align="stretch" gap={2.5}>
+      {options.map((v) => {
+        const selected = value === v;
+        return (
+          <Box
+            as="button"
+            key={v}
+            onClick={() => onChange(v)}
+            aria-pressed={selected}
+            textAlign="left"
+            p={4}
+            borderRadius="xl"
+            borderWidth={selected ? 2 : 1}
+            colorPalette="brand"
+            borderColor={selected ? "colorPalette.500" : "border.default"}
+            bg={selected ? { base: "brand.50", _dark: "brand.950" } : "card.bg"}
+            cursor="pointer"
+            transition="all 0.15s"
+            _hover={!selected ? { borderColor: "colorPalette.300" } : {}}
+          >
+            <HStack justify="space-between" align="baseline" gap={2}>
+              <Text fontFamily="heading" fontWeight="bold" fontSize="md" color="fg.default">
+                Best of {v}
+              </Text>
+              <Text fontSize="xs" color="fg.muted">
+                first to {gamesToWin(v)} wins
+              </Text>
+            </HStack>
           </Box>
         );
       })}

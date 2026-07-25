@@ -43,11 +43,16 @@ export function TournamentHeader({ name }: { name: string }) {
   const base = `/tournament/round-robin/${store.id}`;
   const tabs = [
     { href: `${base}/matches`, label: "Matches" },
-    { href: `${base}/standings`, label: "Standings" },
+    {
+      href: `${base}/standings`,
+      label: state.algorithm === "series" ? "Series" : "Standings",
+    },
     { href: `${base}/stats`, label: "Stats" },
   ];
 
-  const total = state.matches.length;
+  // A clinched series cancels its unplayed games — they were never going to
+  // happen, so they don't count toward the total.
+  const total = state.matches.filter((m) => m.status !== "cancelled").length;
   const completed = state.matches.filter((m) => m.status === "completed").length;
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
   const done = pct === 100;

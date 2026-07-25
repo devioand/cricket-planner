@@ -167,6 +167,7 @@ describe("TournamentStore — mutations persist locally", () => {
     });
     const result = store.generate({
       teams: ["AAA", "BBB", "CCC"],
+      algorithm: "round-robin",
       maxOvers: 10,
       maxWickets: 10,
       playoffFormat: "world-cup",

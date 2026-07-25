@@ -896,6 +896,7 @@ describe("Cricket Stats Module", () => {
         phase: "round-robin",
         playoffFormat: qualifiers === null ? "none" : "world-cup",
         playoffConfig,
+        seriesBestOf: 3,
       };
     };
 

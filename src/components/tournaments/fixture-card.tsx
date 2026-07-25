@@ -163,11 +163,12 @@ export const FixtureCard = forwardRef<HTMLDivElement, FixtureCardProps>(
           </div>
         )}
 
-        {/* Group stage */}
+        {/* Group stage (or a head-to-head series) */}
         {groupMatches.length > 0 && (
           <>
             <SectionLabel>
-              GROUP STAGE · {groupMatches.length} GAMES
+              {state.algorithm === "series" ? "SERIES" : "GROUP STAGE"} ·{" "}
+              {groupMatches.length} GAMES
             </SectionLabel>
             <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 22 }}>
               {groupMatches.map((m, i) => (

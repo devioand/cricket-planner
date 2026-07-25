@@ -14,6 +14,7 @@ import type {
   TournamentType,
   TournamentPhase,
   PlayoffFormat,
+  SeriesBestOf,
   TossDecision,
   TrophyConfig,
 } from "@/contexts/tournament-context/types";
@@ -354,6 +355,7 @@ async function loadRecord(db: Db, t: Row): Promise<TournamentRecord> {
     phase: t.phase as TournamentPhase,
     playoffFormat,
     playoffConfig,
+    seriesBestOf: (numOrUndef(t.series_best_of) as SeriesBestOf) ?? 3,
     trophy: (t.trophy as TrophyConfig) ?? null,
     scheduledStart: isoOrUndef(t.scheduled_start),
     scheduledEnd: isoOrUndef(t.scheduled_end),
@@ -435,8 +437,8 @@ async function writeState(
         set algorithm = $1, playoff_format = $2, playoff_config = $3,
             max_overs = $4, max_wickets = $5, is_generated = $6, phase = $7,
             status = $8, winner = $9, trophy = $10,
-            scheduled_start = $11, scheduled_end = $12
-      where id = $13 and user_id = $14
+            scheduled_start = $11, scheduled_end = $12, series_best_of = $13
+      where id = $14 and user_id = $15
       returning updated_at`,
     [
       state.algorithm,
@@ -451,6 +453,7 @@ async function writeState(
       state.trophy ? JSON.stringify(state.trophy) : null,
       state.scheduledStart ?? null,
       state.scheduledEnd ?? null,
+      state.seriesBestOf,
       id,
       userId,
     ],

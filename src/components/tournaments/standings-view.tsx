@@ -5,11 +5,14 @@ import { Heading, Text, VStack, Box, Skeleton } from "@chakra-ui/react";
 import { useLiveTournament } from "@/contexts/tournament-context/live-provider";
 import { getStandings } from "@/contexts/tournament-context/engine";
 import { TournamentStandings } from "@/components/tournaments/tournament-standings";
+import { SeriesScoreline } from "@/components/tournaments/series-scoreline";
 import { Button } from "@/components/ui/button";
 
-/** Standings tab — derived live from the local store's tournament state. */
+/** Standings tab — derived live from the local store's tournament state.
+ *  A series has no table, so it shows a head-to-head scoreline instead. */
 export function StandingsView() {
   const { state, hydrating } = useLiveTournament();
+  const isSeries = state.algorithm === "series";
   const standings = getStandings(state);
 
   return (
@@ -23,7 +26,7 @@ export function StandingsView() {
             colorPalette="brand"
             mb={2}
           >
-            🏆 Tournament Standings
+            🏆 {isSeries ? "The Series" : "Tournament Standings"}
           </Heading>
           <Text
             color="fg.muted"
@@ -31,7 +34,9 @@ export function StandingsView() {
             maxW="2xl"
             mx="auto"
           >
-            View group stage standings (playoff matches excluded)
+            {isSeries
+              ? "Head-to-head — first to a winning majority takes it"
+              : "View group stage standings (playoff matches excluded)"}
           </Text>
         </Box>
       </VStack>
@@ -58,6 +63,8 @@ export function StandingsView() {
             </Button>
           </Link>
         </Box>
+      ) : isSeries ? (
+        <SeriesScoreline state={state} />
       ) : (
         <TournamentStandings
           standings={standings}

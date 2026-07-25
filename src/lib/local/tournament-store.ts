@@ -18,7 +18,9 @@ import type {
   TournamentState,
   PlayoffConfig,
   PlayoffFormat,
+  SeriesBestOf,
   TossDecision,
+  TournamentType,
   TrophyConfig,
 } from "@/contexts/tournament-context/types";
 import * as engine from "@/contexts/tournament-context/engine";
@@ -64,13 +66,20 @@ const STORAGE_VERSION = 2;
  * Bring a persisted state up to the current shape. v1 states have no
  * `playoffConfig`; rebuild it from the format + team count so bracket
  * advancement keeps working for tournaments generated before this field existed.
+ * States saved before the "series" format also lack `seriesBestOf` — default it.
  */
 function normalizeState(state: TournamentState): TournamentState {
-  if (state.playoffConfig !== undefined) return state;
-  const config: PlayoffConfig | null = state.isGenerated
-    ? buildPlayoffConfig(state.playoffFormat, state.teams.length, null)
-    : null;
-  return { ...state, playoffConfig: config };
+  let next = state;
+  if (next.playoffConfig === undefined) {
+    const config: PlayoffConfig | null = next.isGenerated
+      ? buildPlayoffConfig(next.playoffFormat, next.teams.length, null)
+      : null;
+    next = { ...next, playoffConfig: config };
+  }
+  if (next.seriesBestOf === undefined) {
+    next = { ...next, seriesBestOf: 3 };
+  }
+  return next;
 }
 
 /** The ONLY key shape this store ever reads or writes. Always per-id. */
@@ -207,10 +216,12 @@ export class TournamentStore {
   /** Build teams + settings + schedule locally (mirrors the old generate action). */
   generate(setup: {
     teams: string[];
+    algorithm: TournamentType;
     maxOvers: number;
     maxWickets: number;
     playoffFormat: PlayoffFormat;
     playoffConfig?: PlayoffConfig | null;
+    seriesBestOf?: SeriesBestOf;
     trophy?: TrophyConfig | null;
   }): { success: boolean; errors?: string[] } {
     if (this.snapshot.readOnly) return { success: false };
@@ -225,10 +236,12 @@ export class TournamentStore {
       trophy: setup.trophy ?? null,
     };
     for (const team of setup.teams) next = engine.addTeam(next, team);
+    next = engine.setAlgorithm(next, setup.algorithm);
     next = engine.setMaxOvers(next, setup.maxOvers);
     next = engine.setMaxWickets(next, setup.maxWickets);
     next = engine.setPlayoffFormat(next, setup.playoffFormat);
     next = engine.setPlayoffConfig(next, setup.playoffConfig ?? null);
+    if (setup.seriesBestOf) next = engine.setSeriesBestOf(next, setup.seriesBestOf);
 
     const gen = engine.generateMatches(next);
     if (gen.success) this.commit(gen.state);

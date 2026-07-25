@@ -50,13 +50,17 @@ export function MatchesView() {
     );
   }
 
+  // Cancelled matches are series games dropped once the series was clinched
+  // early — they were never going to be played, so they don't show up here.
   const roundRobinMatches = state.matches
-    .filter((m) => !m.isPlayoff)
+    .filter((m) => !m.isPlayoff && m.status !== "cancelled")
     .sort((a, b) => a.round - b.round);
   const playoffMatches = state.matches
     .filter((m) => m.isPlayoff)
     .sort((a, b) => a.round - b.round);
-  const pending = state.matches.filter((m) => m.status !== "completed").length;
+  const pending = state.matches.filter(
+    (m) => m.status !== "completed" && m.status !== "cancelled",
+  ).length;
   const qualifiedTeams = getQualifiedTeams(state);
 
   return (

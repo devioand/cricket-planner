@@ -21,26 +21,36 @@ import { LuInfo, LuTrophy } from "react-icons/lu";
 import * as engine from "@/contexts/tournament-context/engine";
 import type {
   PlayoffSlot,
+  SeriesBestOf,
   TournamentState,
+  TournamentType,
 } from "@/contexts/tournament-context/types";
 import { predictWin, type FormData } from "@/lib/predictions";
 import type { PlayoffSelection } from "./playoff-designer";
 
-/** Build the full fixture state (round-robin + playoffs) from wizard inputs,
- *  with NO side effects. Returns the ungenerated state if teams are invalid. */
+/** Build the full fixture state (round-robin + playoffs, or a series) from
+ *  wizard inputs, with NO side effects. Returns the ungenerated state if
+ *  teams are invalid. `selection` is ignored for a series (no playoffs). */
 export function buildPreviewState(
   teams: string[],
   maxOvers: number,
   maxWickets: number,
   selection: PlayoffSelection,
-  scheduledStart?: string,
+  scheduledStart: string | undefined,
+  algorithm: TournamentType,
+  seriesBestOf: SeriesBestOf,
 ): TournamentState {
   let s = engine.initialState;
   for (const t of teams) s = engine.addTeam(s, t);
+  s = engine.setAlgorithm(s, algorithm);
   s = engine.setMaxOvers(s, maxOvers);
   s = engine.setMaxWickets(s, maxWickets);
-  s = engine.setPlayoffFormat(s, selection.format);
-  s = engine.setPlayoffConfig(s, selection.config);
+  if (algorithm === "series") {
+    s = engine.setSeriesBestOf(s, seriesBestOf);
+  } else {
+    s = engine.setPlayoffFormat(s, selection.format);
+    s = engine.setPlayoffConfig(s, selection.config);
+  }
   if (scheduledStart) s = engine.setSchedule(s, scheduledStart, undefined);
   const res = engine.generateMatches(s);
   return res.success ? res.state : s;
@@ -68,13 +78,14 @@ export function FixturePreview({
   const labelById = new Map(specs.map((s) => [s.id, s.label]));
 
   if (group.length === 0 && specs.length === 0) return null;
+  const isSeries = state.algorithm === "series";
 
   return (
     <VStack align="stretch" gap={5}>
       {group.length > 0 && (
         <Box>
           <SectionLabel count={`${group.length} ${group.length === 1 ? "game" : "games"}`}>
-            Group stage
+            {isSeries ? "Series" : "Group stage"}
           </SectionLabel>
           <VStack align="stretch" gap={2.5}>
             {group.map((m, i) => (

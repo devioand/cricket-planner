@@ -4,7 +4,13 @@ export type TournamentType =
   | "round-robin"
   | "single-elimination"
   | "double-elimination"
-  | "triple-elimination";
+  | "triple-elimination"
+  | "series"
+  | "tri-series";
+
+/** Valid best-of lengths for the "series" format — always odd, so there's
+ *  always a majority winner. */
+export type SeriesBestOf = 3 | 5 | 7;
 
 export type TournamentPhase =
   | "setup"
@@ -164,6 +170,9 @@ export interface TournamentState {
   // The resolved playoff structure used to generate playoff matches.
   // null before generation and for the "none" format.
   playoffConfig: PlayoffConfig | null;
+  // Best-of length for the "series" format (3/5/7). Ignored by every other
+  // algorithm, but always present so the state shape stays uniform.
+  seriesBestOf: SeriesBestOf;
   // The champion's trophy, designed in the wizard. Optional: absent on
   // tournaments created before trophies existed (they get a default in the UI).
   trophy?: TrophyConfig | null;
